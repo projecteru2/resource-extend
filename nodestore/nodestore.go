@@ -7,7 +7,6 @@ import (
 	"fmt"
 
 	"github.com/cockroachdb/errors"
-
 	"github.com/projecteru2/core/store/etcdv3/embedded"
 	"github.com/projecteru2/core/store/etcdv3/meta"
 	coretypes "github.com/projecteru2/core/types"

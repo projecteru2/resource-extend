@@ -4,9 +4,8 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-
 	resourcetypes "github.com/projecteru2/core/resource/types"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestWorkloadResource(t *testing.T) {

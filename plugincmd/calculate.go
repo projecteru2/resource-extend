@@ -4,12 +4,11 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/urfave/cli/v3"
-
 	"github.com/projecteru2/core/resource/plugins"
 	"github.com/projecteru2/core/resource/plugins/binary"
 	plugintypes "github.com/projecteru2/core/resource/plugins/types"
 	resourcetypes "github.com/projecteru2/core/resource/types"
+	"github.com/urfave/cli/v3"
 )
 
 func (r *runner) calculateCommands() []*cli.Command {

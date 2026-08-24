@@ -8,12 +8,11 @@ import (
 	"os"
 	"slices"
 
-	"github.com/urfave/cli/v3"
-
 	"github.com/projecteru2/core/resource/plugins"
 	resourcetypes "github.com/projecteru2/core/resource/types"
 	coretypes "github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
+	"github.com/urfave/cli/v3"
 
 	"github.com/projecteru2/resource-extend/version"
 )
@@ -25,26 +24,6 @@ const (
 
 // Factory builds the plugin a command tree drives.
 type Factory func(ctx context.Context, config coretypes.Config) (plugins.Plugin, error)
-
-// New builds the command tree of a resource plugin binary.
-func New(name, usage, configPath string, newPlugin Factory) *cli.Command {
-	r := &runner{newPlugin: newPlugin}
-	return &cli.Command{
-		Name:    name,
-		Usage:   usage,
-		Version: version.VERSION,
-		Flags: []cli.Flag{
-			&cli.StringFlag{
-				Name:        "config",
-				Value:       configPath,
-				Usage:       "config file path for plugin, in yaml",
-				Destination: &r.configPath,
-				Sources:     cli.EnvVars("ERU_RESOURCE_CONFIG_PATH"),
-			},
-		},
-		Commands: r.commands(),
-	}
-}
 
 type handler func(ctx context.Context, p plugins.Plugin, in resourcetypes.RawParams) (any, error)
 
@@ -101,6 +80,26 @@ func (r *runner) serve(ctx context.Context, h handler) error {
 	}
 	fmt.Print(string(data))
 	return nil
+}
+
+// New builds the command tree of a resource plugin binary.
+func New(name, usage, configPath string, newPlugin Factory) *cli.Command {
+	r := &runner{newPlugin: newPlugin}
+	return &cli.Command{
+		Name:    name,
+		Usage:   usage,
+		Version: version.VERSION,
+		Flags: []cli.Flag{
+			&cli.StringFlag{
+				Name:        "config",
+				Value:       configPath,
+				Usage:       "config file path for plugin, in yaml",
+				Destination: &r.configPath,
+				Sources:     cli.EnvVars("ERU_RESOURCE_CONFIG_PATH"),
+			},
+		},
+		Commands: r.commands(),
+	}
 }
 
 func name(_ context.Context, p plugins.Plugin, _ resourcetypes.RawParams) (any, error) {

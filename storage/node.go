@@ -6,13 +6,12 @@ import (
 	"math"
 
 	"github.com/cockroachdb/errors"
-	"github.com/sanity-io/litter"
-
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
 	plugintypes "github.com/projecteru2/core/resource/plugins/types"
 	coretypes "github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
+	"github.com/sanity-io/litter"
 
 	"github.com/projecteru2/resource-extend/storage/schedule"
 	storagetypes "github.com/projecteru2/resource-extend/storage/types"

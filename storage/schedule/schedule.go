@@ -6,7 +6,6 @@ import (
 	"sort"
 
 	"github.com/cockroachdb/errors"
-
 	"github.com/projecteru2/core/log"
 	coretypes "github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"

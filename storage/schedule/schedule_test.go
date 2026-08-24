@@ -4,14 +4,13 @@ import (
 	"testing"
 
 	"github.com/docker/go-units"
-	"github.com/stretchr/testify/assert"
-
 	"github.com/projecteru2/core/utils"
+	"github.com/stretchr/testify/assert"
 
 	"github.com/projecteru2/resource-extend/storage/types"
 )
 
-var maxDeployCount = 1000
+const maxDeployCount = 1000
 
 func TestGetVolumePlans(t *testing.T) {
 	// no volume

@@ -6,13 +6,12 @@ import (
 	"testing"
 
 	"github.com/cockroachdb/errors"
-	"github.com/stretchr/testify/assert"
-
 	enginetypes "github.com/projecteru2/core/engine/types"
 	binarytypes "github.com/projecteru2/core/resource/plugins/binary/types"
 	plugintypes "github.com/projecteru2/core/resource/plugins/types"
 	resourcetypes "github.com/projecteru2/core/resource/types"
 	coretypes "github.com/projecteru2/core/types"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestHandlersDecodeCoreRequest(t *testing.T) {

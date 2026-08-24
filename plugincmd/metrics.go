@@ -3,11 +3,10 @@ package plugincmd
 import (
 	"context"
 
-	"github.com/urfave/cli/v3"
-
 	"github.com/projecteru2/core/resource/plugins"
 	"github.com/projecteru2/core/resource/plugins/binary"
 	resourcetypes "github.com/projecteru2/core/resource/types"
+	"github.com/urfave/cli/v3"
 )
 
 func (r *runner) metricsCommands() []*cli.Command {
