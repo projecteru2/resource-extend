@@ -11,7 +11,6 @@ import (
 	"github.com/cockroachdb/errors"
 	"github.com/projecteru2/core/log"
 	coretypes "github.com/projecteru2/core/types"
-	"github.com/projecteru2/core/utils"
 
 	"github.com/projecteru2/resource-extend/storage/types"
 )
@@ -122,11 +121,11 @@ func (h *host) increaseIOPSQuota(disk *types.Disk, req *types.VolumeBinding) {
 }
 
 func (h *host) getMonoPlan(monoRequests types.VolumeBindings, volume *volume) (types.VolumePlan, *types.Disk, error) {
-	totalSize := utils.Sum(utils.Map(monoRequests, func(req *types.VolumeBinding) int64 { return req.SizeInBytes }))
-	totalReadIOPS := utils.Sum(utils.Map(monoRequests, func(req *types.VolumeBinding) int64 { return req.ReadIOPS }))
-	totalWriteIOPS := utils.Sum(utils.Map(monoRequests, func(req *types.VolumeBinding) int64 { return req.WriteIOPS }))
-	totalReadBPS := utils.Sum(utils.Map(monoRequests, func(req *types.VolumeBinding) int64 { return req.ReadBPS }))
-	totalWriteBPS := utils.Sum(utils.Map(monoRequests, func(req *types.VolumeBinding) int64 { return req.WriteBPS }))
+	totalSize := sumBy(monoRequests, func(req *types.VolumeBinding) int64 { return req.SizeInBytes })
+	totalReadIOPS := sumBy(monoRequests, func(req *types.VolumeBinding) int64 { return req.ReadIOPS })
+	totalWriteIOPS := sumBy(monoRequests, func(req *types.VolumeBinding) int64 { return req.WriteIOPS })
+	totalReadBPS := sumBy(monoRequests, func(req *types.VolumeBinding) int64 { return req.ReadBPS })
+	totalWriteBPS := sumBy(monoRequests, func(req *types.VolumeBinding) int64 { return req.WriteBPS })
 
 	if volume.size < totalSize {
 		return nil, nil, coretypes.ErrInsufficientResource
@@ -170,9 +169,9 @@ func (h *host) getMonoPlan(monoRequests types.VolumeBindings, volume *volume) (t
 
 func (h *host) getMonoPlans(monoRequests types.VolumeBindings) ([]types.VolumePlan, []types.Disks) {
 	if len(monoRequests) == 0 {
-		return utils.GenerateSlice(h.maxDeployCount, func() types.VolumePlan {
+		return repeatWith(h.maxDeployCount, func() types.VolumePlan {
 				return types.VolumePlan{}
-			}), utils.GenerateSlice(h.maxDeployCount, func() types.Disks {
+			}), repeatWith(h.maxDeployCount, func() types.Disks {
 				return types.Disks{}
 			})
 	}
@@ -247,11 +246,11 @@ func (h *host) getNormalPlan(normalRequests types.VolumeBindings) (types.VolumeP
 }
 
 func (h *host) getNormalPlans(normalRequests, mountRequests types.VolumeBindings) ([]types.VolumePlan, []types.Disks) {
-	needScheduleMountRequest := utils.Any(mountRequests, func(req *types.VolumeBinding) bool { return req.RequireIOPS() })
+	needScheduleMountRequest := slices.ContainsFunc(mountRequests, func(req *types.VolumeBinding) bool { return req.RequireIOPS() })
 	if len(normalRequests) == 0 && !needScheduleMountRequest {
-		return utils.GenerateSlice(h.maxDeployCount, func() types.VolumePlan {
+		return repeatWith(h.maxDeployCount, func() types.VolumePlan {
 				return types.VolumePlan{}
-			}), utils.GenerateSlice(h.maxDeployCount, func() types.Disks {
+			}), repeatWith(h.maxDeployCount, func() types.Disks {
 				return types.Disks{}
 			})
 	}
@@ -279,7 +278,7 @@ func (h *host) getNormalPlans(normalRequests, mountRequests types.VolumeBindings
 
 func (h *host) getUnlimitedPlans(normalPlans, monoPlans []types.VolumePlan, unlimitedRequests types.VolumeBindings, capacity int) ([]types.VolumePlan, error) {
 	if len(unlimitedRequests) == 0 {
-		return utils.GenerateSlice(capacity, func() types.VolumePlan { return types.VolumePlan{} }), nil
+		return repeatWith(capacity, func() types.VolumePlan { return types.VolumePlan{} }), nil
 	}
 	allVolumes := slices.Concat(h.usedVolumes.DeepCopy(), h.unusedVolumes.DeepCopy())
 	if len(allVolumes) == 0 {
@@ -298,7 +297,7 @@ func (h *host) getUnlimitedPlans(normalPlans, monoPlans []types.VolumePlan, unli
 
 	volumeWithLargestSize := slices.MaxFunc(allVolumes, func(a, b *volume) int { return cmp.Compare(a.size, b.size) })
 
-	return utils.GenerateSlice(capacity, func() types.VolumePlan {
+	return repeatWith(capacity, func() types.VolumePlan {
 		volumePlan := types.VolumePlan{}
 		for _, req := range unlimitedRequests {
 			volumePlan[req] = types.Volumes{volumeWithLargestSize.device: req.SizeInBytes}
@@ -349,12 +348,12 @@ func (h *host) getMountDiskPlan(reqs types.VolumeBindings) (types.Disks, error) 
 }
 
 func (h *host) getVolumePlans(ctx context.Context, requests types.VolumeBindings) ([]types.VolumePlan, []types.Disks) {
-	if !utils.Any(requests, func(req *types.VolumeBinding) bool {
+	if !slices.ContainsFunc(requests, func(req *types.VolumeBinding) bool {
 		return req.RequireSchedule() || req.RequireIOPS()
 	}) {
-		return utils.GenerateSlice(h.maxDeployCount, func() types.VolumePlan {
+		return repeatWith(h.maxDeployCount, func() types.VolumePlan {
 				return types.VolumePlan{}
-			}), utils.GenerateSlice(h.maxDeployCount, func() types.Disks {
+			}), repeatWith(h.maxDeployCount, func() types.Disks {
 				return types.Disks{}
 			})
 	}
@@ -429,8 +428,8 @@ func (h *host) getVolumePlans(ctx context.Context, requests types.VolumeBindings
 		return nil, nil
 	}
 
-	resVolumePlans := utils.GenerateSlice(bestCapacity, func() types.VolumePlan { return types.VolumePlan{} })
-	resDiskPlans := utils.GenerateSlice(bestCapacity, func() types.Disks { return types.Disks{} })
+	resVolumePlans := repeatWith(bestCapacity, func() types.VolumePlan { return types.VolumePlan{} })
+	resDiskPlans := repeatWith(bestCapacity, func() types.Disks { return types.Disks{} })
 
 	for i := range bestCapacity {
 		resVolumePlans[i] = normalVolumePlans[i]
@@ -474,7 +473,7 @@ func (h *host) classifyAffinityRequests(requests types.VolumeBindings, existing 
 
 func (h *host) getAffinityPlan(ctx context.Context, requests types.VolumeBindings, originVolumePlan types.VolumePlan, originRequests types.VolumeBindings) (types.VolumePlan, types.Disks, error) {
 	logger := log.WithFunc("resource.storage.getAffinityPlan")
-	if !utils.Any(requests, func(req *types.VolumeBinding) bool { return req.RequireSchedule() || req.RequireIOPS() }) {
+	if !slices.ContainsFunc(requests, func(req *types.VolumeBinding) bool { return req.RequireSchedule() || req.RequireIOPS() }) {
 		return types.VolumePlan{}, types.Disks{}, nil
 	}
 
@@ -564,7 +563,7 @@ func (h *host) getAffinityPlan(ctx context.Context, requests types.VolumeBinding
 		return nil, nil, err
 	}
 
-	totalRequestSize := utils.Sum(utils.Map(monoRequests, func(req *types.VolumeBinding) int64 { return req.SizeInBytes }))
+	totalRequestSize := sumBy(monoRequests, func(req *types.VolumeBinding) int64 { return req.SizeInBytes })
 	totalVolumeSize := int64(0)
 	for req, volumeMap := range originVolumePlan {
 		if req.RequireScheduleMonopoly() {

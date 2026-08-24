@@ -1,10 +1,10 @@
 package schedule
 
 import (
+	"slices"
 	"testing"
 
 	"github.com/docker/go-units"
-	"github.com/projecteru2/core/utils"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/projecteru2/resource-extend/storage/types"
@@ -349,7 +349,7 @@ func validateVolumePlans(t *testing.T, resourceInfo *types.NodeResourceInfo, vol
 	for _, plan := range volumePlans {
 		validateVolumePlan(t, resourceInfo, volumeRequest, plan)
 	}
-	if utils.Any(volumeRequest, func(plan *types.VolumeBinding) bool {
+	if slices.ContainsFunc(volumeRequest, func(plan *types.VolumeBinding) bool {
 		return plan.RequireSchedule() && !plan.RequireScheduleUnlimitedQuota()
 	}) {
 		noMorePlans(t, resourceInfo, volumePlans, volumeRequest)

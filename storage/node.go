@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"slices"
 
 	"github.com/cockroachdb/errors"
 	enginetypes "github.com/projecteru2/core/engine/types"
@@ -122,9 +123,9 @@ func (p Plugin) SetNodeResourceCapacity(ctx context.Context, nodename string, re
 			for _, rmDisk := range req.RMDisks {
 				rmDisksMap[rmDisk] = struct{}{}
 			}
-			nodeResourceInfo.Capacity.Disks = utils.Filter(nodeResourceInfo.Capacity.Disks, func(d *storagetypes.Disk) bool {
+			nodeResourceInfo.Capacity.Disks = slices.DeleteFunc(nodeResourceInfo.Capacity.Disks, func(d *storagetypes.Disk) bool {
 				_, ok := rmDisksMap[d.Device]
-				return !ok
+				return ok
 			})
 		}
 		if !delta {

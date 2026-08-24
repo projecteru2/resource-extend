@@ -2,13 +2,13 @@ package storage
 
 import (
 	"context"
+	"slices"
 
 	"github.com/cockroachdb/errors"
 	"github.com/projecteru2/core/log"
 	plugintypes "github.com/projecteru2/core/resource/plugins/types"
 	resourcetypes "github.com/projecteru2/core/resource/types"
 	coretypes "github.com/projecteru2/core/types"
-	"github.com/projecteru2/core/utils"
 	"github.com/sanity-io/litter"
 
 	"github.com/projecteru2/resource-extend/storage/schedule"
@@ -71,7 +71,7 @@ func (p Plugin) CalculateRealloc(ctx context.Context, nodename string, resource 
 	if req.VolumesRequest == nil {
 		req.VolumesRequest = req.VolumesLimit
 	}
-	needVolumeReschedule := utils.Any(req.VolumesRequest, func(volume *storagetypes.VolumeBinding) bool { return volume.RequireSchedule() || volume.RequireIOPS() })
+	needVolumeReschedule := slices.ContainsFunc(req.VolumesRequest, func(volume *storagetypes.VolumeBinding) bool { return volume.RequireSchedule() || volume.RequireIOPS() })
 
 	req = &storagetypes.WorkloadResourceRequest{
 		VolumesRequest: storagetypes.MergeVolumeBindings(req.VolumesRequest, originResource.VolumesRequest),
@@ -162,7 +162,7 @@ func (p Plugin) doAlloc(ctx context.Context, resourceInfo *storagetypes.NodeReso
 	var volumePlans []storagetypes.VolumePlan
 	var diskPlans []storagetypes.Disks
 
-	if !utils.Any(req.VolumesRequest, func(b *storagetypes.VolumeBinding) bool { return b.RequireSchedule() || b.RequireIOPS() }) {
+	if !slices.ContainsFunc(req.VolumesRequest, func(b *storagetypes.VolumeBinding) bool { return b.RequireSchedule() || b.RequireIOPS() }) {
 		for range deployCount {
 			volumePlans = append(volumePlans, storagetypes.VolumePlan{})
 			diskPlans = append(diskPlans, storagetypes.Disks{})

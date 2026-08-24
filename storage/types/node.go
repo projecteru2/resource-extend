@@ -122,9 +122,9 @@ func (n *NodeResourceInfo) validateDisks() error {
 		}
 
 	}
-	n.Usage.Disks = coreutils.Filter(n.Usage.Disks, func(disk *Disk) bool {
+	n.Usage.Disks = slices.DeleteFunc(n.Usage.Disks, func(disk *Disk) bool {
 		_, ok := toRemoveMap[disk.Device]
-		return !ok
+		return ok
 	})
 	return nil
 }
