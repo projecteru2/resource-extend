@@ -1,14 +1,13 @@
 package storage
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestGetMetricsDescription(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	st := initStorage(ctx, t)
 	md, err := st.GetMetricsDescription(ctx)
 	assert.NoError(t, err)
@@ -17,7 +16,7 @@ func TestGetMetricsDescription(t *testing.T) {
 }
 
 func TestGetMetrics(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	st := initStorage(ctx, t)
 	_, err := st.GetMetrics(ctx, "", "")
 	assert.Error(t, err)

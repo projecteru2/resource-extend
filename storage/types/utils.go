@@ -2,16 +2,6 @@ package types
 
 import "strings"
 
-func getDelimiterCount(str string, delimiter int32) int {
-	count := 0
-	for _, c := range str {
-		if c == delimiter {
-			count++
-		}
-	}
-	return count
-}
-
 func hasPrefix(path, mount string) bool {
 	mount = addSlash(mount)
 	path = addSlash(path)

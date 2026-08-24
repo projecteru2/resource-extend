@@ -3,7 +3,8 @@ package types
 import (
 	"encoding/json"
 	"fmt"
-	"sort"
+	"maps"
+	"slices"
 	"strings"
 
 	"github.com/cockroachdb/errors"
@@ -52,7 +53,7 @@ func NewVolumeBinding(volume string) (_ *VolumeBinding, err error) {
 	}
 
 	flagParts := strings.Split(flags, "")
-	sort.Strings(flagParts)
+	slices.Sort(flagParts)
 
 	vb := &VolumeBinding{
 		Source:      src,
@@ -217,7 +218,7 @@ func (vbs VolumeBindings) ApplyPlan(plan VolumePlan) (res VolumeBindings) {
 
 func MergeVolumeBindings(vbs1 VolumeBindings, vbs2 ...VolumeBindings) (vbs VolumeBindings) {
 	vbMap := map[[3]string]*VolumeBinding{}
-	for _, vbs := range append(vbs2, vbs1) {
+	for _, vbs := range slices.Concat(vbs2, []VolumeBindings{vbs1}) {
 		for _, vb := range vbs {
 			if binding, ok := vbMap[vb.GetMapKey()]; ok {
 				binding.SizeInBytes += vb.SizeInBytes
@@ -251,10 +252,8 @@ func MergeVolumeBindings(vbs1 VolumeBindings, vbs2 ...VolumeBindings) (vbs Volum
 type Volumes map[string]int64
 
 func (v Volumes) DeepCopy() Volumes {
-	res := Volumes{}
-	for key, value := range v {
-		res[key] = value
-	}
+	res := make(Volumes, len(v))
+	maps.Copy(res, v)
 	return res
 }
 

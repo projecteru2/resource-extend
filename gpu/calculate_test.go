@@ -1,7 +1,6 @@
 package gpu
 
 import (
-	"context"
 	"errors"
 	"testing"
 
@@ -13,7 +12,7 @@ import (
 )
 
 func TestCalculateDeploy(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	cm := initGPU(ctx, t)
 	nodes := generateNodes(ctx, t, cm, 1, 0)
 	node := nodes[0]
@@ -59,7 +58,7 @@ func TestCalculateDeploy(t *testing.T) {
 	eParams, wResources := parse(d)
 	assert.Len(t, eParams, 4)
 	assert.Len(t, wResources, 4)
-	for i := 0; i < 4; i++ {
+	for i := range 4 {
 		assert.Equal(t, eParams[i].ProdCountMap.TotalCount(), 0)
 		assert.Equal(t, wResources[i].Count(), 0)
 	}
@@ -73,7 +72,7 @@ func TestCalculateDeploy(t *testing.T) {
 }
 
 func TestCalculateRealloc(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	cm := initGPU(ctx, t)
 	nodes := generateNodes(ctx, t, cm, 1, 0)
 	node := nodes[0]
@@ -262,7 +261,7 @@ func TestCalculateRealloc(t *testing.T) {
 }
 
 func TestCalculateRemap(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	cm := initGPU(ctx, t)
 	nodes := generateNodes(ctx, t, cm, 1, 0)
 	node := nodes[0]

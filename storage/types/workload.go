@@ -1,8 +1,9 @@
 package types
 
 import (
+	"cmp"
 	"encoding/json"
-	"sort"
+	"slices"
 	"sync"
 
 	"github.com/cockroachdb/errors"
@@ -44,6 +45,10 @@ func (w *WorkloadResource) Parse(rawParams resourcetypes.RawParams) error {
 		return err
 	}
 	return json.Unmarshal(body, w)
+}
+
+func compareBindingString(b, b1 *VolumeBinding) int {
+	return cmp.Compare(b.ToString(false), b1.ToString(false))
 }
 
 type WorkloadResourceRequest struct {
@@ -109,14 +114,8 @@ func (w *WorkloadResourceRequest) validateVolumes() error {
 		return errors.CombineErrors(ErrInvalidVolume, err)
 	}
 
-	sortFunc := func(volumeBindings []*VolumeBinding) func(i, j int) bool {
-		return func(i, j int) bool {
-			return volumeBindings[i].ToString(false) < volumeBindings[j].ToString(false)
-		}
-	}
-
-	sort.Slice(w.VolumesRequest, sortFunc(w.VolumesRequest))
-	sort.Slice(w.VolumesLimit, sortFunc(w.VolumesLimit))
+	slices.SortFunc(w.VolumesRequest, compareBindingString)
+	slices.SortFunc(w.VolumesLimit, compareBindingString)
 
 	for i := range w.VolumesRequest {
 		request := w.VolumesRequest[i]
@@ -141,7 +140,7 @@ func (w *WorkloadResourceRequest) validateVolumes() error {
 		}
 	}
 
-	for _, vb := range append(w.VolumesRequest, w.VolumesLimit...) {
+	for _, vb := range slices.Concat(w.VolumesRequest, w.VolumesLimit) {
 		if err := vb.Validate(); err != nil {
 			return errors.CombineErrors(ErrInvalidVolume, err)
 		}

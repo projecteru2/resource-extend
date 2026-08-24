@@ -1,6 +1,7 @@
 package types
 
 import (
+	"maps"
 	"strings"
 
 	"github.com/cockroachdb/errors"
@@ -13,8 +14,8 @@ func (pcm ProdCountMap) Validate() error {
 		if count <= 0 {
 			return errors.Wrapf(ErrInvalidGPUMap, "count is less or equal to zero: <product: %s, count: %d>", prod, count)
 		}
-		if strings.Trim(prod, " ") == "" {
-			return errors.Wrapf(ErrInvalidGPUProduct, "product is empty")
+		if strings.TrimSpace(prod) == "" {
+			return errors.Wrap(ErrInvalidGPUProduct, "product is empty")
 		}
 	}
 	return nil
@@ -22,8 +23,8 @@ func (pcm ProdCountMap) Validate() error {
 
 func (pcm ProdCountMap) ValidateProd() error {
 	for prod := range pcm {
-		if strings.Trim(prod, " ") == "" {
-			return errors.Wrapf(ErrInvalidGPUProduct, "product is empty")
+		if strings.TrimSpace(prod) == "" {
+			return errors.Wrap(ErrInvalidGPUProduct, "product is empty")
 		}
 	}
 	return nil
@@ -57,18 +58,12 @@ func (pcm ProdCountMap) Sub(g1 ProdCountMap) {
 }
 
 func (pcm ProdCountMap) RemoveLTE0() {
-	for k, v := range pcm {
-		if v <= 0 {
-			delete(pcm, k)
-		}
-	}
+	maps.DeleteFunc(pcm, func(_ string, v int) bool { return v <= 0 })
 }
 
 func (pcm ProdCountMap) DeepCopy() ProdCountMap {
-	cp := make(ProdCountMap)
-	for k, v := range pcm {
-		cp[k] = v
-	}
+	cp := make(ProdCountMap, len(pcm))
+	maps.Copy(cp, pcm)
 	return cp
 }
 

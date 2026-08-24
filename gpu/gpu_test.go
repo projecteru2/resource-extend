@@ -3,6 +3,7 @@ package gpu
 import (
 	"context"
 	"fmt"
+	"maps"
 	"testing"
 
 	enginetypes "github.com/projecteru2/core/engine/types"
@@ -15,7 +16,7 @@ import (
 )
 
 func TestName(t *testing.T) {
-	cm := initGPU(context.Background(), t)
+	cm := initGPU(t.Context(), t)
 	assert.Equal(t, cm.name, cm.Name())
 }
 
@@ -51,8 +52,9 @@ func generateNodes(
 		names = append(names, name)
 	}
 	t.Cleanup(func() {
+		cleanupCtx := context.WithoutCancel(ctx)
 		for name := range reqs {
-			_, err := cm.RemoveNode(ctx, name)
+			_, err := cm.RemoveNode(cleanupCtx, name)
 			assert.NoError(t, err)
 		}
 	})
@@ -72,8 +74,9 @@ func generateEmptyNodes(
 		names = append(names, name)
 	}
 	t.Cleanup(func() {
+		cleanupCtx := context.WithoutCancel(ctx)
 		for name := range reqs {
-			_, err := cm.RemoveNode(ctx, name)
+			_, err := cm.RemoveNode(cleanupCtx, name)
 			assert.NoError(t, err)
 		}
 	})
@@ -86,18 +89,14 @@ func generateNodeResourceRequests(t *testing.T, nums, index int, namePrefix stri
 		"nvidia-3090": numGPUs / 2,
 	}
 
-	for prod, count := range gpuMap {
-		if count <= 0 {
-			delete(gpuMap, prod)
-		}
-	}
+	maps.DeleteFunc(gpuMap, func(_ string, count int) bool { return count <= 0 })
 
 	infos := map[string]plugintypes.NodeResourceRequest{}
 	for i := index; i < index+nums; i++ {
 		info := plugintypes.NodeResourceRequest{
 			"prod_count_map": gpuMap,
 		}
-		infos[fmt.Sprintf("%s%v", namePrefix, i)] = info
+		infos[fmt.Sprintf("%s%d", namePrefix, i)] = info
 	}
 	return infos
 }

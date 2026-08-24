@@ -1,8 +1,9 @@
 package types
 
 import (
+	"cmp"
 	"fmt"
-	"sort"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -55,6 +56,10 @@ func (d *Disk) DeepCopy() *Disk {
 	}
 }
 
+func compareDiskDevice(d, d1 *Disk) int {
+	return cmp.Compare(d.Device, d1.Device)
+}
+
 type Disks []*Disk
 
 func (d Disks) DeepCopy() Disks {
@@ -92,8 +97,8 @@ func (d Disks) GetDiskByPath(path string) *Disk {
 		}
 	}
 
-	sort.Slice(mounts, func(i, j int) bool {
-		return getDelimiterCount(mounts[i], '/') > getDelimiterCount(mounts[j], '/')
+	slices.SortFunc(mounts, func(a, b string) int {
+		return cmp.Compare(strings.Count(b, "/"), strings.Count(a, "/"))
 	})
 
 	for _, mount := range mounts {

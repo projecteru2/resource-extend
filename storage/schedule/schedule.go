@@ -1,8 +1,10 @@
 package schedule
 
 import (
+	"cmp"
 	"container/heap"
 	"math"
+	"slices"
 	"sort"
 
 	"github.com/cockroachdb/errors"
@@ -16,13 +18,6 @@ import (
 type volume struct {
 	device string
 	size   int64
-}
-
-func (v *volume) LessThan(v1 *volume) bool {
-	if v.size == v1.size {
-		return v.device < v1.device
-	}
-	return v.size < v1.size
 }
 
 type volumes []*volume
@@ -42,18 +37,18 @@ func (v volumeHeap) Len() int {
 }
 
 func (v volumeHeap) Less(i, j int) bool {
-	return v[i].LessThan(v[j])
+	return compareVolume(v[i], v[j]) < 0
 }
 
 func (v volumeHeap) Swap(i, j int) {
 	v[i], v[j] = v[j], v[i]
 }
 
-func (v *volumeHeap) Push(x interface{}) {
+func (v *volumeHeap) Push(x any) {
 	*v = append(*v, x.(*volume))
 }
 
-func (v *volumeHeap) Pop() interface{} {
+func (v *volumeHeap) Pop() any {
 	old := *v
 	n := len(old)
 	x := old[n-1]
@@ -87,8 +82,8 @@ func newHost(resourceInfo *types.NodeResourceInfo, maxDeployCount int) *host {
 		}
 	}
 
-	sort.SliceStable(h.unusedVolumes, func(i, j int) bool { return h.unusedVolumes[i].LessThan(h.unusedVolumes[j]) })
-	sort.SliceStable(h.usedVolumes, func(i, j int) bool { return h.usedVolumes[i].LessThan(h.usedVolumes[j]) })
+	slices.SortStableFunc(h.unusedVolumes, compareVolume)
+	slices.SortStableFunc(h.usedVolumes, compareVolume)
 	return h
 }
 
@@ -278,13 +273,13 @@ func (h *host) getUnlimitedPlans(normalPlans, monoPlans []types.VolumePlan, unli
 	if len(unlimitedRequests) == 0 {
 		return utils.GenerateSlice(capacity, func() types.VolumePlan { return types.VolumePlan{} }), nil
 	}
-	volumes := append(h.usedVolumes.DeepCopy(), h.unusedVolumes.DeepCopy()...)
-	if len(volumes) == 0 {
+	allVolumes := slices.Concat(h.usedVolumes.DeepCopy(), h.unusedVolumes.DeepCopy())
+	if len(allVolumes) == 0 {
 		return nil, coretypes.ErrInsufficientResource
 	}
 	volumeMap := map[string]*volume{}
-	for _, volume := range volumes {
-		volumeMap[volume.device] = volume
+	for _, vol := range allVolumes {
+		volumeMap[vol.device] = vol
 	}
 
 	for _, plan := range append(normalPlans, monoPlans...) {
@@ -293,12 +288,7 @@ func (h *host) getUnlimitedPlans(normalPlans, monoPlans []types.VolumePlan, unli
 		}
 	}
 
-	volumeWithLargestSize := volumes[0]
-	for _, volume := range volumes {
-		if volume.size > volumeWithLargestSize.size {
-			volumeWithLargestSize = volume
-		}
-	}
+	volumeWithLargestSize := slices.MaxFunc(allVolumes, func(a, b *volume) int { return cmp.Compare(a.size, b.size) })
 
 	return utils.GenerateSlice(capacity, func() types.VolumePlan {
 		volumePlan := types.VolumePlan{}
@@ -323,8 +313,8 @@ func (h *host) classifyVolumeBindings(volumeBindings types.VolumeBindings) (norm
 		}
 	}
 
-	sort.SliceStable(monoRequests, func(i, j int) bool { return monoRequests[i].SizeInBytes < monoRequests[j].SizeInBytes })
-	sort.SliceStable(normalRequests, func(i, j int) bool { return normalRequests[i].SizeInBytes < normalRequests[j].SizeInBytes })
+	slices.SortStableFunc(monoRequests, compareBindingSize)
+	slices.SortStableFunc(normalRequests, compareBindingSize)
 
 	return normalRequests, monoRequests, unlimitedRequests, mountRequests
 }
@@ -397,7 +387,7 @@ func (h *host) getVolumePlans(requests types.VolumeBindings) ([]types.VolumePlan
 		monoVolumePlans, monoDiskPlans := h.getMonoPlans(monoRequests)
 		normalCapacity = len(normalVolumePlans)
 		monoCapacity = len(monoVolumePlans)
-		bestCapacity = utils.Min(normalCapacity, monoCapacity)
+		bestCapacity = min(normalCapacity, monoCapacity)
 		bestVolumePlans = [2][]types.VolumePlan{normalVolumePlans, monoVolumePlans}
 		bestDiskPlans = [2][]types.Disks{normalDiskPlans, monoDiskPlans}
 	}
@@ -412,7 +402,7 @@ func (h *host) getVolumePlans(requests types.VolumeBindings) ([]types.VolumePlan
 			break
 		}
 		v := h.unusedVolumes[p]
-		h.unusedVolumes = append(h.unusedVolumes[:p], h.unusedVolumes[p+1:]...)
+		h.unusedVolumes = slices.Delete(h.unusedVolumes, p, p+1)
 		h.usedVolumes = append(h.usedVolumes, v)
 
 		backup()
@@ -431,7 +421,7 @@ func (h *host) getVolumePlans(requests types.VolumeBindings) ([]types.VolumePlan
 	resVolumePlans := utils.GenerateSlice(bestCapacity, func() types.VolumePlan { return types.VolumePlan{} })
 	resDiskPlans := utils.GenerateSlice(bestCapacity, func() types.Disks { return types.Disks{} })
 
-	for i := 0; i < bestCapacity; i++ {
+	for i := range bestCapacity {
 		resVolumePlans[i] = normalVolumePlans[i]
 		resVolumePlans[i].Merge(monoVolumePlans[i])
 		resVolumePlans[i].Merge(unlimitedVolumePlans[i])
@@ -443,9 +433,9 @@ func (h *host) getVolumePlans(requests types.VolumeBindings) ([]types.VolumePlan
 }
 
 func (h *host) getVolumeByDevice(device string) *volume {
-	for _, volume := range append(h.usedVolumes, h.unusedVolumes...) {
-		if volume.device == device {
-			return volume
+	for _, vol := range slices.Concat(h.usedVolumes, h.unusedVolumes) {
+		if vol.device == device {
+			return vol
 		}
 	}
 	return nil
@@ -627,4 +617,15 @@ func GetAffinityPlan(resourceInfo *types.NodeResourceInfo, volumeRequest types.V
 func GetVolumePlans(resourceInfo *types.NodeResourceInfo, volumeRequest types.VolumeBindings, maxDeployCount int) ([]types.VolumePlan, []types.Disks) {
 	h := newHost(resourceInfo, maxDeployCount)
 	return h.getVolumePlans(volumeRequest)
+}
+
+func compareVolume(v, v1 *volume) int {
+	if c := cmp.Compare(v.size, v1.size); c != 0 {
+		return c
+	}
+	return cmp.Compare(v.device, v1.device)
+}
+
+func compareBindingSize(b, b1 *types.VolumeBinding) int {
+	return cmp.Compare(b.SizeInBytes, b1.SizeInBytes)
 }

@@ -1,7 +1,6 @@
 package storage
 
 import (
-	"context"
 	"fmt"
 	"testing"
 
@@ -16,7 +15,7 @@ import (
 )
 
 func TestCalculateDeploy(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	st := initStorage(ctx, t)
 	vols := []string{"/data0:1T", "/data1:1T", "/data2:1T", "/data3:1T"}
 	nodes := generateNodes(ctx, t, st, 1, vols, 0)
@@ -58,7 +57,7 @@ func TestCalculateDeploy(t *testing.T) {
 }
 
 func TestCalculateRealloc(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	st := initStorage(ctx, t)
 	vols := []string{"/data0:1T", "/data1:1T", "/data2:1T", "/data3:1T"}
 	nodes := generateNodes(ctx, t, st, 1, vols, 0)
@@ -182,7 +181,7 @@ func TestCalculateRealloc(t *testing.T) {
 }
 
 func TestCalculateRemap(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	st := initStorage(ctx, t)
 	vols := []string{"/data0:1T", "/data1:1T", "/data2:1T", "/data3:1T"}
 	nodes := generateNodes(ctx, t, st, 1, vols, 0)

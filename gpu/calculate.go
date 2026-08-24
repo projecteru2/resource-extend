@@ -124,7 +124,7 @@ func (p Plugin) doAlloc(resourceInfo *gputypes.NodeResourceInfo, deployCount int
 	var err error
 
 	availableResource := resourceInfo.GetAvailableResource()
-	for i := 0; i < deployCount; i++ {
+	for range deployCount {
 		prodCountMap := gputypes.ProdCountMap{}
 		for reqProd, reqCount := range req.ProdCountMap {
 			capCount, ok := availableResource.ProdCountMap[reqProd]

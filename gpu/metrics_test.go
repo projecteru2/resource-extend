@@ -1,14 +1,13 @@
 package gpu
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestGetMetricsDescription(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	cm := initGPU(ctx, t)
 	md, err := cm.GetMetricsDescription(ctx)
 	assert.NoError(t, err)
@@ -17,7 +16,7 @@ func TestGetMetricsDescription(t *testing.T) {
 }
 
 func TestGetMetrics(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	cm := initGPU(ctx, t)
 	_, err := cm.GetMetrics(ctx, "", "")
 	assert.Error(t, err)

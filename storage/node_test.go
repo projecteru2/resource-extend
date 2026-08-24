@@ -1,7 +1,6 @@
 package storage
 
 import (
-	"context"
 	"fmt"
 	"testing"
 
@@ -16,7 +15,7 @@ import (
 )
 
 func TestAddNode(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	st := initStorage(ctx, t)
 	vols := []string{"/data0:1T"}
 	nodes := generateNodes(ctx, t, st, 1, vols, 0)
@@ -37,7 +36,7 @@ func TestAddNode(t *testing.T) {
 }
 
 func TestRemoveNode(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	st := initStorage(ctx, t)
 	vols := []string{"/data0:1T", "/data1:1T", "/data2:1T", "/data3:1T"}
 	nodes := generateNodes(ctx, t, st, 1, vols, 0)
@@ -51,7 +50,7 @@ func TestRemoveNode(t *testing.T) {
 }
 
 func TestGetNodesDeployCapacity(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	st := initStorage(ctx, t)
 	vols := []string{"/data0:1T", "/data1:1T", "/data2:1T", "/data3:1T"}
 	nodes := generateNodes(ctx, t, st, 10, vols, 0)
@@ -85,7 +84,7 @@ func TestGetNodesDeployCapacity(t *testing.T) {
 }
 
 func TestSetNodeResourceCapacity(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	st := initStorage(ctx, t)
 	vols := []string{"/data0:1T", "/data1:1T", "/data2:1T", "/data3:1T"}
 	nodes := generateNodes(ctx, t, st, 1, vols, 0)
@@ -127,7 +126,7 @@ func TestSetNodeResourceCapacity(t *testing.T) {
 }
 
 func TestGetNodeResourceInfo(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	st := initStorage(ctx, t)
 	vols := []string{"/data0:1T", "/data1:1T", "/data2:1T", "/data3:1T"}
 	nodes := generateNodes(ctx, t, st, 1, vols, 0)
@@ -151,7 +150,7 @@ func TestGetNodeResourceInfo(t *testing.T) {
 }
 
 func TestSetNodeResourceInfo(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	st := initStorage(ctx, t)
 	vols := []string{"/data0:1T", "/data1:1T", "/data2:1T", "/data3:1T"}
 	nodes := generateNodes(ctx, t, st, 1, vols, 0)
@@ -181,7 +180,7 @@ func TestSetNodeResourceInfo(t *testing.T) {
 }
 
 func TestSetNodeResourceUsage(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	st := initStorage(ctx, t)
 	vols := []string{"/data0:1T", "/data1:1T", "/data2:1T", "/data3:1T"}
 	nodes := generateNodes(ctx, t, st, 1, vols, 0)
@@ -240,7 +239,7 @@ func TestSetNodeResourceUsage(t *testing.T) {
 }
 
 func TestGetMostIdleNode(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	st := initStorage(ctx, t)
 	vols := []string{"/data0:1T", "/data1:1T", "/data2:1T", "/data3:1T"}
 	nodes := generateNodes(ctx, t, st, 1, vols, 0)
@@ -254,7 +253,7 @@ func TestGetMostIdleNode(t *testing.T) {
 }
 
 func TestFixNodeResource(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	st := initStorage(ctx, t)
 	vols := []string{"/data0:1T", "/data1:1T", "/data2:1T", "/data3:1T"}
 	nodes := generateNodes(ctx, t, st, 1, vols, 0)

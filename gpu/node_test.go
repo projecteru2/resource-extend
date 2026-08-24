@@ -1,7 +1,6 @@
 package gpu
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"testing"
@@ -17,7 +16,7 @@ import (
 )
 
 func TestAddNode(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	cm := initGPU(ctx, t)
 	nodes := generateNodes(ctx, t, cm, 1, 0)
 	node := nodes[0]
@@ -78,7 +77,7 @@ func TestAddNode(t *testing.T) {
 }
 
 func TestRemoveNode(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	cm := initGPU(ctx, t)
 	nodes := generateNodes(ctx, t, cm, 1, 0)
 	node := nodes[0]
@@ -94,7 +93,7 @@ func TestRemoveNode(t *testing.T) {
 }
 
 func TestGetNodesDeployCapacity(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	cm := initGPU(ctx, t)
 	nodes := generateEmptyNodes(ctx, t, cm, 2, 0)
 	r, err := cm.GetNodesDeployCapacity(ctx, nodes, nil)
@@ -222,7 +221,7 @@ func TestGetNodesDeployCapacity(t *testing.T) {
 }
 
 func TestSetNodeResourceCapacity(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	cm := initGPU(ctx, t)
 	nodes := generateNodes(ctx, t, cm, 1, 0)
 	node := nodes[0]
@@ -327,7 +326,7 @@ func TestSetNodeResourceCapacity(t *testing.T) {
 }
 
 func TestGetAndFixNodeResourceInfo(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	cm := initGPU(ctx, t)
 	nodes := generateNodes(ctx, t, cm, 1, 0)
 	node := nodes[0]
@@ -361,7 +360,7 @@ func TestGetAndFixNodeResourceInfo(t *testing.T) {
 }
 
 func TestSetNodeResourceInfo(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	cm := initGPU(ctx, t)
 	nodes := generateNodes(ctx, t, cm, 1, 0)
 	node := nodes[0]
@@ -387,7 +386,7 @@ func TestSetNodeResourceInfo(t *testing.T) {
 }
 
 func TestSetNodeResourceUsage(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	cm := initGPU(ctx, t)
 	nodes := generateNodes(ctx, t, cm, 1, 0)
 	node := nodes[0]
@@ -535,7 +534,7 @@ func TestSetNodeResourceUsage(t *testing.T) {
 }
 
 func TestGetMostIdleNode(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	cm := initGPU(ctx, t)
 	nodes := generateNodes(ctx, t, cm, 2, 0)
 

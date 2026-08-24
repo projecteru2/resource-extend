@@ -1,6 +1,8 @@
 package types
 
 import (
+	"maps"
+
 	"github.com/go-viper/mapstructure/v2"
 	resourcetypes "github.com/projecteru2/core/resource/types"
 )
@@ -61,13 +63,7 @@ func (w *WorkloadResourceRequest) Parse(rawParams resourcetypes.RawParams) (err 
 
 func (w *WorkloadResourceRequest) MergeFromResource(r *WorkloadResource) {
 	w.ProdCountMap.Add(r.ProdCountMap)
-	newMap := ProdCountMap{}
-	for prod, count := range w.ProdCountMap {
-		if count > 0 {
-			newMap[prod] = count
-		}
-	}
-	w.ProdCountMap = newMap
+	maps.DeleteFunc(w.ProdCountMap, func(_ string, count int) bool { return count <= 0 })
 }
 
 func (w *WorkloadResourceRequest) DeepCopy() *WorkloadResourceRequest {

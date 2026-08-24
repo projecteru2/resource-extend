@@ -14,7 +14,7 @@ import (
 )
 
 func TestName(t *testing.T) {
-	st := initStorage(context.Background(), t)
+	st := initStorage(t.Context(), t)
 	assert.Contains(t, st.Name(), st.name)
 }
 
@@ -50,8 +50,9 @@ func generateNodes(
 		names = append(names, name)
 	}
 	t.Cleanup(func() {
+		cleanupCtx := context.WithoutCancel(ctx)
 		for name := range reqs {
-			_, _ = st.RemoveNode(ctx, name)
+			_, _ = st.RemoveNode(cleanupCtx, name)
 		}
 	})
 	return names

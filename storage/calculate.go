@@ -162,7 +162,7 @@ func (p Plugin) doAlloc(resourceInfo *storagetypes.NodeResourceInfo, deployCount
 	var diskPlans []storagetypes.Disks
 
 	if !utils.Any(req.VolumesRequest, func(b *storagetypes.VolumeBinding) bool { return b.RequireSchedule() || b.RequireIOPS() }) {
-		for i := 0; i < deployCount; i++ {
+		for range deployCount {
 			volumePlans = append(volumePlans, storagetypes.VolumePlan{})
 			diskPlans = append(diskPlans, storagetypes.Disks{})
 		}

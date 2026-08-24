@@ -1,7 +1,7 @@
 package types
 
 import (
-	"sort"
+	"slices"
 	"strings"
 
 	"github.com/cockroachdb/errors"
@@ -83,18 +83,16 @@ func (n *NodeResourceInfo) Validate() error {
 		}
 	}
 
-	sort.Slice(n.Usage.Disks, func(i, j int) bool {
-		return n.Usage.Disks[i].Device < n.Usage.Disks[j].Device
-	})
-	sort.Slice(n.Capacity.Disks, func(i, j int) bool {
-		return n.Capacity.Disks[i].Device < n.Capacity.Disks[j].Device
-	})
+	slices.SortFunc(n.Usage.Disks, compareDiskDevice)
+	slices.SortFunc(n.Capacity.Disks, compareDiskDevice)
 
 	return errors.CombineErrors(
 		errors.CombineErrors(
 			n.validateVolume(),
-			n.validateStorage()),
-		n.validateDisks())
+			n.validateStorage(),
+		),
+		n.validateDisks(),
+	)
 }
 
 func (n *NodeResourceInfo) GetAvailableResource() *NodeResource {
