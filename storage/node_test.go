@@ -28,11 +28,9 @@ func TestAddNode(t *testing.T) {
 	}
 	info := &enginetypes.Info{StorageTotal: units.TB}
 
-	// existent node
 	_, err := st.AddNode(ctx, node, req, info)
 	assert.Equal(t, err, coretypes.ErrNodeExists)
 
-	// normal case
 	r, err := st.AddNode(ctx, nodeForAdd, req, info)
 	assert.Nil(t, err)
 	assert.Equal(t, int64(units.TiB), parseNodeResource(t, r.Capacity).Storage)
@@ -58,22 +56,18 @@ func TestGetNodesDeployCapacity(t *testing.T) {
 	vols := []string{"/data0:1T", "/data1:1T", "/data2:1T", "/data3:1T"}
 	nodes := generateNodes(ctx, t, st, 10, vols, 0)
 
-	// invalid request
 	_, err := st.GetNodesDeployCapacity(ctx, nodes, plugintypes.WorkloadResourceRequest{"storage": "-1"})
 	assert.ErrorIs(t, err, types.ErrInvalidStorage)
 
-	// invalid node
 	req := plugintypes.WorkloadResourceRequest{"storage": "1"}
 	_, err = st.GetNodesDeployCapacity(ctx, []string{"??"}, req)
 	assert.ErrorIs(t, err, coretypes.ErrInvaildCount)
 
-	// no volume request
 	req = plugintypes.WorkloadResourceRequest{"storage": fmt.Sprintf("%v", units.TiB)}
 	r, err := st.GetNodesDeployCapacity(ctx, nodes, req)
 	assert.NoError(t, err)
 	assert.Equal(t, 40, r.Total)
 
-	// no stroage request
 	req = plugintypes.WorkloadResourceRequest{
 		"volumes": []string{"AUTO:/dir0:rwm:1G"},
 	}
@@ -81,7 +75,6 @@ func TestGetNodesDeployCapacity(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, 40, r.Total)
 
-	// mixed
 	req = plugintypes.WorkloadResourceRequest{
 		"volumes": []string{"AUTO:/dir0:rwm:1G"},
 		"storage": fmt.Sprintf("%v", units.TiB),
@@ -140,16 +133,13 @@ func TestGetNodeResourceInfo(t *testing.T) {
 	nodes := generateNodes(ctx, t, st, 1, vols, 0)
 	node := nodes[0]
 
-	// invalid node
 	_, err := st.GetNodeResourceInfo(ctx, "abc", nil)
 	assert.ErrorIs(t, err, coretypes.ErrNodeNotExists)
 
-	// normal case
 	d, err := st.GetNodeResourceInfo(ctx, node, nil)
 	assert.NoError(t, err)
 	assert.Equal(t, int64(4*units.TiB), parseNodeResource(t, d.Capacity).Storage)
 
-	// diffs
 	workloadsResource := []plugintypes.WorkloadResource{
 		{"storage_request": 1},
 		{"storage_limit": 1},
@@ -270,11 +260,9 @@ func TestFixNodeResource(t *testing.T) {
 	nodes := generateNodes(ctx, t, st, 1, vols, 0)
 	node := nodes[0]
 
-	// invalid node
 	_, err := st.FixNodeResource(ctx, "abc", nil)
 	assert.ErrorIs(t, err, coretypes.ErrNodeNotExists)
 
-	// normal case
 	workloadsResource := []plugintypes.WorkloadResource{
 		{"storage_request": 1},
 		{"storage_limit": 1},

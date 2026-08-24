@@ -51,8 +51,7 @@ func (r *runner) command(name, usage string, h handler) *cli.Command {
 	}
 }
 
-// serve reads the request from stdin and writes the JSON result to stdout.
-// core merges the child stderr into stdout, so nothing but the result is printed.
+// core merges the child stderr into stdout, so serve prints nothing but the result.
 func (r *runner) serve(ctx context.Context, h handler) error {
 	config, err := utils.LoadConfig(r.configPath)
 	if err != nil {

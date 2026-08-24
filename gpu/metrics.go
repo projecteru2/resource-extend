@@ -9,7 +9,6 @@ import (
 	plugintypes "github.com/projecteru2/core/resource/plugins/types"
 )
 
-// GetMetricsDescription .
 func (p Plugin) GetMetricsDescription(context.Context) (*plugintypes.GetMetricsDescriptionResponse, error) {
 	return &plugintypes.GetMetricsDescriptionResponse{
 		{
@@ -27,7 +26,6 @@ func (p Plugin) GetMetricsDescription(context.Context) (*plugintypes.GetMetricsD
 	}, nil
 }
 
-// GetMetrics .
 func (p Plugin) GetMetrics(ctx context.Context, podname, nodename string) (*plugintypes.GetMetricsResponse, error) {
 	nodeResourceInfo, err := p.store.Get(ctx, nodename)
 	if err != nil {

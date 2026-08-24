@@ -18,7 +18,6 @@ import (
 
 const maxCapacity = 1000000
 
-// AddNode .
 func (p Plugin) AddNode(
 	ctx context.Context, nodename string,
 	resource plugintypes.NodeResourceRequest,
@@ -26,7 +25,6 @@ func (p Plugin) AddNode(
 ) (
 	*plugintypes.AddNodeResponse, error,
 ) {
-	// try to get the node resource
 	var err error
 	if _, err = p.store.Get(ctx, nodename); err == nil {
 		return nil, coretypes.ErrNodeExists
@@ -45,7 +43,6 @@ func (p Plugin) AddNode(
 		return nil, err
 	}
 	capacity := gputypes.NewNodeResource(req.ProdCountMap)
-	// try to fetch resource from info
 	if info != nil && info.Resources != nil { //nolint
 		if capacity.Count() == 0 {
 			if b, ok := info.Resources[p.name]; ok {
@@ -70,16 +67,14 @@ func (p Plugin) AddNode(
 	}, nil
 }
 
-// RemoveNode .
 func (p Plugin) RemoveNode(ctx context.Context, nodename string) (*plugintypes.RemoveNodeResponse, error) {
 	err := p.store.Delete(ctx, nodename)
 	if err != nil {
-		log.WithFunc("resource.gpu.RemoveNode").WithField("node", nodename).Error(ctx, err, "faield to delete node")
+		log.WithFunc("resource.gpu.RemoveNode").WithField("node", nodename).Error(ctx, err, "failed to delete node")
 	}
 	return &plugintypes.RemoveNodeResponse{}, err
 }
 
-// GetNodesDeployCapacity returns available nodes and total capacity
 func (p Plugin) GetNodesDeployCapacity(
 	ctx context.Context, nodenames []string,
 	resource plugintypes.WorkloadResourceRequest,
@@ -122,7 +117,6 @@ func (p Plugin) GetNodesDeployCapacity(
 	}, nil
 }
 
-// SetNodeResourceCapacity sets the amount of total resource info
 func (p Plugin) SetNodeResourceCapacity(
 	ctx context.Context, nodename string,
 	resource plugintypes.NodeResource,
@@ -160,7 +154,6 @@ func (p Plugin) SetNodeResourceCapacity(
 	}, nil
 }
 
-// GetNodeResourceInfo .
 func (p Plugin) GetNodeResourceInfo(
 	ctx context.Context, nodename string,
 	workloadsResource []plugintypes.WorkloadResource,
@@ -179,7 +172,6 @@ func (p Plugin) GetNodeResourceInfo(
 	}, nil
 }
 
-// SetNodeResourceInfo .
 func (p Plugin) SetNodeResourceInfo(
 	ctx context.Context, nodename string,
 	capacity plugintypes.NodeResource,
@@ -203,7 +195,6 @@ func (p Plugin) SetNodeResourceInfo(
 	return &plugintypes.SetNodeResourceInfoResponse{}, p.store.Put(ctx, nodename, resourceInfo)
 }
 
-// SetNodeResourceUsage .
 func (p Plugin) SetNodeResourceUsage(
 	ctx context.Context, nodename string,
 	resource plugintypes.NodeResource,
@@ -239,7 +230,6 @@ func (p Plugin) SetNodeResourceUsage(
 	}, nil
 }
 
-// GetMostIdleNode .
 func (p Plugin) GetMostIdleNode(ctx context.Context, nodenames []string) (*plugintypes.GetMostIdleNodeResponse, error) {
 	var mostIdleNode string
 	minIdle := math.MaxFloat64
@@ -266,8 +256,6 @@ func (p Plugin) GetMostIdleNode(ctx context.Context, nodenames []string) (*plugi
 	}, nil
 }
 
-// FixNodeResource .
-// use workloadsReource to construct a new NodeResource, then use this NodeResource to repace Usage
 func (p Plugin) FixNodeResource(ctx context.Context, nodename string, workloadsResource []plugintypes.WorkloadResource) (*plugintypes.GetNodeResourceInfoResponse, error) {
 	nodeResourceInfo, actuallyWorkloadsUsage, diffs, err := p.getNodeResourceInfo(ctx, nodename, workloadsResource)
 	if err != nil {
@@ -336,16 +324,12 @@ func (p Plugin) doGetNodeDeployCapacity(nodeResourceInfo *gputypes.NodeResourceI
 	}
 	if req.Count() > 0 {
 		for reqProd, reqCount := range req.ProdCountMap {
-			// don't need to check if reqProd exist in availableResource here,
-			// because if reqProd doesn't exist in availableResource, then count is 0
-			// and prodCap and capacityInfo.Capacity will be 0 too, so it will also break the loop
 			count := availableResource.ProdCountMap[reqProd]
 			prodCap := count / reqCount
 			if prodCap < capacityInfo.Capacity {
 				capacityInfo.Capacity = prodCap
 			}
 			if capacityInfo.Capacity <= 0 {
-				// Capacity may be negative integer, set it to zero here
 				capacityInfo.Capacity = 0
 				break
 			}
@@ -358,7 +342,6 @@ func (p Plugin) doGetNodeDeployCapacity(nodeResourceInfo *gputypes.NodeResourceI
 	return capacityInfo
 }
 
-// 丢弃origin，完全用新数据重写
 func (p Plugin) overwriteNodeResource(req *gputypes.NodeResourceRequest, nodeResource *gputypes.NodeResource, workloadsResource []*gputypes.WorkloadResource) *gputypes.NodeResource {
 	resp := (&gputypes.NodeResource{}).DeepCopy() // init nil pointer!
 	if req != nil {
@@ -381,7 +364,6 @@ func (p Plugin) overwriteNodeResource(req *gputypes.NodeResourceRequest, nodeRes
 	return resp
 }
 
-// 增量更新
 func (p Plugin) incrUpdateNodeResource(req *gputypes.NodeResourceRequest, nodeResource, origin *gputypes.NodeResource, workloadsResource []*gputypes.WorkloadResource, incr bool) *gputypes.NodeResource {
 	resp := origin.DeepCopy()
 	if req != nil {
@@ -414,9 +396,6 @@ func (p Plugin) incrUpdateNodeResource(req *gputypes.NodeResourceRequest, nodeRe
 
 // calculateNodeResource priority: node resource request > node resource > workload resource args list
 func (p Plugin) calculateNodeResource(req *gputypes.NodeResourceRequest, nodeResource, origin *gputypes.NodeResource, workloadsResource []*gputypes.WorkloadResource, delta, incr bool) *gputypes.NodeResource {
-	// req, nodeResource, workloadResource只有一个会生效, 优先级是req, nodeResource, workloadsReource
-	// 如果delta为false那就不考虑origin
-	// 如果delta为true那就把3者中生效的那个加到origin上
 	if origin == nil || !delta { // 重写
 		return p.overwriteNodeResource(req, nodeResource, workloadsResource)
 	}

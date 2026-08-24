@@ -31,17 +31,14 @@ func TestAddNode(t *testing.T) {
 
 	info := &enginetypes.Info{NCPU: 2, MemTotal: 4 * units.GB}
 
-	// existent node
 	_, err := cm.AddNode(ctx, node, req, info)
 	assert.Equal(t, err, coretypes.ErrNodeExists)
 
 	cv := &types.NodeResource{}
-	// normal case
 	r, err := cm.AddNode(ctx, "xxx", nil, nil)
 	assert.Nil(t, err)
 	err = cv.Parse(r.Capacity)
 	assert.Nil(t, err)
-	// check empty capacity
 	nr, err := cm.GetNodeResourceInfo(ctx, "xxx", nil)
 	assert.Nil(t, err)
 	err = cv.Parse(nr.Capacity)
@@ -56,7 +53,6 @@ func TestAddNode(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, cv.Count(), 2)
 
-	// test engine info
 	nRes := types.NodeResource{
 		ProdCountMap: types.ProdCountMap{
 			"nvidia-3070": 2,
@@ -88,7 +84,6 @@ func TestRemoveNode(t *testing.T) {
 	node := nodes[0]
 	nodeForDel := "test2"
 
-	// node which doesn't exist in store
 	_, err := cm.RemoveNode(ctx, "xxx")
 	assert.Nil(t, err)
 
@@ -120,12 +115,9 @@ func TestGetNodesDeployCapacity(t *testing.T) {
 		},
 	}
 
-	// non-existent node
 	_, err = cm.GetNodesDeployCapacity(ctx, []string{"xxx"}, req)
 	assert.True(t, errors.Is(err, coretypes.ErrInvaildCount))
 
-	// normal
-	// 1. empty request
 	r, err = cm.GetNodesDeployCapacity(ctx, nodes, nil)
 	assert.Nil(t, err)
 	assert.Equal(t, 2*maxCapacity, r.Total)
@@ -138,7 +130,6 @@ func TestGetNodesDeployCapacity(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, 4, r.Total)
 
-	// more gpu
 	req = plugintypes.WorkloadResourceRequest{
 		"prod_count_map": types.ProdCountMap{
 			"nvidia-3070": 3,
@@ -152,7 +143,6 @@ func TestGetNodesDeployCapacity(t *testing.T) {
 		assert.Equal(t, 1, cap.Capacity)
 	}
 
-	// more gpu
 	req = plugintypes.WorkloadResourceRequest{
 		"prod_count_map": types.ProdCountMap{
 			"nvidia-3070": 5,
@@ -163,7 +153,6 @@ func TestGetNodesDeployCapacity(t *testing.T) {
 	assert.Equal(t, 0, r.Total)
 	assert.Len(t, r.NodeDeployCapacityMap, 0)
 
-	// 2 diffirent type of gpus
 	req = plugintypes.WorkloadResourceRequest{
 		"prod_count_map": types.ProdCountMap{
 			"nvidia-3070": 1,
@@ -296,7 +285,6 @@ func TestSetNodeResourceCapacity(t *testing.T) {
 	_, v = parse(r)
 	assert.Equal(t, v.Count(), 8)
 
-	// overwirte node resource
 	r, err = cm.SetNodeResourceCapacity(ctx, node, nil, nodeResourceRequest, false, false)
 	assert.Nil(t, err)
 	_, v = parse(r)
@@ -317,7 +305,6 @@ func TestSetNodeResourceCapacity(t *testing.T) {
 	_, v = parse(r)
 	assert.Equal(t, v.Count(), 0)
 
-	// for negative add
 	nodeResourceRequest1 := plugintypes.NodeResourceRequest{
 		"prod_count_map": types.ProdCountMap{
 			"nvidia-3070": 1,
@@ -345,18 +332,12 @@ func TestGetAndFixNodeResourceInfo(t *testing.T) {
 	nodes := generateNodes(ctx, t, cm, 1, 0)
 	node := nodes[0]
 
-	// invalid node
 	_, err := cm.GetNodeResourceInfo(ctx, "xxx", nil)
 	assert.True(t, errors.Is(err, coretypes.ErrNodeNotExists))
 
 	r, err := cm.GetNodeResourceInfo(ctx, node, nil)
 	assert.Nil(t, err)
 	assert.Len(t, r.Diffs, 0)
-	// r.Capacity["numa"] = types.NUMA{"0": "0", "1": "1"}
-	// r.Capacity["numa_memory"] = types.NUMAMemory{"0": units.GB, "1": units.GB}
-
-	// _, err = cm.SetNodeResourceInfo(ctx, node, r.Capacity, r.Usage)
-	// assert.Nil(t, err)
 
 	workloadsResource := []plugintypes.WorkloadResource{
 		{
@@ -377,8 +358,6 @@ func TestGetAndFixNodeResourceInfo(t *testing.T) {
 	err = usage.Parse(r.Usage)
 	assert.Nil(t, err)
 	assert.Equal(t, usage.Count(), 2)
-	// _, ok := usage.ProdCountMap["0000:81:00.0"]
-	// assert.True(t, ok)
 }
 
 func TestSetNodeResourceInfo(t *testing.T) {
@@ -454,7 +433,6 @@ func TestSetNodeResourceUsage(t *testing.T) {
 	_, v := parse(r)
 	assert.Equal(t, v.Count(), 0)
 
-	// all are nil
 	r, err = cm.SetNodeResourceUsage(ctx, node, nil, nil, nil, true, false)
 	assert.Nil(t, err)
 	_, v = parse(r)
@@ -465,13 +443,11 @@ func TestSetNodeResourceUsage(t *testing.T) {
 	_, v = parse(r)
 	assert.Equal(t, v.Count(), 1)
 
-	// only request is  not nil
 	r, err = cm.SetNodeResourceUsage(ctx, node, nil, nodeResourceRequest, nil, true, false)
 	assert.Nil(t, err)
 	_, v = parse(r)
 	assert.Equal(t, v.Count(), 0)
 
-	// only resource is not nil
 	r, err = cm.SetNodeResourceUsage(ctx, node, nodeResource, nil, nil, true, true)
 	assert.Nil(t, err)
 	_, v = parse(r)
@@ -482,7 +458,6 @@ func TestSetNodeResourceUsage(t *testing.T) {
 	_, v = parse(r)
 	assert.Equal(t, v.Count(), 0)
 
-	// only workload resource is not nil
 	r, err = cm.SetNodeResourceUsage(ctx, node, nil, nil, workloadsResource, true, true)
 	assert.Nil(t, err)
 	_, v = parse(r)
@@ -498,8 +473,6 @@ func TestSetNodeResourceUsage(t *testing.T) {
 	_, v = parse(r)
 	assert.Equal(t, v.Count(), 0)
 
-	// overwirte usage node resource
-	// one params
 	r, err = cm.SetNodeResourceUsage(ctx, node, nil, nodeResourceRequest, nil, false, false)
 	assert.Nil(t, err)
 	_, v = parse(r)
@@ -515,7 +488,6 @@ func TestSetNodeResourceUsage(t *testing.T) {
 	_, v = parse(r)
 	assert.Equal(t, v.Count(), 1)
 
-	// two parmas
 	r, err = cm.SetNodeResourceUsage(ctx, node, nodeResource, nodeResourceRequest, nil, false, true)
 	assert.Nil(t, err)
 	_, v = parse(r)
@@ -531,7 +503,6 @@ func TestSetNodeResourceUsage(t *testing.T) {
 	_, v = parse(r)
 	assert.Equal(t, v.Count(), 1)
 
-	// three params
 	r, err = cm.SetNodeResourceUsage(ctx, node, nodeResource, nodeResourceRequest, workloadsResource, false, true)
 	assert.Nil(t, err)
 	_, v = parse(r)
@@ -542,7 +513,6 @@ func TestSetNodeResourceUsage(t *testing.T) {
 	_, v = parse(r)
 	assert.Equal(t, v.Count(), 0)
 
-	// for negative add
 	nodeResourceRequest1 := plugintypes.NodeResourceRequest{
 		"prod_count_map": types.ProdCountMap{
 			"nvidia-3070": 1,

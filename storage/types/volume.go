@@ -24,7 +24,6 @@ type VolumeBinding struct {
 	WriteBPS    int64  `json:"write_bps" mapstructure:"write_bps"`
 }
 
-// NewVolumeBinding returns pointer of VolumeBinding
 func NewVolumeBinding(volume string) (_ *VolumeBinding, err error) {
 	var src, dst, flags string
 	var size, readIOPS, writeIOPS, readBPS, writeBPS int64
@@ -73,7 +72,6 @@ func NewVolumeBinding(volume string) (_ *VolumeBinding, err error) {
 	return vb, vb.Validate()
 }
 
-// Validate return error if invalid
 func (vb VolumeBinding) Validate() error {
 	if vb.Destination == "" {
 		return errors.Wrapf(ErrInvalidVolume, "dest must be provided: %+v", vb)
@@ -81,32 +79,26 @@ func (vb VolumeBinding) Validate() error {
 	return nil
 }
 
-// RequireSchedule returns true if volume binding requires schedule
 func (vb VolumeBinding) RequireSchedule() bool {
 	return strings.HasSuffix(vb.Source, auto) || vb.Source == ""
 }
 
-// RequireScheduleUnlimitedQuota .
 func (vb VolumeBinding) RequireScheduleUnlimitedQuota() bool {
 	return vb.RequireSchedule() && vb.SizeInBytes == 0 && vb.ReadIOPS == 0 && vb.WriteIOPS == 0 && vb.ReadBPS == 0 && vb.WriteBPS == 0
 }
 
-// RequireScheduleMonopoly returns true if volume binding requires monopoly schedule
 func (vb VolumeBinding) RequireScheduleMonopoly() bool {
 	return vb.RequireSchedule() && strings.Contains(vb.Flags, "m")
 }
 
-// RequireIOPS returns true if volume binding requires IOPS / BPS
 func (vb VolumeBinding) RequireIOPS() bool {
 	return vb.ReadIOPS > 0 || vb.WriteIOPS > 0 || vb.ReadBPS > 0 || vb.WriteBPS > 0
 }
 
-// ValidIOParameters returns true if all io related parameters are valid
 func (vb VolumeBinding) ValidIOParameters() bool {
 	return vb.ReadIOPS >= 0 && vb.WriteIOPS >= 0 && vb.ReadBPS >= 0 && vb.WriteBPS >= 0
 }
 
-// ToString returns volume string
 func (vb VolumeBinding) ToString(normalize bool) (volume string) {
 	flags := vb.Flags
 	if normalize {
@@ -134,12 +126,10 @@ func (vb VolumeBinding) ToString(normalize bool) (volume string) {
 	return volume
 }
 
-// GetMapKey .
 func (vb VolumeBinding) GetMapKey() [3]string {
 	return [3]string{vb.Source, vb.Destination, vb.Flags}
 }
 
-// DeepCopy .
 func (vb VolumeBinding) DeepCopy() *VolumeBinding {
 	return &VolumeBinding{
 		Source:      vb.Source,
@@ -153,10 +143,8 @@ func (vb VolumeBinding) DeepCopy() *VolumeBinding {
 	}
 }
 
-// VolumeBindings is a collection of VolumeBinding
 type VolumeBindings []*VolumeBinding
 
-// NewVolumeBindings return VolumeBindings of reference type
 func NewVolumeBindings(volumes []string) (volumeBindings VolumeBindings, err error) {
 	for _, vb := range volumes {
 		volumeBinding, err := NewVolumeBinding(vb)
@@ -168,7 +156,6 @@ func NewVolumeBindings(volumes []string) (volumeBindings VolumeBindings, err err
 	return volumeBindings, err
 }
 
-// Validate .
 func (vbs VolumeBindings) Validate() error {
 	for _, vb := range vbs {
 		if vb.RequireScheduleMonopoly() && vb.RequireScheduleUnlimitedQuota() {
@@ -181,7 +168,6 @@ func (vbs VolumeBindings) Validate() error {
 	return nil
 }
 
-// UnmarshalJSON is used for encoding/json.Unmarshal
 func (vbs *VolumeBindings) UnmarshalJSON(b []byte) (err error) {
 	volumes := []string{}
 	if err = json.Unmarshal(b, &volumes); err != nil {
@@ -191,7 +177,6 @@ func (vbs *VolumeBindings) UnmarshalJSON(b []byte) (err error) {
 	return err
 }
 
-// MarshalJSON is used for encoding/json.Marshal
 func (vbs VolumeBindings) MarshalJSON() ([]byte, error) {
 	volumes := []string{}
 	for _, vb := range vbs {
@@ -209,7 +194,6 @@ func (vbs VolumeBindings) String() string {
 	return strings.Join(volumes, ",")
 }
 
-// TotalSize .
 func (vbs VolumeBindings) TotalSize() (total int64) {
 	for _, vb := range vbs {
 		total += vb.SizeInBytes
@@ -217,7 +201,6 @@ func (vbs VolumeBindings) TotalSize() (total int64) {
 	return total
 }
 
-// ApplyPlan creates new VolumeBindings according to volume plan
 func (vbs VolumeBindings) ApplyPlan(plan VolumePlan) (res VolumeBindings) {
 	for _, vb := range vbs {
 		newVb := vb.DeepCopy()
@@ -232,7 +215,6 @@ func (vbs VolumeBindings) ApplyPlan(plan VolumePlan) (res VolumeBindings) {
 	return res
 }
 
-// MergeVolumeBindings combines two VolumeBindings
 func MergeVolumeBindings(vbs1 VolumeBindings, vbs2 ...VolumeBindings) (vbs VolumeBindings) {
 	vbMap := map[[3]string]*VolumeBinding{}
 	for _, vbs := range append(vbs2, vbs1) {
@@ -266,10 +248,8 @@ func MergeVolumeBindings(vbs1 VolumeBindings, vbs2 ...VolumeBindings) (vbs Volum
 	return vbs
 }
 
-// Volumes .
 type Volumes map[string]int64
 
-// DeepCopy .
 func (v Volumes) DeepCopy() Volumes {
 	res := Volumes{}
 	for key, value := range v {
@@ -278,14 +258,12 @@ func (v Volumes) DeepCopy() Volumes {
 	return res
 }
 
-// Add .
 func (v Volumes) Add(v1 Volumes) {
 	for key, value := range v1 {
 		v[key] += value
 	}
 }
 
-// Sub .
 func (v Volumes) Sub(v1 Volumes) {
 	for key, value := range v1 {
 		v[key] -= value
@@ -308,7 +286,6 @@ func (v Volumes) GetSize() int64 {
 	return 0
 }
 
-// Total .
 func (v Volumes) Total() int64 {
 	res := int64(0)
 	for _, size := range v {
@@ -320,7 +297,6 @@ func (v Volumes) Total() int64 {
 // VolumePlan is map from volume string to volumeMap: {"AUTO:/data:rw:100": Volumes{"/sda1": 100}}
 type VolumePlan map[*VolumeBinding]Volumes
 
-// UnmarshalJSON .
 func (p *VolumePlan) UnmarshalJSON(b []byte) (err error) {
 	if *p == nil {
 		*p = VolumePlan{}
@@ -339,7 +315,6 @@ func (p *VolumePlan) UnmarshalJSON(b []byte) (err error) {
 	return err
 }
 
-// MarshalJSON .
 func (p VolumePlan) MarshalJSON() ([]byte, error) {
 	plan := map[string]Volumes{}
 	for vb, vmap := range p {
@@ -349,7 +324,6 @@ func (p VolumePlan) MarshalJSON() ([]byte, error) {
 	return bs, err
 }
 
-// String .
 func (p VolumePlan) String() string {
 	bs, err := p.MarshalJSON()
 	if err != nil {
@@ -358,7 +332,6 @@ func (p VolumePlan) String() string {
 	return string(bs)
 }
 
-// Merge .
 func (p VolumePlan) Merge(p2 VolumePlan) {
 	for vb, vm := range p2 {
 		if oldVM, oldVB := p.GetVolumes(vb); oldVB != nil {

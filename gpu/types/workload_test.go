@@ -15,7 +15,6 @@ func TestWorkloadResource(t *testing.T) {
 }
 
 func TestWorkloadResourceRequest(t *testing.T) {
-	// empty request
 	req := &WorkloadResourceRequest{}
 	err := req.Parse(nil)
 	assert.Nil(t, err)
@@ -32,7 +31,6 @@ func TestWorkloadResourceRequest(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, req.Count(), 6)
 
-	// invalid request
 	params = resourcetypes.RawParams{
 		"prod_count_map": ProdCountMap{
 			"nvidia-3070": 4,

@@ -9,7 +9,6 @@ import (
 	"github.com/projecteru2/core/utils"
 )
 
-// Disk .
 type Disk struct {
 	Device    string   `json:"device" mapstructure:"device"`
 	Mounts    []string `json:"mounts" mapstructure:"mounts"`
@@ -19,12 +18,10 @@ type Disk struct {
 	WriteBPS  int64    `json:"write_bps" mapstructure:"write_bps"`
 }
 
-// String .
 func (d *Disk) String() string {
 	return fmt.Sprintf("%+v:%+v:%+v:%+v:%+v:%+v", d.Device, strings.Join(d.Mounts, ","), d.ReadIOPS, d.WriteIOPS, d.ReadBPS, d.WriteBPS)
 }
 
-// Parse .
 func (d *Disk) Parse(s string) (err error) {
 	parts := strings.Split(s, ":")
 	if len(parts) != 6 {
@@ -47,7 +44,6 @@ func (d *Disk) Parse(s string) (err error) {
 	return nil
 }
 
-// DeepCopy .
 func (d *Disk) DeepCopy() *Disk {
 	return &Disk{
 		Device:    d.Device,
@@ -59,10 +55,8 @@ func (d *Disk) DeepCopy() *Disk {
 	}
 }
 
-// Disks .
 type Disks []*Disk
 
-// DeepCopy .
 func (d Disks) DeepCopy() Disks {
 	disks := make(Disks, len(d))
 	for i, disk := range d {
@@ -78,7 +72,6 @@ func (d Disks) DeepCopy() Disks {
 	return disks
 }
 
-// GetDiskByDevice .
 func (d Disks) GetDiskByDevice(device string) *Disk {
 	for _, disk := range d {
 		if disk.Device == device {
@@ -88,7 +81,6 @@ func (d Disks) GetDiskByDevice(device string) *Disk {
 	return nil
 }
 
-// GetDiskByPath .
 func (d Disks) GetDiskByPath(path string) *Disk {
 	mountToDiskMap := map[string]*Disk{}
 	mounts := []string{}
@@ -100,7 +92,6 @@ func (d Disks) GetDiskByPath(path string) *Disk {
 		}
 	}
 
-	// sort the mounts by the number of delimiters (descending)
 	sort.Slice(mounts, func(i, j int) bool {
 		return getDelimiterCount(mounts[i], '/') > getDelimiterCount(mounts[j], '/')
 	})
@@ -113,7 +104,6 @@ func (d Disks) GetDiskByPath(path string) *Disk {
 	return nil
 }
 
-// Add .
 func (d *Disks) Add(d1 Disks) {
 	toAppend := []*Disk{}
 	for _, disk1 := range d1 {
@@ -136,7 +126,6 @@ func (d *Disks) Add(d1 Disks) {
 	}
 }
 
-// Sub .
 func (d *Disks) Sub(d1 Disks) {
 	toAppend := []*Disk{}
 	for _, disk1 := range d1 {

@@ -17,9 +17,7 @@ import (
 	storagetypes "github.com/projecteru2/resource-extend/storage/types"
 )
 
-// AddNode .
 func (p Plugin) AddNode(ctx context.Context, nodename string, resource plugintypes.NodeResourceRequest, info *enginetypes.Info) (*plugintypes.AddNodeResponse, error) {
-	// try to get the node resource
 	var err error
 	if _, err = p.store.Get(ctx, nodename); err == nil {
 		return nil, coretypes.ErrNodeExists
@@ -35,7 +33,6 @@ func (p Plugin) AddNode(ctx context.Context, nodename string, resource plugintyp
 		return nil, err
 	}
 
-	// set default value
 	if info != nil && req.Storage == 0 {
 		req.Storage = info.StorageTotal * rate / 10
 	}
@@ -58,16 +55,14 @@ func (p Plugin) AddNode(ctx context.Context, nodename string, resource plugintyp
 	}, nil
 }
 
-// RemoveNode .
 func (p Plugin) RemoveNode(ctx context.Context, nodename string) (*plugintypes.RemoveNodeResponse, error) {
 	err := p.store.Delete(ctx, nodename)
 	if err != nil {
-		log.WithFunc("resource.storage.RemoveNode").WithField("node", nodename).Error(ctx, err, "faield to delete node")
+		log.WithFunc("resource.storage.RemoveNode").WithField("node", nodename).Error(ctx, err, "failed to delete node")
 	}
 	return &plugintypes.RemoveNodeResponse{}, err
 }
 
-// GetNodesDeployCapacity .
 func (p Plugin) GetNodesDeployCapacity(ctx context.Context, nodenames []string, resource plugintypes.WorkloadResourceRequest) (*plugintypes.GetNodesDeployCapacityResponse, error) {
 	logger := log.WithFunc("resource.storage.GetNodesDeployCapacity")
 	req := &storagetypes.WorkloadResourceRequest{}
@@ -105,7 +100,6 @@ func (p Plugin) GetNodesDeployCapacity(ctx context.Context, nodenames []string, 
 	}, nil
 }
 
-// SetNodeResourceCapacity .
 func (p Plugin) SetNodeResourceCapacity(ctx context.Context, nodename string, resource plugintypes.NodeResource, resourceRequest plugintypes.NodeResourceRequest, delta, incr bool) (*plugintypes.SetNodeResourceCapacityResponse, error) {
 	logger := log.WithFunc("resource.storage.SetNodeResourceCapacity").WithField("node", nodename)
 	req, nodeResource, _, nodeResourceInfo, err := p.parseNodeResourceInfos(ctx, nodename, resource, resourceRequest, nil)
@@ -150,7 +144,6 @@ func (p Plugin) SetNodeResourceCapacity(ctx context.Context, nodename string, re
 	}, nil
 }
 
-// GetNodeResourceInfo .
 func (p Plugin) GetNodeResourceInfo(ctx context.Context, nodename string, workloadsResource []plugintypes.WorkloadResource) (*plugintypes.GetNodeResourceInfoResponse, error) {
 	nodeResourceInfo, _, _, _, diffs, err := p.getNodeResourceInfo(ctx, nodename, workloadsResource)
 	if err != nil {
@@ -164,7 +157,6 @@ func (p Plugin) GetNodeResourceInfo(ctx context.Context, nodename string, worklo
 	}, nil
 }
 
-// SetNodeResourceInfo .
 func (p Plugin) SetNodeResourceInfo(ctx context.Context, nodename string, capacity, usage plugintypes.NodeResource) (*plugintypes.SetNodeResourceInfoResponse, error) {
 	capacityResource := &storagetypes.NodeResource{}
 	usageResource := &storagetypes.NodeResource{}
@@ -186,7 +178,6 @@ func (p Plugin) SetNodeResourceInfo(ctx context.Context, nodename string, capaci
 	return &plugintypes.SetNodeResourceInfoResponse{}, p.store.Put(ctx, nodename, resourceInfo)
 }
 
-// SetNodeResourceUsage .
 func (p Plugin) SetNodeResourceUsage(ctx context.Context, nodename string, resource plugintypes.NodeResource, resourceRequest plugintypes.NodeResourceRequest, workloadsResource []plugintypes.WorkloadResource, delta, incr bool) (*plugintypes.SetNodeResourceUsageResponse, error) {
 	logger := log.WithFunc("resource.storage.SetNodeResourceUsage").WithField("node", nodename)
 	req, nodeResource, wrksResource, nodeResourceInfo, err := p.parseNodeResourceInfos(ctx, nodename, resource, resourceRequest, workloadsResource)
@@ -209,7 +200,6 @@ func (p Plugin) SetNodeResourceUsage(ctx context.Context, nodename string, resou
 	}, nil
 }
 
-// GetMostIdleNode .
 func (p Plugin) GetMostIdleNode(_ context.Context, nodenames []string) (*plugintypes.GetMostIdleNodeResponse, error) {
 	if len(nodenames) == 0 {
 		return nil, coretypes.ErrEmptyNodeName
@@ -220,7 +210,6 @@ func (p Plugin) GetMostIdleNode(_ context.Context, nodenames []string) (*plugint
 	}, nil
 }
 
-// FixNodeResource .
 func (p Plugin) FixNodeResource(ctx context.Context, nodename string, workloadsResource []plugintypes.WorkloadResource) (*plugintypes.GetNodeResourceInfoResponse, error) {
 	nodeResourceInfo, totalVolumes, totalDiskUsage, totalStorageUsage, diffs, err := p.getNodeResourceInfo(ctx, nodename, workloadsResource)
 	if err != nil {
@@ -317,11 +306,9 @@ func (p Plugin) doGetNodeDeployCapacity(nodeResourceInfo *storagetypes.NodeResou
 		Weight: 1,
 	}
 
-	// get volume capacity
 	volumePlans, _ := schedule.GetVolumePlans(nodeResourceInfo, req.VolumesRequest, p.config.Scheduler.MaxDeployCount)
 	capacityInfo.Capacity = len(volumePlans)
 
-	// get storage capacity
 	if req.StorageRequest > 0 {
 		storageCapacity := int((nodeResourceInfo.Capacity.Storage - nodeResourceInfo.Usage.Storage) / req.StorageRequest)
 		if req.VolumesLimit == nil || (storageCapacity < capacityInfo.Capacity) {
@@ -329,7 +316,6 @@ func (p Plugin) doGetNodeDeployCapacity(nodeResourceInfo *storagetypes.NodeResou
 		}
 	}
 
-	// get usage and rate
 	if nodeResourceInfo.Capacity.Volumes.Total() == 0 && nodeResourceInfo.Capacity.Storage == 0 {
 		return capacityInfo
 	}
@@ -350,9 +336,7 @@ func (p Plugin) calculateNodeResource(req *storagetypes.NodeResourceRequest, nod
 	var resp *storagetypes.NodeResource
 	if origin == nil || !delta { // no delta means node resource rewrite with whole new data
 		resp = (&storagetypes.NodeResource{}).DeepCopy()
-		// 这个接口最诡异的在于，如果 delta 为 false，意味着是全量写入
-		// 但这时候 incr 为 false 的话
-		// 实际上是 set 进了负值，所以这里 incr 应该强制为 true
+		// a full rewrite must force incr, or the values are stored negative
 		incr = true
 	} else {
 		resp = origin.DeepCopy()

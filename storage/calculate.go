@@ -15,7 +15,6 @@ import (
 	storagetypes "github.com/projecteru2/resource-extend/storage/types"
 )
 
-// CalculateDeploy .
 func (p Plugin) CalculateDeploy(ctx context.Context, nodename string, deployCount int, resourceRequest plugintypes.WorkloadResourceRequest) (*plugintypes.CalculateDeployResponse, error) {
 	logger := log.WithFunc("resource.storage.CalculateDeploy").WithField("node", nodename)
 	req := &storagetypes.WorkloadResourceRequest{}
@@ -53,7 +52,6 @@ func (p Plugin) CalculateDeploy(ctx context.Context, nodename string, deployCoun
 	}, nil
 }
 
-// CalculateRealloc .
 func (p Plugin) CalculateRealloc(ctx context.Context, nodename string, resource plugintypes.WorkloadResource, resourceRequest plugintypes.WorkloadResourceRequest) (*plugintypes.CalculateReallocResponse, error) {
 	logger := log.WithFunc("resource.storage.CalculateRealloc").WithField("node", nodename)
 	req := &storagetypes.WorkloadResourceRequest{}
@@ -70,7 +68,6 @@ func (p Plugin) CalculateRealloc(ctx context.Context, nodename string, resource 
 		return nil, err
 	}
 
-	// check if volume rescheduling is needed
 	if req.VolumesRequest == nil {
 		req.VolumesRequest = req.VolumesLimit
 	}
@@ -118,7 +115,6 @@ func (p Plugin) CalculateRealloc(ctx context.Context, nodename string, resource 
 	targetWorkloadResource.VolumePlanLimit = getVolumePlanLimit(targetWorkloadResource.VolumesRequest, targetWorkloadResource.VolumesLimit, volumePlan)
 	targetWorkloadResource.DisksLimit = getDisksLimit(req.VolumesLimit, targetWorkloadResource.VolumePlanLimit, resourceInfo.Capacity.Disks)
 
-	// compute engine args
 	originBindingSet := map[[3]string]struct{}{}
 	for _, binding := range originResource.VolumesLimit.ApplyPlan(originResource.VolumePlanLimit) {
 		originBindingSet[binding.GetMapKey()] = struct{}{}
@@ -145,16 +141,13 @@ func (p Plugin) CalculateRealloc(ctx context.Context, nodename string, resource 
 	}, nil
 }
 
-// CalculateRemap .
 func (p Plugin) CalculateRemap(context.Context, string, map[string]plugintypes.WorkloadResource) (*plugintypes.CalculateRemapResponse, error) {
-	// NO NEED REMAP VOLUME
 	return &plugintypes.CalculateRemapResponse{
 		EngineParamsMap: nil,
 	}, nil
 }
 
 func (p Plugin) doAlloc(resourceInfo *storagetypes.NodeResourceInfo, deployCount int, req *storagetypes.WorkloadResourceRequest) ([]*storagetypes.EngineParams, []*storagetypes.WorkloadResource, error) {
-	// check if storage is enough
 	if req.StorageRequest > 0 {
 		storageCapacity := int((resourceInfo.Capacity.Storage - resourceInfo.Usage.Storage) / req.StorageRequest)
 		if storageCapacity < deployCount {
@@ -168,7 +161,6 @@ func (p Plugin) doAlloc(resourceInfo *storagetypes.NodeResourceInfo, deployCount
 	var volumePlans []storagetypes.VolumePlan
 	var diskPlans []storagetypes.Disks
 
-	// if volume scheduling is not required
 	if !utils.Any(req.VolumesRequest, func(b *storagetypes.VolumeBinding) bool { return b.RequireSchedule() || b.RequireIOPS() }) {
 		for i := 0; i < deployCount; i++ {
 			volumePlans = append(volumePlans, storagetypes.VolumePlan{})

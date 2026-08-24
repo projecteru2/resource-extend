@@ -22,26 +22,22 @@ func TestCalculateDeploy(t *testing.T) {
 	nodes := generateNodes(ctx, t, st, 1, vols, 0)
 	node := nodes[0]
 
-	// invalid resource opt
 	req := plugintypes.WorkloadResourceRequest{"storage": "-1"}
 	_, err := st.CalculateDeploy(ctx, node, 10, req)
 	assert.ErrorIs(t, err, types.ErrInvalidStorage)
 
-	// invalid node
 	req = plugintypes.WorkloadResourceRequest{
 		"volumes": []string{"AUTO:/dir0:rwm:1G"},
 	}
 	_, err = st.CalculateDeploy(ctx, "no node", 10, req)
 	assert.ErrorIs(t, err, coretypes.ErrNodeNotExists)
 
-	// storage is not enough
 	req = plugintypes.WorkloadResourceRequest{
 		"volumes": []string{"AUTO:/dir0:rwm:10T"},
 	}
 	_, err = st.CalculateDeploy(ctx, node, 10, req)
 	assert.ErrorIs(t, err, coretypes.ErrInsufficientResource)
 
-	// normal case
 	req = plugintypes.WorkloadResourceRequest{
 		"storage": fmt.Sprintf("%v", units.GiB),
 	}
@@ -49,7 +45,6 @@ func TestCalculateDeploy(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, d.EnginesParams, 10)
 
-	// volume
 	req = plugintypes.WorkloadResourceRequest{
 		"volumes": []string{
 			"AUTO:/dir0:rwm:1T",
@@ -104,11 +99,9 @@ func TestCalculateRealloc(t *testing.T) {
 
 	req := plugintypes.WorkloadResourceRequest{}
 
-	// non-existent node
 	_, err = st.CalculateRealloc(ctx, "no node", resource, req)
 	assert.ErrorIs(t, err, coretypes.ErrNodeNotExists)
 
-	// invalid req
 	req = plugintypes.WorkloadResourceRequest{
 		"volume-request":  []string{"AUTO:/dir0:rw:100GiB", "AUTO:/dir1:mrw:100GiB", "AUTO:/dir2:rw:0"},
 		"storage-request": "-1",
@@ -117,7 +110,6 @@ func TestCalculateRealloc(t *testing.T) {
 	_, err = st.CalculateRealloc(ctx, node, resource, req)
 	assert.ErrorIs(t, err, types.ErrInvalidStorage)
 
-	// insufficient storage
 	req = plugintypes.WorkloadResourceRequest{
 		"volume-request":  []string{"AUTO:/dir1:mrw:100GiB"},
 		"volume-limit":    []string{"AUTO:/dir1:mrw:100GiB"},
@@ -127,7 +119,6 @@ func TestCalculateRealloc(t *testing.T) {
 	_, err = st.CalculateRealloc(ctx, node, resource, req)
 	assert.ErrorIs(t, err, coretypes.ErrInsufficientResource)
 
-	// insufficient volume
 	req = plugintypes.WorkloadResourceRequest{
 		"volume-request": []string{"AUTO:/dir1:mrw:1TiB"},
 		"volume-limit":   []string{"AUTO:/dir1:mrw:1TiB"},
@@ -135,7 +126,6 @@ func TestCalculateRealloc(t *testing.T) {
 	_, err = st.CalculateRealloc(ctx, node, resource, req)
 	assert.ErrorIs(t, err, coretypes.ErrInsufficientResource)
 
-	// normal case
 	req = plugintypes.WorkloadResourceRequest{
 		"volume-request":  []string{"AUTO:/dir1:mrw:100GiB"},
 		"volume-limit":    []string{"AUTO:/dir1:mrw:100GiB"},
@@ -164,7 +154,6 @@ func TestCalculateRealloc(t *testing.T) {
 	`)))
 	assert.Equal(t, litter.Sdump(plan), litter.Sdump(wr.VolumePlanRequest))
 
-	// no request
 	req = plugintypes.WorkloadResourceRequest{
 		"storage-request": fmt.Sprintf("%v", units.GiB),
 		"storage-limit":   fmt.Sprintf("%v", units.GiB),

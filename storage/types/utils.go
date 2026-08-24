@@ -13,9 +13,6 @@ func getDelimiterCount(str string, delimiter int32) int {
 }
 
 func hasPrefix(path, mount string) bool {
-	// /data -> /data/xxx
-	// /data -> /data
-	// / -> /asdf
 	mount = addSlash(mount)
 	path = addSlash(path)
 	return strings.HasPrefix(path, mount)

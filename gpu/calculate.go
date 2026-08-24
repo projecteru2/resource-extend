@@ -11,7 +11,6 @@ import (
 	gputypes "github.com/projecteru2/resource-extend/gpu/types"
 )
 
-// CalculateDeploy .
 func (p Plugin) CalculateDeploy(
 	ctx context.Context, nodename string, deployCount int,
 	resourceRequest plugintypes.WorkloadResourceRequest,
@@ -56,7 +55,6 @@ func (p Plugin) CalculateDeploy(
 	}, nil
 }
 
-// CalculateRealloc .
 func (p Plugin) CalculateRealloc(
 	ctx context.Context, nodename string,
 	resource plugintypes.WorkloadResource,
@@ -68,7 +66,6 @@ func (p Plugin) CalculateRealloc(
 	if err := req.Parse(resourceRequest); err != nil {
 		return nil, err
 	}
-	// realloc needs negative count, so only validate prod here.
 	if err := req.ValidateProd(); err != nil {
 		return nil, err
 	}
@@ -85,7 +82,6 @@ func (p Plugin) CalculateRealloc(
 		return nil, err
 	}
 
-	// put resources back into the resource pool
 	nodeResourceInfo.Usage.Sub(&gputypes.NodeResource{
 		ProdCountMap: originResource.ProdCountMap,
 	})
@@ -116,7 +112,6 @@ func (p Plugin) CalculateRealloc(
 	}, nil
 }
 
-// CalculateRemap .
 func (p Plugin) CalculateRemap(context.Context, string, map[string]plugintypes.WorkloadResource) (*plugintypes.CalculateRemapResponse, error) {
 	return &plugintypes.CalculateRemapResponse{
 		EngineParamsMap: nil,

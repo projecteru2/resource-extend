@@ -13,10 +13,8 @@ import (
 const maxDeployCount = 1000
 
 func TestGetVolumePlans(t *testing.T) {
-	// no volume
 	resourceInfo := generateEmptyResourceInfo()
 
-	// single normal request
 	volumeRequest := generateVolumeBindings(t, []string{
 		"AUTO:/dir1:rw:500GiB",
 	})
@@ -24,23 +22,18 @@ func TestGetVolumePlans(t *testing.T) {
 	plans, _ := GetVolumePlans(resourceInfo, volumeRequest, maxDeployCount)
 	assert.Equal(t, len(plans), 0)
 
-	// normal cases
 	requests := []types.VolumeBindings{
-		// single normal request
 		generateVolumeBindings(t, []string{
 			"AUTO:/dir1:rw:500GiB",
 		}),
-		// multiple normal request
 		generateVolumeBindings(t, []string{
 			"AUTO:/dir1:rw:500GiB",
 			"AUTO:/dir2:rw:500GiB",
 		}),
-		// with single mono request
 		generateVolumeBindings(t, []string{
 			"AUTO:/dir1:rw:1GiB",
 			"AUTO:/dir2:rwm:1GiB",
 		}),
-		// with mono requests
 		generateVolumeBindings(t, []string{
 			"AUTO:/dir1:rw:500GiB",
 			"AUTO:/dir2:rw:500GiB",
@@ -48,7 +41,6 @@ func TestGetVolumePlans(t *testing.T) {
 			"AUTO:/dir4:rwm:100GiB",
 			"AUTO:/dir5:rwm:100GiB",
 		}),
-		// with unlimited requests
 		generateVolumeBindings(t, []string{
 			"AUTO:/dir1:rw:500GiB",
 			"AUTO:/dir2:rw:0",
@@ -56,7 +48,6 @@ func TestGetVolumePlans(t *testing.T) {
 			"AUTO:/dir4:rwm:100GiB",
 			"AUTO:/dir5:rwm:100GiB",
 		}),
-		// single unlimited requests
 		generateVolumeBindings(t, []string{
 			"AUTO:/dir1:rw:0",
 		}),
@@ -68,13 +59,10 @@ func TestGetVolumePlans(t *testing.T) {
 		validateVolumePlans(t, resourceInfo, volumeRequest, plans)
 	}
 
-	// invalid requests
 	requests = []types.VolumeBindings{
-		// single normal request with too much size
 		generateVolumeBindings(t, []string{
 			"AUTO:/dir1:rw:2TiB",
 		}),
-		// multiple normal request with too much size
 		generateVolumeBindings(t, []string{
 			"AUTO:/dir1:rw:800GiB",
 			"AUTO:/dir2:rw:800GiB",
@@ -84,13 +72,11 @@ func TestGetVolumePlans(t *testing.T) {
 			"AUTO:/dir6:rw:800GiB",
 			"AUTO:/dir7:rw:800GiB",
 		}),
-		// mono request with too much size
 		generateVolumeBindings(t, []string{
 			"AUTO:/dir1:rwm:500GiB",
 			"AUTO:/dir2:rwm:500GiB",
 			"AUTO:/dir3:rwm:500GiB",
 		}),
-		// insufficient unused volume
 		generateVolumeBindings(t, []string{
 			"AUTO:/dir1:rw:800GiB",
 			"AUTO:/dir2:rw:800GiB",
@@ -131,36 +117,28 @@ func TestGetVolumePlansWithIOPS(t *testing.T) {
 }
 
 func TestGetAffinityPlan(t *testing.T) {
-	// normal cases
 	requests := []types.VolumeBindings{
-		// realloc normal
 		generateVolumeBindings(t, []string{
 			"AUTO:/dir0:rw:1GiB",
 		}),
-		// realloc normal with reschedule
 		generateVolumeBindings(t, []string{
 			"AUTO:/dir3:rw:1GiB",
 		}),
-		// realloc mono without reschedule
 		generateVolumeBindings(t, []string{
 			"AUTO:/dir1:rwm:1GiB",
 		}),
-		// realloc mono without reschedule
 		generateVolumeBindings(t, []string{
 			"AUTO:/dir1:rwm:1GiB",
 			"AUTO:/dir3:rwm:1GiB",
 		}),
-		// realloc mono with reschedule
 		generateVolumeBindings(t, []string{
 			"AUTO:/dir1:rwm:-1TiB",
 			"AUTO:/dir3:rwm:100GiB",
 			"AUTO:/dir4:rwm:100GiB",
 		}),
-		// realloc unlimited
 		generateVolumeBindings(t, []string{
 			"AUTO:/dir0:rw:-100GiB",
 		}),
-		// mixed
 		generateVolumeBindings(t, []string{
 			"AUTO:/dir0:rw:-100GiB",
 			"AUTO:/dir2:rw:100GiB",
@@ -180,7 +158,6 @@ func TestGetAffinityPlan(t *testing.T) {
 		validateVolumePlan(t, resourceInfo, mergedRequest, plan)
 	}
 
-	// no request
 	resourceInfo := generateResourceInfo()
 	originRequest, existing := generateExistingVolumePlan(t)
 	for _, volumeMap := range existing {
@@ -193,15 +170,12 @@ func TestGetAffinityPlan(t *testing.T) {
 	assert.Equal(t, existing.String(), plan.String())
 
 	invalidRequests := []types.VolumeBindings{
-		// normal request with too much size
 		generateVolumeBindings(t, []string{
 			"AUTO:/dir0:rw:1TiB",
 		}),
-		// mono request with too much size
 		generateVolumeBindings(t, []string{
 			"AUTO:/dir1:rwm:1TiB",
 		}),
-		// volumes are not enough
 		generateVolumeBindings(t, []string{
 			"AUTO:/dir3:rw:1TiB",
 			"AUTO:/dir4:rw:1TiB",

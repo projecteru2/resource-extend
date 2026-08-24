@@ -5,7 +5,6 @@ import (
 	resourcetypes "github.com/projecteru2/core/resource/types"
 )
 
-// EngineParams .
 type EngineParams struct {
 	ProdCountMap ProdCountMap `json:"prod_count_map" mapstructure:"prod_count_map"`
 }

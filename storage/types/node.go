@@ -10,14 +10,12 @@ import (
 	coreutils "github.com/projecteru2/core/utils"
 )
 
-// NodeResource .
 type NodeResource struct {
 	Volumes Volumes `json:"volumes" mapstructure:"volumes"`
 	Disks   Disks   `json:"disks" mapstructure:"disks"`
 	Storage int64   `json:"storage" mapstructure:"storage"`
 }
 
-// AsRawParams .
 func (n *NodeResource) AsRawParams() resourcetypes.RawParams {
 	return resourcetypes.RawParams{
 		"volumes": n.Volumes,
@@ -26,17 +24,14 @@ func (n *NodeResource) AsRawParams() resourcetypes.RawParams {
 	}
 }
 
-// ParseFromRawParams .
 func (n *NodeResource) Parse(rawParams resourcetypes.RawParams) error {
 	return mapstructure.Decode(rawParams, n)
 }
 
-// DeepCopy .
 func (n *NodeResource) DeepCopy() *NodeResource {
 	return &NodeResource{Volumes: n.Volumes.DeepCopy(), Storage: n.Storage, Disks: n.Disks.DeepCopy()}
 }
 
-// RemoveEmpty .
 func (n *NodeResource) RemoveEmpty() {
 	for device, size := range n.Volumes {
 		if n.Volumes[device] == 0 {
@@ -46,7 +41,6 @@ func (n *NodeResource) RemoveEmpty() {
 	}
 }
 
-// Add .
 func (n *NodeResource) Add(n1 *NodeResource) {
 	for k, v := range n1.Volumes {
 		n.Volumes[k] += v
@@ -55,7 +49,6 @@ func (n *NodeResource) Add(n1 *NodeResource) {
 	n.Disks.Add(n1.Disks)
 }
 
-// Sub .
 func (n *NodeResource) Sub(n1 *NodeResource) {
 	for k, v := range n1.Volumes {
 		n.Volumes[k] -= v
@@ -64,13 +57,11 @@ func (n *NodeResource) Sub(n1 *NodeResource) {
 	n.Disks.Sub(n1.Disks)
 }
 
-// NodeResourceInfo .
 type NodeResourceInfo struct {
 	Capacity *NodeResource `json:"capacity"`
 	Usage    *NodeResource `json:"usage"`
 }
 
-// Validate .
 func (n *NodeResourceInfo) Validate() error {
 	if n.Capacity == nil {
 		return ErrInvalidCapacity
@@ -92,7 +83,6 @@ func (n *NodeResourceInfo) Validate() error {
 		}
 	}
 
-	// sort disks
 	sort.Slice(n.Usage.Disks, func(i, j int) bool {
 		return n.Usage.Disks[i].Device < n.Usage.Disks[j].Device
 	})
@@ -107,7 +97,6 @@ func (n *NodeResourceInfo) Validate() error {
 		n.validateDisks())
 }
 
-// GetAvailableResource .
 func (n *NodeResourceInfo) GetAvailableResource() *NodeResource {
 	res := n.Capacity.DeepCopy()
 	res.Sub(n.Usage)
@@ -179,7 +168,6 @@ func (n *NodeResourceInfo) validateStorage() error {
 	return nil
 }
 
-// NodeResourceRequest includes all possible fields passed by eru-core for editing node, it not parsed!
 type NodeResourceRequest struct {
 	Volumes Volumes  `json:"volumes"`
 	Storage int64    `json:"storage"`
@@ -189,7 +177,6 @@ type NodeResourceRequest struct {
 	RawParams resourcetypes.RawParams `json:"-"`
 }
 
-// Parse .
 func (n *NodeResourceRequest) Parse(rawParams resourcetypes.RawParams) (err error) {
 	n.RawParams = rawParams
 

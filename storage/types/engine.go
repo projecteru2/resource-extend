@@ -5,7 +5,6 @@ import (
 	resourcetypes "github.com/projecteru2/core/resource/types"
 )
 
-// EngineParams .
 type EngineParams struct {
 	Volumes       []string          `json:"volumes" mapstructure:"volumes"`
 	VolumeChanged bool              `json:"volume_changed" mapstructure:"volume_changed"` // indicates whether the realloc request includes new volumes
@@ -13,7 +12,6 @@ type EngineParams struct {
 	IOPSOptions   map[string]string `json:"iops_options" mapstructure:"iops_options"`
 }
 
-// AsRawParams .
 func (ep *EngineParams) AsRawParams() resourcetypes.RawParams {
 	return resourcetypes.RawParams{
 		"volumes":        ep.Volumes,
@@ -23,7 +21,6 @@ func (ep *EngineParams) AsRawParams() resourcetypes.RawParams {
 	}
 }
 
-// Parse .
 func (ep *EngineParams) Parse(rawParams resourcetypes.RawParams) error {
 	return mapstructure.Decode(rawParams, ep)
 }

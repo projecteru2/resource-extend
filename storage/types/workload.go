@@ -10,7 +10,6 @@ import (
 	coreutils "github.com/projecteru2/core/utils"
 )
 
-// WorkloadResource .
 type WorkloadResource struct {
 	VolumesRequest VolumeBindings `json:"volumes_request" mapstructure:"volumes_request"`
 	VolumesLimit   VolumeBindings `json:"volumes_limit" mapstructure:"volumes_limit"`
@@ -25,7 +24,6 @@ type WorkloadResource struct {
 	DisksLimit   Disks `json:"disks_limit" mapstructure:"disks_limit"`
 }
 
-// AsRawParams .
 func (w *WorkloadResource) AsRawParams() resourcetypes.RawParams {
 	return resourcetypes.RawParams{
 		"volumes_request":     w.VolumesRequest,
@@ -39,7 +37,6 @@ func (w *WorkloadResource) AsRawParams() resourcetypes.RawParams {
 	}
 }
 
-// ParseFromRawParams .
 func (w *WorkloadResource) Parse(rawParams resourcetypes.RawParams) error {
 	// Have to use json because volume plan use customize marshal
 	body, err := json.Marshal(rawParams)
@@ -49,7 +46,6 @@ func (w *WorkloadResource) Parse(rawParams resourcetypes.RawParams) error {
 	return json.Unmarshal(body, w)
 }
 
-// WorkloadResourceRequest .
 type WorkloadResourceRequest struct {
 	VolumesRequest VolumeBindings `json:"volumes_request"`
 	VolumesLimit   VolumeBindings `json:"volumes_limit"`
@@ -59,7 +55,6 @@ type WorkloadResourceRequest struct {
 	once sync.Once
 }
 
-// Validate .
 func (w *WorkloadResourceRequest) Validate() error {
 	if len(w.VolumesRequest) == 0 && len(w.VolumesLimit) == 0 && w.StorageLimit == 0 && w.StorageRequest == 0 {
 		return nil
@@ -70,7 +65,6 @@ func (w *WorkloadResourceRequest) Validate() error {
 	)
 }
 
-// ParseFromRawParams .
 func (w *WorkloadResourceRequest) Parse(rawParams resourcetypes.RawParams) (err error) {
 	if w.VolumesRequest, err = NewVolumeBindings(rawParams.OneOfStringSlice("volumes-request", "volume-request", "volumes-request")); err != nil {
 		return err

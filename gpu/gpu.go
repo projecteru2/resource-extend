@@ -20,13 +20,11 @@ const (
 
 var _ plugins.Plugin = (*Plugin)(nil)
 
-// Plugin
 type Plugin struct {
 	name  string
 	store *nodestore.Store[*gputypes.NodeResourceInfo]
 }
 
-// NewPlugin .
 func NewPlugin(ctx context.Context, config coretypes.Config, embeddedETCD *embedded.Cluster) (*Plugin, error) {
 	store, err := nodestore.New(ctx, config, nodeResourceInfoKey, func() *gputypes.NodeResourceInfo {
 		return &gputypes.NodeResourceInfo{}
@@ -38,7 +36,6 @@ func NewPlugin(ctx context.Context, config coretypes.Config, embeddedETCD *embed
 	return &Plugin{name: name, store: store}, nil
 }
 
-// Name .
 func (p Plugin) Name() string {
 	return p.name
 }
