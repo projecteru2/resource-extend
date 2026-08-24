@@ -42,7 +42,7 @@ func (p Plugin) GetMetrics(ctx context.Context, podname, nodename string) (*plug
 			Name:   "storage_capacity",
 			Labels: []string{podname, nodename},
 			Value:  fmt.Sprintf("%+v", nodeResourceInfo.Capacity.Storage),
-			Key:    fmt.Sprintf("core.node.%s.storage.used", safeNodename),
+			Key:    fmt.Sprintf("core.node.%s.storage.capacity", safeNodename),
 		},
 	}, nil
 }
