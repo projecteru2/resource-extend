@@ -15,7 +15,7 @@ import (
 
 func TestName(t *testing.T) {
 	st := initStorage(t.Context(), t)
-	assert.Contains(t, st.Name(), st.name)
+	assert.Equal(t, name, st.Name())
 }
 
 func initStorage(ctx context.Context, t *testing.T) *Plugin {

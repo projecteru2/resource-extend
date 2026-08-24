@@ -17,7 +17,7 @@ import (
 
 func TestName(t *testing.T) {
 	cm := initGPU(t.Context(), t)
-	assert.Equal(t, cm.name, cm.Name())
+	assert.Equal(t, name, cm.Name())
 }
 
 func initGPU(ctx context.Context, t *testing.T) *Plugin {

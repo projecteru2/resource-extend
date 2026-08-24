@@ -100,10 +100,10 @@ func TestGetNodesDeployCapacity(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, 2*maxCapacity, r.Total)
 	for _, node := range nodes {
-		cap := r.NodeDeployCapacityMap[node]
-		assert.Equal(t, maxCapacity, cap.Capacity)
-		assert.Equal(t, float64(0), cap.Usage)
-		assert.Equal(t, float64(0), cap.Rate)
+		nodeCap := r.NodeDeployCapacityMap[node]
+		assert.Equal(t, maxCapacity, nodeCap.Capacity)
+		assert.Equal(t, float64(0), nodeCap.Usage)
+		assert.Equal(t, float64(0), nodeCap.Rate)
 	}
 
 	nodes = generateNodes(ctx, t, cm, 2, 0)
@@ -121,8 +121,8 @@ func TestGetNodesDeployCapacity(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, 2*maxCapacity, r.Total)
 	for _, node := range nodes {
-		cap := r.NodeDeployCapacityMap[node]
-		assert.Equal(t, maxCapacity, cap.Capacity)
+		nodeCap := r.NodeDeployCapacityMap[node]
+		assert.Equal(t, maxCapacity, nodeCap.Capacity)
 	}
 
 	r, err = cm.GetNodesDeployCapacity(ctx, nodes, req)
@@ -138,8 +138,8 @@ func TestGetNodesDeployCapacity(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, 2, r.Total)
 	for _, node := range nodes {
-		cap := r.NodeDeployCapacityMap[node]
-		assert.Equal(t, 1, cap.Capacity)
+		nodeCap := r.NodeDeployCapacityMap[node]
+		assert.Equal(t, 1, nodeCap.Capacity)
 	}
 
 	req = plugintypes.WorkloadResourceRequest{
@@ -162,8 +162,8 @@ func TestGetNodesDeployCapacity(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, 8, r.Total)
 	for _, node := range nodes {
-		cap := r.NodeDeployCapacityMap[node]
-		assert.Equal(t, 4, cap.Capacity)
+		nodeCap := r.NodeDeployCapacityMap[node]
+		assert.Equal(t, 4, nodeCap.Capacity)
 	}
 
 	req = plugintypes.WorkloadResourceRequest{
@@ -176,8 +176,8 @@ func TestGetNodesDeployCapacity(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, 4, r.Total)
 	for _, node := range nodes {
-		cap := r.NodeDeployCapacityMap[node]
-		assert.Equal(t, 2, cap.Capacity)
+		nodeCap := r.NodeDeployCapacityMap[node]
+		assert.Equal(t, 2, nodeCap.Capacity)
 	}
 
 	req = plugintypes.WorkloadResourceRequest{
@@ -190,8 +190,8 @@ func TestGetNodesDeployCapacity(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, 4, r.Total)
 	for _, node := range nodes {
-		cap := r.NodeDeployCapacityMap[node]
-		assert.Equal(t, 2, cap.Capacity)
+		nodeCap := r.NodeDeployCapacityMap[node]
+		assert.Equal(t, 2, nodeCap.Capacity)
 	}
 
 	req = plugintypes.WorkloadResourceRequest{
@@ -204,8 +204,8 @@ func TestGetNodesDeployCapacity(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, 2, r.Total)
 	for _, node := range nodes {
-		cap := r.NodeDeployCapacityMap[node]
-		assert.Equal(t, 1, cap.Capacity)
+		nodeCap := r.NodeDeployCapacityMap[node]
+		assert.Equal(t, 1, nodeCap.Capacity)
 	}
 
 	req = plugintypes.WorkloadResourceRequest{
@@ -226,12 +226,12 @@ func TestSetNodeResourceCapacity(t *testing.T) {
 	nodes := generateNodes(ctx, t, cm, 1, 0)
 	node := nodes[0]
 
-	capcaity := &types.NodeResource{}
+	capacity := &types.NodeResource{}
 	gr, err := cm.GetNodeResourceInfo(ctx, node, nil)
 	assert.Nil(t, err)
-	err = capcaity.Parse(gr.Capacity)
+	err = capacity.Parse(gr.Capacity)
 	assert.Nil(t, err)
-	assert.Equal(t, capcaity.Count(), 8)
+	assert.Equal(t, capacity.Count(), 8)
 
 	nodeResource := plugintypes.NodeResource{
 		"prod_count_map": types.ProdCountMap{

@@ -296,7 +296,7 @@ func (p Plugin) getNodeResourceInfo(ctx context.Context, nodename string, worklo
 	diffs := []string{}
 
 	if actuallyWorkloadsUsage.Count() != nodeResourceInfo.UsageCount() {
-		diffs = append(diffs, fmt.Sprintf("node.GPUUsed != sum(workload.GPURequest): %.2d != %.2d", nodeResourceInfo.UsageCount(), actuallyWorkloadsUsage.Count()))
+		diffs = append(diffs, fmt.Sprintf("node.usage != sum(workload.request): %d != %d", nodeResourceInfo.UsageCount(), actuallyWorkloadsUsage.Count()))
 	}
 	for prod, count1 := range actuallyWorkloadsUsage.ProdCountMap {
 		count2, ok := nodeResourceInfo.Usage.ProdCountMap[prod]

@@ -34,7 +34,7 @@ func TestHandlersDecodeCoreRequest(t *testing.T) {
 				assert.Equal(t, 8, s.info.NCPU)
 				assert.Equal(t, int64(1024), s.info.StorageTotal)
 				assert.Equal(t, []byte(`{"a":1}`), s.info.Resources["gpu"])
-				assert.NotNil(t, s.resource["prod_count_map"])
+				assert.NotNil(t, s.resourceRequest["prod_count_map"])
 			},
 		},
 		{
@@ -195,18 +195,10 @@ func TestHandlersRejectEmptyNodename(t *testing.T) {
 		"calculate-deploy":           calculateDeploy,
 		"calculate-realloc":          calculateRealloc,
 		"calculate-remap":            calculateRemap,
+		"get-nodes-deploy-capacity":  getNodesDeployCapacity,
+		"get-most-idle-node":         getMostIdleNode,
 	}
 	for name, run := range handlers {
-		t.Run(name, func(t *testing.T) {
-			_, err := run(t.Context(), &stubPlugin{}, resourcetypes.RawParams{})
-			assert.ErrorIs(t, err, coretypes.ErrEmptyNodeName)
-		})
-	}
-
-	for name, run := range map[string]handler{
-		"get-nodes-deploy-capacity": getNodesDeployCapacity,
-		"get-most-idle-node":        getMostIdleNode,
-	} {
 		t.Run(name, func(t *testing.T) {
 			_, err := run(t.Context(), &stubPlugin{}, resourcetypes.RawParams{})
 			assert.ErrorIs(t, err, coretypes.ErrEmptyNodeName)
@@ -268,7 +260,6 @@ func (s *stubPlugin) Name() string { return "stub" }
 
 func (s *stubPlugin) AddNode(_ context.Context, nodename string, resource plugintypes.NodeResourceRequest, info *enginetypes.Info) (*plugintypes.AddNodeResponse, error) {
 	s.nodename, s.resourceRequest, s.info = nodename, resource, info
-	s.resource = resource
 	return &plugintypes.AddNodeResponse{}, s.err
 }
 
