@@ -71,7 +71,7 @@ func (w *WorkloadResourceRequest) Validate() error {
 }
 
 func (w *WorkloadResourceRequest) Parse(rawParams resourcetypes.RawParams) (err error) {
-	if w.VolumesRequest, err = NewVolumeBindings(rawParams.OneOfStringSlice("volumes-request", "volume-request", "volumes-request")); err != nil {
+	if w.VolumesRequest, err = NewVolumeBindings(rawParams.OneOfStringSlice("volumes-request", "volume-request")); err != nil {
 		return err
 	}
 	if w.VolumesLimit, err = NewVolumeBindings(rawParams.OneOfStringSlice("volumes", "volume", "volume-limit", "volumes-limit")); err != nil {

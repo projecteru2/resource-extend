@@ -7,6 +7,8 @@ import (
 	"github.com/cockroachdb/errors"
 )
 
+const prodCountMapKey = "prod_count_map"
+
 type ProdCountMap map[string]int
 
 func (pcm ProdCountMap) Validate() error {
@@ -30,15 +32,6 @@ func (pcm ProdCountMap) ValidateProd() error {
 	return nil
 }
 
-func (pcm ProdCountMap) ValidateCount() error {
-	for prod, count := range pcm {
-		if count <= 0 {
-			return errors.Wrapf(ErrInvalidGPUMap, "%s: count is less or equal to zero", prod)
-		}
-	}
-	return nil
-}
-
 func (pcm ProdCountMap) Add(g1 ProdCountMap) {
 	for prod, count := range g1 {
 		pcm[prod] += count
@@ -57,10 +50,6 @@ func (pcm ProdCountMap) Sub(g1 ProdCountMap) {
 	}
 }
 
-func (pcm ProdCountMap) RemoveLTE0() {
-	maps.DeleteFunc(pcm, func(_ string, v int) bool { return v <= 0 })
-}
-
 func (pcm ProdCountMap) DeepCopy() ProdCountMap {
 	cp := make(ProdCountMap, len(pcm))
 	maps.Copy(cp, pcm)
@@ -74,6 +63,3 @@ func (pcm ProdCountMap) TotalCount() int {
 	}
 	return totalCount
 }
-
-// NUMA map[address]nodeID
-type NUMA map[string]string

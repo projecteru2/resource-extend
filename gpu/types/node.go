@@ -23,7 +23,7 @@ func NewNodeResource(gm ProdCountMap) *NodeResource {
 
 func (r *NodeResource) AsRawParams() resourcetypes.RawParams {
 	return resourcetypes.RawParams{
-		"prod_count_map": r.ProdCountMap,
+		prodCountMapKey: r.ProdCountMap,
 	}
 }
 
@@ -65,13 +65,6 @@ func (n *NodeResourceInfo) CapCount() int {
 
 func (n *NodeResourceInfo) UsageCount() int {
 	return n.Usage.Count()
-}
-
-func (n *NodeResourceInfo) DeepCopy() *NodeResourceInfo {
-	return &NodeResourceInfo{
-		Capacity: n.Capacity.DeepCopy(),
-		Usage:    n.Usage.DeepCopy(),
-	}
 }
 
 func (n *NodeResourceInfo) Validate() error {

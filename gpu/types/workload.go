@@ -13,7 +13,7 @@ type WorkloadResource struct {
 
 func (w *WorkloadResource) AsRawParams() resourcetypes.RawParams {
 	return resourcetypes.RawParams{
-		"prod_count_map": w.ProdCountMap,
+		prodCountMapKey: w.ProdCountMap,
 	}
 }
 

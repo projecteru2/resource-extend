@@ -64,7 +64,7 @@ func (r *runner) serve(ctx context.Context, h handler) error {
 	}
 
 	in := resourcetypes.RawParams{}
-	if err := json.NewDecoder(os.Stdin).Decode(&in); err != nil {
+	if err = json.NewDecoder(os.Stdin).Decode(&in); err != nil {
 		return cli.Exit(fmt.Errorf("decode plugin input: %w", err), exitCode)
 	}
 

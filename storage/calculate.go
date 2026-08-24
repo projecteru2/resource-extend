@@ -32,7 +32,7 @@ func (p Plugin) CalculateDeploy(ctx context.Context, nodename string, deployCoun
 		return nil, err
 	}
 
-	enginesParams, workloadsResource, err := p.doAlloc(nodeResourceInfo, deployCount, req)
+	enginesParams, workloadsResource, err := p.doAlloc(ctx, nodeResourceInfo, deployCount, req)
 	if err != nil {
 		return nil, err
 	}
@@ -81,7 +81,7 @@ func (p Plugin) CalculateRealloc(ctx context.Context, nodename string, resource 
 	}
 	req.SkipAddStorage()
 
-	if err := req.Validate(); err != nil {
+	if err = req.Validate(); err != nil {
 		logger.Errorf(ctx, err, "invalid resource opts %+v", litter.Sdump(req))
 		return nil, err
 	}
@@ -103,7 +103,7 @@ func (p Plugin) CalculateRealloc(ctx context.Context, nodename string, resource 
 	var diskPlan storagetypes.Disks
 
 	if needVolumeReschedule {
-		if volumePlan, diskPlan, err = schedule.GetAffinityPlan(resourceInfo, req.VolumesRequest, originResource.VolumePlanRequest, originResource.VolumesRequest); err != nil {
+		if volumePlan, diskPlan, err = schedule.GetAffinityPlan(ctx, resourceInfo, req.VolumesRequest, originResource.VolumePlanRequest, originResource.VolumesRequest); err != nil {
 			return nil, coretypes.ErrInsufficientResource
 		}
 	} else {
@@ -147,7 +147,7 @@ func (p Plugin) CalculateRemap(context.Context, string, map[string]plugintypes.W
 	}, nil
 }
 
-func (p Plugin) doAlloc(resourceInfo *storagetypes.NodeResourceInfo, deployCount int, req *storagetypes.WorkloadResourceRequest) ([]*storagetypes.EngineParams, []*storagetypes.WorkloadResource, error) {
+func (p Plugin) doAlloc(ctx context.Context, resourceInfo *storagetypes.NodeResourceInfo, deployCount int, req *storagetypes.WorkloadResourceRequest) ([]*storagetypes.EngineParams, []*storagetypes.WorkloadResource, error) {
 	if req.StorageRequest > 0 {
 		storageCapacity := int((resourceInfo.Capacity.Storage - resourceInfo.Usage.Storage) / req.StorageRequest)
 		if storageCapacity < deployCount {
@@ -167,7 +167,7 @@ func (p Plugin) doAlloc(resourceInfo *storagetypes.NodeResourceInfo, deployCount
 			diskPlans = append(diskPlans, storagetypes.Disks{})
 		}
 	} else {
-		volumePlans, diskPlans = schedule.GetVolumePlans(resourceInfo, req.VolumesRequest, p.config.Scheduler.MaxDeployCount)
+		volumePlans, diskPlans = schedule.GetVolumePlans(ctx, resourceInfo, req.VolumesRequest, p.config.Scheduler.MaxDeployCount)
 		if len(volumePlans) < deployCount {
 			return nil, nil, errors.Wrapf(coretypes.ErrInsufficientResource, "not enough volume plan, need %+v, available %+v", deployCount, len(volumePlans))
 		}

@@ -146,7 +146,8 @@ func (vb VolumeBinding) DeepCopy() *VolumeBinding {
 
 type VolumeBindings []*VolumeBinding
 
-func NewVolumeBindings(volumes []string) (volumeBindings VolumeBindings, err error) {
+func NewVolumeBindings(volumes []string) (VolumeBindings, error) {
+	var volumeBindings VolumeBindings
 	for _, vb := range volumes {
 		volumeBinding, err := NewVolumeBinding(vb)
 		if err != nil {
@@ -154,7 +155,7 @@ func NewVolumeBindings(volumes []string) (volumeBindings VolumeBindings, err err
 		}
 		volumeBindings = append(volumeBindings, volumeBinding)
 	}
-	return volumeBindings, err
+	return volumeBindings, nil
 }
 
 func (vbs VolumeBindings) Validate() error {
@@ -296,12 +297,12 @@ func (v Volumes) Total() int64 {
 // VolumePlan is map from volume string to volumeMap: {"AUTO:/data:rw:100": Volumes{"/sda1": 100}}
 type VolumePlan map[*VolumeBinding]Volumes
 
-func (p *VolumePlan) UnmarshalJSON(b []byte) (err error) {
+func (p *VolumePlan) UnmarshalJSON(b []byte) error {
 	if *p == nil {
 		*p = VolumePlan{}
 	}
 	plan := map[string]Volumes{}
-	if err = json.Unmarshal(b, &plan); err != nil {
+	if err := json.Unmarshal(b, &plan); err != nil {
 		return err
 	}
 	for volume, vmap := range plan {
@@ -311,7 +312,7 @@ func (p *VolumePlan) UnmarshalJSON(b []byte) (err error) {
 		}
 		(*p)[vb] = vmap
 	}
-	return err
+	return nil
 }
 
 func (p VolumePlan) MarshalJSON() ([]byte, error) {
@@ -335,7 +336,6 @@ func (p VolumePlan) Merge(p2 VolumePlan) {
 	for vb, vm := range p2 {
 		if oldVM, oldVB := p.GetVolumes(vb); oldVB != nil {
 			delete(p, oldVB)
-			vm[vm.GetDevice()] += oldVM.GetSize()
 			vm = Volumes{vm.GetDevice(): vm.GetSize() + oldVM.GetSize()}
 			vb = &VolumeBinding{
 				Source:      vb.Source,
@@ -353,11 +353,11 @@ func (p VolumePlan) Merge(p2 VolumePlan) {
 }
 
 // GetVolumes looks up Volumes according to volume destination directory
-func (p VolumePlan) GetVolumes(vb *VolumeBinding) (volMap Volumes, volume *VolumeBinding) {
-	for volume, volMap := range p {
-		if vb.Destination == volume.Destination {
-			return volMap, volume
+func (p VolumePlan) GetVolumes(vb *VolumeBinding) (Volumes, *VolumeBinding) {
+	for binding, volumeMap := range p {
+		if vb.Destination == binding.Destination {
+			return volumeMap, binding
 		}
 	}
-	return volMap, volume
+	return nil, nil
 }

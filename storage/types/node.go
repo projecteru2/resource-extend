@@ -1,6 +1,7 @@
 package types
 
 import (
+	"maps"
 	"slices"
 	"strings"
 
@@ -33,12 +34,7 @@ func (n *NodeResource) DeepCopy() *NodeResource {
 }
 
 func (n *NodeResource) RemoveEmpty() {
-	for device, size := range n.Volumes {
-		if n.Volumes[device] == 0 {
-			n.Storage -= size
-			delete(n.Volumes, device)
-		}
-	}
+	maps.DeleteFunc(n.Volumes, func(_ string, size int64) bool { return size == 0 })
 }
 
 func (n *NodeResource) Add(n1 *NodeResource) {
@@ -86,13 +82,7 @@ func (n *NodeResourceInfo) Validate() error {
 	slices.SortFunc(n.Usage.Disks, compareDiskDevice)
 	slices.SortFunc(n.Capacity.Disks, compareDiskDevice)
 
-	return errors.CombineErrors(
-		errors.CombineErrors(
-			n.validateVolume(),
-			n.validateStorage(),
-		),
-		n.validateDisks(),
-	)
+	return errors.Join(n.validateVolume(), n.validateStorage(), n.validateDisks())
 }
 
 func (n *NodeResourceInfo) GetAvailableResource() *NodeResource {
@@ -148,11 +138,6 @@ func (n *NodeResourceInfo) validateVolume() error {
 			return errors.Wrap(ErrInvalidVolume, "invalid size in usage")
 		}
 	}
-	for key := range n.Usage.Volumes {
-		if _, ok := n.Usage.Volumes[key]; !ok {
-			return errors.Wrap(ErrInvalidVolume, "invalid key in usage")
-		}
-	}
 	return nil
 }
 
@@ -185,11 +170,11 @@ func (n *NodeResourceRequest) Parse(rawParams resourcetypes.RawParams) (err erro
 			return errors.Wrap(ErrInvalidVolume, "volume should have 2 parts")
 		}
 
-		capacity, err := coreutils.ParseRAMInHuman(parts[1])
-		if err != nil {
-			return err
+		size, parseErr := coreutils.ParseRAMInHuman(parts[1])
+		if parseErr != nil {
+			return parseErr
 		}
-		volumes[parts[0]] = capacity
+		volumes[parts[0]] = size
 	}
 	n.Volumes = volumes
 

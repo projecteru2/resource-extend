@@ -25,12 +25,10 @@ func (p Plugin) AddNode(
 ) (
 	*plugintypes.AddNodeResponse, error,
 ) {
-	var err error
-	if _, err = p.store.Get(ctx, nodename); err == nil {
+	switch _, err := p.store.Get(ctx, nodename); {
+	case err == nil:
 		return nil, coretypes.ErrNodeExists
-	}
-
-	if !errors.IsAny(err, coretypes.ErrInvaildCount, coretypes.ErrNodeNotExists) {
+	case !errors.IsAny(err, coretypes.ErrInvaildCount, coretypes.ErrNodeNotExists):
 		log.WithFunc("resource.gpu.AddNode").WithField("node", nodename).Error(ctx, err, "failed to get resource info of node")
 		return nil, err
 	}
@@ -46,8 +44,7 @@ func (p Plugin) AddNode(
 	if info != nil && info.Resources != nil { //nolint
 		if capacity.Count() == 0 {
 			if b, ok := info.Resources[p.name]; ok {
-				err := json.Unmarshal(b, capacity)
-				if err != nil {
+				if err := json.Unmarshal(b, capacity); err != nil {
 					return nil, err
 				}
 			}
@@ -58,7 +55,7 @@ func (p Plugin) AddNode(
 		Usage:    gputypes.NewNodeResource(nil),
 	}
 
-	if err = p.store.Put(ctx, nodename, nodeResourceInfo); err != nil {
+	if err := p.store.Put(ctx, nodename, nodeResourceInfo); err != nil {
 		return nil, err
 	}
 	return &plugintypes.AddNodeResponse{
@@ -343,7 +340,7 @@ func (p Plugin) doGetNodeDeployCapacity(nodeResourceInfo *gputypes.NodeResourceI
 }
 
 func (p Plugin) overwriteNodeResource(req *gputypes.NodeResourceRequest, nodeResource *gputypes.NodeResource, workloadsResource []*gputypes.WorkloadResource) *gputypes.NodeResource {
-	resp := (&gputypes.NodeResource{}).DeepCopy() // init nil pointer!
+	resp := gputypes.NewNodeResource(nil)
 	if req != nil {
 		nodeResource = &gputypes.NodeResource{
 			ProdCountMap: req.ProdCountMap,

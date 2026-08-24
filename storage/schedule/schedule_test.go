@@ -19,7 +19,7 @@ func TestGetVolumePlans(t *testing.T) {
 		"AUTO:/dir1:rw:500GiB",
 	})
 
-	plans, _ := GetVolumePlans(resourceInfo, volumeRequest, maxDeployCount)
+	plans, _ := GetVolumePlans(t.Context(), resourceInfo, volumeRequest, maxDeployCount)
 	assert.Equal(t, len(plans), 0)
 
 	requests := []types.VolumeBindings{
@@ -55,7 +55,7 @@ func TestGetVolumePlans(t *testing.T) {
 
 	for _, volumeRequest := range requests {
 		resourceInfo = generateResourceInfo()
-		plans, _ = GetVolumePlans(resourceInfo, volumeRequest, maxDeployCount)
+		plans, _ = GetVolumePlans(t.Context(), resourceInfo, volumeRequest, maxDeployCount)
 		validateVolumePlans(t, resourceInfo, volumeRequest, plans)
 	}
 
@@ -89,7 +89,7 @@ func TestGetVolumePlans(t *testing.T) {
 
 	for _, volumeRequest := range requests {
 		resourceInfo = generateResourceInfo()
-		plans, _ = GetVolumePlans(resourceInfo, volumeRequest, maxDeployCount)
+		plans, _ = GetVolumePlans(t.Context(), resourceInfo, volumeRequest, maxDeployCount)
 		assert.Equal(t, len(plans), 0)
 	}
 }
@@ -111,7 +111,7 @@ func TestGetVolumePlansWithIOPS(t *testing.T) {
 
 	for _, volumeRequest := range requests {
 		resourceInfo := generateResourceInfo()
-		plans, _ := GetVolumePlans(resourceInfo, volumeRequest, maxDeployCount)
+		plans, _ := GetVolumePlans(t.Context(), resourceInfo, volumeRequest, maxDeployCount)
 		validateVolumePlans(t, resourceInfo, volumeRequest, plans)
 	}
 }
@@ -154,7 +154,7 @@ func TestGetAffinityPlan(t *testing.T) {
 		}
 		mergedRequest := types.MergeVolumeBindings(request, originRequest)
 
-		plan, _, _ := GetAffinityPlan(resourceInfo, mergedRequest, existing, originRequest)
+		plan, _, _ := GetAffinityPlan(t.Context(), resourceInfo, mergedRequest, existing, originRequest)
 		validateVolumePlan(t, resourceInfo, mergedRequest, plan)
 	}
 
@@ -166,7 +166,7 @@ func TestGetAffinityPlan(t *testing.T) {
 	emptyRequest := types.VolumeBindings{}
 	mergedRequest := types.MergeVolumeBindings(emptyRequest, originRequest)
 
-	plan, _, _ := GetAffinityPlan(resourceInfo, mergedRequest, existing, originRequest)
+	plan, _, _ := GetAffinityPlan(t.Context(), resourceInfo, mergedRequest, existing, originRequest)
 	assert.Equal(t, existing.String(), plan.String())
 
 	invalidRequests := []types.VolumeBindings{
@@ -190,7 +190,7 @@ func TestGetAffinityPlan(t *testing.T) {
 		}
 		mergedRequest := types.MergeVolumeBindings(request, originRequest)
 
-		plan, _, _ := GetAffinityPlan(resourceInfo, mergedRequest, existing, originRequest)
+		plan, _, _ := GetAffinityPlan(t.Context(), resourceInfo, mergedRequest, existing, originRequest)
 		assert.Equal(t, len(plan), 0)
 	}
 }
@@ -205,7 +205,7 @@ func TestAffinityPlan2(t *testing.T) {
 	resourceInfo.Usage.Volumes["/data3"] = units.TiB
 	originRequest, existing := generateExistingVolumePlan(t)
 	mergedRequest := types.MergeVolumeBindings(req, originRequest)
-	plan, _, _ := GetAffinityPlan(resourceInfo, mergedRequest, existing, originRequest)
+	plan, _, _ := GetAffinityPlan(t.Context(), resourceInfo, mergedRequest, existing, originRequest)
 	assert.Equal(t, len(plan), 0)
 }
 
@@ -288,7 +288,7 @@ func applyPlans(resourceInfo *types.NodeResourceInfo, plans []types.VolumePlan) 
 func noMorePlans(t *testing.T, resourceInfo *types.NodeResourceInfo, volumePlans []types.VolumePlan, volumeRequest types.VolumeBindings) {
 	applyPlans(resourceInfo, volumePlans)
 	assert.Nil(t, resourceInfo.Validate())
-	plan, _ := GetVolumePlans(resourceInfo, volumeRequest, maxDeployCount)
+	plan, _ := GetVolumePlans(t.Context(), resourceInfo, volumeRequest, maxDeployCount)
 	assert.Equal(t, len(plan), 0)
 }
 
