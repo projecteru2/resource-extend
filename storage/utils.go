@@ -36,33 +36,33 @@ func getVolumePlanLimit(volumeRequest, volumeLimit types.VolumeBindings, volumeP
 func getDisksLimit(volumeLimit types.VolumeBindings, volumePlanLimit types.VolumePlan, disks types.Disks) types.Disks {
 	disksLimit := types.Disks{}
 	for _, binding := range volumeLimit {
-		if binding.RequireIOPS() && !binding.RequireSchedule() {
-			disk := disks.GetDiskByPath(binding.Source)
-			disksLimit.Add(types.Disks{&types.Disk{
-				Device:    disk.Device,
-				Mounts:    disk.Mounts,
-				ReadIOPS:  binding.ReadIOPS,
-				WriteIOPS: binding.WriteIOPS,
-				ReadBPS:   binding.ReadBPS,
-				WriteBPS:  binding.WriteBPS,
-			}})
+		if !binding.RequireIOPS() || binding.RequireSchedule() {
+			continue
+		}
+		if disk := disks.GetDiskByPath(binding.Source); disk != nil {
+			disksLimit.Add(limitOf(disk, binding))
 		}
 	}
 	for binding, volumeMap := range volumePlanLimit {
 		if !binding.RequireIOPS() {
 			continue
 		}
-		disk := disks.GetDiskByPath(volumeMap.GetDevice())
-		disksLimit.Add(types.Disks{&types.Disk{
-			Device:    disk.Device,
-			Mounts:    disk.Mounts,
-			ReadIOPS:  binding.ReadIOPS,
-			WriteIOPS: binding.WriteIOPS,
-			ReadBPS:   binding.ReadBPS,
-			WriteBPS:  binding.WriteBPS,
-		}})
+		if disk := disks.GetDiskByPath(volumeMap.GetDevice()); disk != nil {
+			disksLimit.Add(limitOf(disk, binding))
+		}
 	}
 	return disksLimit
+}
+
+func limitOf(disk *types.Disk, binding *types.VolumeBinding) types.Disks {
+	return types.Disks{{
+		Device:    disk.Device,
+		Mounts:    disk.Mounts,
+		ReadIOPS:  binding.ReadIOPS,
+		WriteIOPS: binding.WriteIOPS,
+		ReadBPS:   binding.ReadBPS,
+		WriteBPS:  binding.WriteBPS,
+	}}
 }
 
 func getDeltaWorkloadResourceArgs(originResource, targetWorkloadResource *types.WorkloadResource) *types.WorkloadResource {
