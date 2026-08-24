@@ -1,68 +1,44 @@
-package main
+package gpu
 
 import (
 	"context"
-	"fmt"
-	"os"
 
+	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/resource/plugins"
+	"github.com/projecteru2/core/store/etcdv3/embedded"
 	coretypes "github.com/projecteru2/core/types"
-	"github.com/projecteru2/resource-gpu/cmd"
-	"github.com/projecteru2/resource-gpu/cmd/calculate"
-	"github.com/projecteru2/resource-gpu/cmd/gpu"
-	"github.com/projecteru2/resource-gpu/cmd/metrics"
-	"github.com/projecteru2/resource-gpu/cmd/node"
-	gpulib "github.com/projecteru2/resource-gpu/gpu"
-	"github.com/projecteru2/resource-gpu/version"
-	"github.com/urfave/cli/v2"
+
+	gputypes "github.com/projecteru2/resource-extend/gpu/types"
+	"github.com/projecteru2/resource-extend/nodestore"
 )
 
-func NewPlugin(ctx context.Context, config coretypes.Config) (plugins.Plugin, error) {
-	p, err := gpulib.NewPlugin(ctx, config, nil)
-	return p, err
+const (
+	name                = "gpu"
+	nodeResourceInfoKey = "/resource/gpu/%s"
+	priority            = 100
+)
+
+var _ plugins.Plugin = (*Plugin)(nil)
+
+// Plugin
+type Plugin struct {
+	name  string
+	store *nodestore.Store[*gputypes.NodeResourceInfo]
 }
 
-func main() {
-	cli.VersionPrinter = func(_ *cli.Context) {
-		fmt.Print(version.String())
+// NewPlugin .
+func NewPlugin(ctx context.Context, config coretypes.Config, embeddedETCD *embedded.Cluster) (*Plugin, error) {
+	store, err := nodestore.New(ctx, config, nodeResourceInfoKey, func() *gputypes.NodeResourceInfo {
+		return &gputypes.NodeResourceInfo{}
+	}, embeddedETCD)
+	if err != nil {
+		log.WithFunc("resource.gpu.NewPlugin").Error(ctx, err)
+		return nil, err
 	}
+	return &Plugin{name: name, store: store}, nil
+}
 
-	app := cli.NewApp()
-	app.Name = version.NAME
-	app.Usage = "Run eru resource GPU plugin"
-	app.Version = version.VERSION
-	app.Commands = []*cli.Command{
-		gpu.Name(),
-		metrics.Description(),
-		metrics.GetMetrics(),
-
-		node.AddNode(),
-		node.RemoveNode(),
-		node.GetNodesDeployCapacity(),
-		node.SetNodeResourceCapacity(),
-		node.GetNodeResourceInfo(),
-		node.SetNodeResourceInfo(),
-		node.SetNodeResourceUsage(),
-		node.GetMostIdleNode(),
-		node.FixNodeResource(),
-
-		calculate.CalculateDeploy(),
-		calculate.CalculateRealloc(),
-		calculate.CalculateRemap(),
-	}
-	app.Flags = []cli.Flag{
-		&cli.StringFlag{
-			Name:        "config",
-			Value:       "gpu.yaml",
-			Usage:       "config file path for plugin, in yaml",
-			Destination: &cmd.ConfigPath,
-			EnvVars:     []string{"ERU_RESOURCE_CONFIG_PATH"},
-		},
-		&cli.BoolFlag{
-			Name:        "embedded-storage",
-			Usage:       "active embedded storage",
-			Destination: &cmd.EmbeddedStorage,
-		},
-	}
-	_ = app.Run(os.Args)
+// Name .
+func (p Plugin) Name() string {
+	return p.name
 }

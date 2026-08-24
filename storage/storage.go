@@ -1,60 +1,46 @@
-package main
+package storage
 
 import (
-	"fmt"
-	"os"
+	"context"
 
-	"github.com/projecteru2/resource-storage/cmd"
-	"github.com/projecteru2/resource-storage/cmd/calculate"
-	"github.com/projecteru2/resource-storage/cmd/metrics"
-	"github.com/projecteru2/resource-storage/cmd/node"
-	"github.com/projecteru2/resource-storage/cmd/storage"
-	"github.com/projecteru2/resource-storage/version"
+	"github.com/projecteru2/core/log"
+	"github.com/projecteru2/core/resource/plugins"
+	"github.com/projecteru2/core/store/etcdv3/embedded"
+	coretypes "github.com/projecteru2/core/types"
 
-	"github.com/urfave/cli/v2"
+	"github.com/projecteru2/resource-extend/nodestore"
+	storagetypes "github.com/projecteru2/resource-extend/storage/types"
 )
 
-func main() {
-	cli.VersionPrinter = func(c *cli.Context) {
-		fmt.Print(version.String())
-	}
+const (
+	name                = "storage"
+	rate                = 8
+	nodeResourceInfoKey = "/resource/storage/%s"
+	priority            = 1
+)
 
-	app := cli.NewApp()
-	app.Name = version.NAME
-	app.Usage = "Run eru resource storage plugin"
-	app.Version = version.VERSION
-	app.Commands = []*cli.Command{
-		storage.Name(),
-		metrics.Description(),
-		metrics.GetMetrics(),
+var _ plugins.Plugin = (*Plugin)(nil)
 
-		node.AddNode(),
-		node.RemoveNode(),
-		node.GetNodesDeployCapacity(),
-		node.SetNodeResourceCapacity(),
-		node.GetNodeResourceInfo(),
-		node.SetNodeResourceInfo(),
-		node.SetNodeResourceUsage(),
-		node.GetMostIdleNode(),
-		node.FixNodeResource(),
+// Plugin
+type Plugin struct {
+	name   string
+	config coretypes.Config
+	store  *nodestore.Store[*storagetypes.NodeResourceInfo]
+}
 
-		calculate.CalculateDeploy(),
-		calculate.CalculateRealloc(),
-		calculate.CalculateRemap(),
+// NewPlugin .
+func NewPlugin(ctx context.Context, config coretypes.Config, embeddedETCD *embedded.Cluster) (*Plugin, error) {
+	store, err := nodestore.New(ctx, config, nodeResourceInfoKey, func() *storagetypes.NodeResourceInfo {
+		return &storagetypes.NodeResourceInfo{}
+	}, embeddedETCD)
+	if err != nil {
+		log.WithFunc("resource.storage.NewPlugin").Error(ctx, err)
+		return nil, err
 	}
-	app.Flags = []cli.Flag{
-		&cli.StringFlag{
-			Name:        "config",
-			Value:       "storage.yaml",
-			Usage:       "config file path for plugin, in yaml",
-			Destination: &cmd.ConfigPath,
-			EnvVars:     []string{"ERU_RESOURCE_CONFIG_PATH"},
-		},
-		&cli.BoolFlag{
-			Name:        "embedded-storage",
-			Usage:       "active embedded storage",
-			Destination: &cmd.EmbeddedStorage,
-		},
-	}
-	_ = app.Run(os.Args)
+	return &Plugin{name: name, config: config, store: store}, nil
+}
+
+// Name .
+func (p Plugin) Name() string {
+	return p.name
 }
