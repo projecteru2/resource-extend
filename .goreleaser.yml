@@ -1,0 +1,79 @@
+version: 2
+
+before:
+  hooks:
+    - go mod download
+
+builds:
+  - id: resource-gpu
+    binary: resource-gpu
+    main: ./cmd/resource-gpu
+    env:
+      - CGO_ENABLED=0
+    ldflags:
+      - -s
+      - -X github.com/projecteru2/resource-extend/version.REVISION={{.Commit}}
+      - -X github.com/projecteru2/resource-extend/version.VERSION={{.Env.VERSION}}
+      - -X github.com/projecteru2/resource-extend/version.BUILTAT={{.Date}}
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+
+  - id: resource-storage
+    binary: resource-storage
+    main: ./cmd/resource-storage
+    env:
+      - CGO_ENABLED=0
+    ldflags:
+      - -s
+      - -X github.com/projecteru2/resource-extend/version.REVISION={{.Commit}}
+      - -X github.com/projecteru2/resource-extend/version.VERSION={{.Env.VERSION}}
+      - -X github.com/projecteru2/resource-extend/version.BUILTAT={{.Date}}
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+
+archives:
+  - id: release
+    ids:
+      - resource-gpu
+      - resource-storage
+    name_template: >-
+      {{- .ProjectName }}_{{- .Version }}_
+      {{- title .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+      {{- if .Arm }}v{{ .Arm }}{{ end -}}
+
+  # Unversioned alias so releases/latest/download/resource-extend_Linux_x86_64.tar.gz resolves.
+  - id: release-latest
+    ids:
+      - resource-gpu
+      - resource-storage
+    name_template: >-
+      {{- .ProjectName }}_
+      {{- title .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+      {{- if .Arm }}v{{ .Arm }}{{ end -}}
+
+checksum:
+  name_template: 'checksums.txt'
+
+release:
+  prerelease: auto
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'

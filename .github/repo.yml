@@ -1,0 +1,9 @@
+description: "Out-of-tree resource plugins for eru core: GPU and storage/volume scheduling shipped as external plugin binaries."
+homepage: https://projecteru2.github.io/resource-extend/
+topics:
+  - eru
+  - golang
+  - resource-scheduling
+  - gpu
+  - storage
+  - plugin
