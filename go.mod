@@ -6,7 +6,7 @@ require (
 	github.com/cockroachdb/errors v1.14.0
 	github.com/docker/go-units v0.5.0
 	github.com/go-viper/mapstructure/v2 v2.5.0
-	github.com/projecteru2/core v0.0.0-20260824194007-6652bf36d305
+	github.com/projecteru2/core v0.0.0-20260824231617-78144ce3a911
 	github.com/sanity-io/litter v1.5.8
 	github.com/stretchr/testify v1.12.1
 	github.com/urfave/cli/v3 v3.11.0
