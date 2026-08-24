@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/docker/go-units"
+	enginetypes "github.com/projecteru2/core/engine/types"
 	plugintypes "github.com/projecteru2/core/resource/plugins/types"
 	resourcetypes "github.com/projecteru2/core/resource/types"
 	coretypes "github.com/projecteru2/core/types"
@@ -189,6 +190,43 @@ func TestCalculateRemap(t *testing.T) {
 	d, err := st.CalculateRemap(ctx, node, nil)
 	assert.NoError(t, err)
 	assert.Nil(t, d.EngineParamsMap)
+}
+
+func TestCalculateReallocKeepsDisksWithoutReschedule(t *testing.T) {
+	ctx := t.Context()
+	st := initStorage(ctx, t)
+	req := plugintypes.NodeResourceRequest{
+		"volumes": []string{"/data0:1T"},
+		"disks":   []string{"/dev/vda:/data0:1000:1000:1G:1G"},
+	}
+	_, err := st.AddNode(ctx, "disknode", req, &enginetypes.Info{StorageTotal: units.TB})
+	assert.NoError(t, err)
+
+	binding, err := types.NewVolumeBinding("AUTO:/dir0:rw:100GiB:100:100:1M:1M")
+	assert.NoError(t, err)
+	origin := &types.WorkloadResource{
+		VolumesRequest:    types.VolumeBindings{binding},
+		VolumesLimit:      types.VolumeBindings{binding},
+		VolumePlanRequest: types.VolumePlan{binding: types.Volumes{"/data0": 107374182400}},
+		VolumePlanLimit:   types.VolumePlan{binding: types.Volumes{"/data0": 107374182400}},
+		DisksRequest:      types.Disks{{Device: "/dev/vda", ReadIOPS: 100, WriteIOPS: 100, ReadBPS: units.MiB, WriteBPS: units.MiB}},
+	}
+
+	d, err := st.CalculateRealloc(ctx, "disknode", origin.AsRawParams(), plugintypes.WorkloadResourceRequest{
+		"storage-request": fmt.Sprintf("%v", units.GiB),
+		"storage-limit":   fmt.Sprintf("%v", units.GiB),
+	})
+	assert.NoError(t, err)
+
+	kept := parseWorkloadResource(t, d.WorkloadResource).DisksRequest.GetDiskByDevice("/dev/vda")
+	assert.NotNil(t, kept)
+	assert.Equal(t, int64(100), kept.ReadIOPS)
+
+	delta := parseWorkloadResource(t, d.DeltaResource).DisksRequest.GetDiskByDevice("/dev/vda")
+	if delta != nil {
+		assert.Equal(t, int64(0), delta.ReadIOPS)
+		assert.Equal(t, int64(0), delta.WriteIOPS)
+	}
 }
 
 func parseEngineParams(t *testing.T, raw resourcetypes.RawParams) *types.EngineParams {

@@ -108,6 +108,7 @@ func (p Plugin) CalculateRealloc(ctx context.Context, nodename string, resource 
 		}
 	} else {
 		volumePlan = originResource.VolumePlanRequest
+		diskPlan = originResource.DisksRequest
 	}
 
 	targetWorkloadResource.VolumePlanRequest = volumePlan
