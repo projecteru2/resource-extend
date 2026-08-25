@@ -6,12 +6,12 @@ import (
 	"github.com/projecteru2/resource-extend/storage/types"
 )
 
-func (p Plugin) toIOPSOptions(disks types.Disks) map[string]string {
-	IOPSOptions := map[string]string{}
+func toIOPSOptions(disks types.Disks) map[string]string {
+	iopsOptions := make(map[string]string, len(disks))
 	for _, disk := range disks {
-		IOPSOptions[disk.Device] = fmt.Sprintf("%d:%d:%d:%d", disk.ReadIOPS, disk.WriteIOPS, disk.ReadBPS, disk.WriteBPS)
+		iopsOptions[disk.Device] = fmt.Sprintf("%d:%d:%d:%d", disk.ReadIOPS, disk.WriteIOPS, disk.ReadBPS, disk.WriteBPS)
 	}
-	return IOPSOptions
+	return iopsOptions
 }
 
 func getVolumePlanLimit(volumeRequest, volumeLimit types.VolumeBindings, volumePlan types.VolumePlan) types.VolumePlan {

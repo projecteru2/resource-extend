@@ -27,10 +27,7 @@ func (w *WorkloadResource) Parse(rawParams resourcetypes.RawParams) error {
 }
 
 func (w *WorkloadResource) DeepCopy() *WorkloadResource {
-	res := &WorkloadResource{
-		ProdCountMap: w.ProdCountMap.DeepCopy(),
-	}
-	return res
+	return &WorkloadResource{ProdCountMap: w.ProdCountMap.DeepCopy()}
 }
 
 func (w *WorkloadResource) Add(w1 *WorkloadResource) {
@@ -58,7 +55,7 @@ func (w *WorkloadResourceRequest) Validate() error {
 	return w.ProdCountMap.Validate()
 }
 
-func (w *WorkloadResourceRequest) Parse(rawParams resourcetypes.RawParams) (err error) {
+func (w *WorkloadResourceRequest) Parse(rawParams resourcetypes.RawParams) error {
 	return decode.Decode(rawParams, w)
 }
 

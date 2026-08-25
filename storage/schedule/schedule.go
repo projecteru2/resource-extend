@@ -6,7 +6,6 @@ import (
 	"context"
 	"math"
 	"slices"
-	"sort"
 
 	"github.com/cockroachdb/errors"
 	"github.com/projecteru2/core/log"
@@ -94,30 +93,12 @@ func newHost(resourceInfo *types.NodeResourceInfo, maxDeployCount int) *host {
 	return h
 }
 
-// getDiskByPath finds the disk by given path. will return an empty disk if not found.
+// getDiskByPath returns an empty disk when no mount covers path.
 func (h *host) getDiskByPath(path string) *types.Disk {
 	if disk := h.disks.GetDiskByPath(path); disk != nil {
 		return disk
 	}
 	return &types.Disk{ReadIOPS: 0, WriteIOPS: 0, ReadBPS: 0, WriteBPS: 0}
-}
-
-func (h *host) isDiskIOPSQuotaQualified(disk *types.Disk, req *types.VolumeBinding) bool {
-	return disk.ReadBPS >= req.ReadBPS && disk.WriteBPS >= req.WriteBPS && disk.ReadIOPS >= req.ReadIOPS && disk.WriteIOPS >= req.WriteIOPS
-}
-
-func (h *host) decreaseIOPSQuota(disk *types.Disk, req *types.VolumeBinding) {
-	disk.ReadIOPS -= req.ReadIOPS
-	disk.WriteIOPS -= req.WriteIOPS
-	disk.ReadBPS -= req.ReadBPS
-	disk.WriteBPS -= req.WriteBPS
-}
-
-func (h *host) increaseIOPSQuota(disk *types.Disk, req *types.VolumeBinding) {
-	disk.ReadIOPS += req.ReadIOPS
-	disk.WriteIOPS += req.WriteIOPS
-	disk.ReadBPS += req.ReadBPS
-	disk.WriteBPS += req.WriteBPS
 }
 
 func (h *host) getMonoPlan(monoRequests types.VolumeBindings, volume *volume) (types.VolumePlan, *types.Disk, error) {
@@ -132,7 +113,7 @@ func (h *host) getMonoPlan(monoRequests types.VolumeBindings, volume *volume) (t
 	}
 
 	disk := h.getDiskByPath(volume.device)
-	if !h.isDiskIOPSQuotaQualified(disk, &types.VolumeBinding{SizeInBytes: totalSize, ReadIOPS: totalReadIOPS, WriteIOPS: totalWriteIOPS, ReadBPS: totalReadBPS, WriteBPS: totalWriteBPS}) {
+	if !isDiskIOPSQuotaQualified(disk, &types.VolumeBinding{SizeInBytes: totalSize, ReadIOPS: totalReadIOPS, WriteIOPS: totalWriteIOPS, ReadBPS: totalReadBPS, WriteBPS: totalWriteBPS}) {
 		return nil, nil, coretypes.ErrInsufficientResource
 	}
 
@@ -145,7 +126,6 @@ func (h *host) getMonoPlan(monoRequests types.VolumeBindings, volume *volume) (t
 		volume.size -= size
 	}
 
-	// allocate the remaining quota to the first request
 	if volume.size != 0 {
 		for _, volumeMap := range volumePlan {
 			volumeMap[volumeMap.GetDevice()] += volume.size
@@ -214,11 +194,11 @@ func (h *host) getNormalPlan(normalRequests types.VolumeBindings) (types.VolumeP
 		for vh.Len() > 0 {
 			volume := heap.Pop(&vh).(*volume)
 			disk := h.getDiskByPath(volume.device)
-			if volume.size < req.SizeInBytes || !h.isDiskIOPSQuotaQualified(disk, req) {
+			if volume.size < req.SizeInBytes || !isDiskIOPSQuotaQualified(disk, req) {
 				volumeToPush = append(volumeToPush, volume)
 				continue
 			}
-			h.decreaseIOPSQuota(disk, req)
+			decreaseIOPSQuota(disk, req)
 			volume.size -= req.SizeInBytes
 			volumePlan[req] = types.Volumes{volume.device: req.SizeInBytes}
 			diskPlan.Add(types.Disks{&types.Disk{
@@ -258,7 +238,6 @@ func (h *host) getNormalPlans(normalRequests, mountRequests types.VolumeBindings
 	volumePlans := []types.VolumePlan{}
 	diskPlans := []types.Disks{}
 
-	// h.usedVolumes is sorted by size, so we can allocate the volumes in order
 	for {
 		volumePlan, diskPlan, err := h.getNormalPlan(normalRequests)
 		if err != nil {
@@ -306,35 +285,14 @@ func (h *host) getUnlimitedPlans(normalPlans, monoPlans []types.VolumePlan, unli
 	}), nil
 }
 
-func (h *host) classifyVolumeBindings(volumeBindings types.VolumeBindings) requestClasses {
-	classes := requestClasses{}
-	for _, binding := range volumeBindings {
-		switch {
-		case binding.RequireScheduleMonopoly():
-			classes.mono = append(classes.mono, binding)
-		case binding.RequireScheduleUnlimitedQuota():
-			classes.unlimited = append(classes.unlimited, binding)
-		case binding.RequireSchedule():
-			classes.normal = append(classes.normal, binding)
-		default:
-			classes.mount = append(classes.mount, binding)
-		}
-	}
-
-	slices.SortStableFunc(classes.mono, compareBindingSize)
-	slices.SortStableFunc(classes.normal, compareBindingSize)
-
-	return classes
-}
-
 func (h *host) getMountDiskPlan(reqs types.VolumeBindings) (types.Disks, error) {
 	diskPlan := types.Disks{}
 	for _, req := range reqs {
 		disk := h.getDiskByPath(req.Source)
-		if !h.isDiskIOPSQuotaQualified(disk, req) {
+		if !isDiskIOPSQuotaQualified(disk, req) {
 			return nil, coretypes.ErrInsufficientResource
 		}
-		h.decreaseIOPSQuota(disk, req)
+		decreaseIOPSQuota(disk, req)
 		diskPlan.Add(types.Disks{&types.Disk{
 			Device:    disk.Device,
 			Mounts:    disk.Mounts,
@@ -358,7 +316,7 @@ func (h *host) getVolumePlans(ctx context.Context, requests types.VolumeBindings
 			})
 	}
 
-	classes := h.classifyVolumeBindings(requests)
+	classes := classifyVolumeBindings(requests)
 	normalRequests, monoRequests := classes.normal, classes.mono
 	unlimitedRequests, mountRequests := classes.unlimited, classes.mount
 	if len(normalRequests)+len(monoRequests)+len(unlimitedRequests) > 0 && len(h.unusedVolumes)+len(h.usedVolumes) == 0 {
@@ -407,7 +365,7 @@ func (h *host) getVolumePlans(ctx context.Context, requests types.VolumeBindings
 	restore()
 
 	for monoCapacity > normalCapacity {
-		p := sort.Search(len(h.unusedVolumes), func(i int) bool { return h.unusedVolumes[i].size >= minNormalRequestSize })
+		p, _ := slices.BinarySearchFunc(h.unusedVolumes, minNormalRequestSize, func(v *volume, size int64) int { return cmp.Compare(v.size, size) })
 		if p == len(h.unusedVolumes) {
 			break
 		}
@@ -451,33 +409,13 @@ func (h *host) getVolumeByDevice(device string) *volume {
 	return nil
 }
 
-func (h *host) classifyAffinityRequests(requests types.VolumeBindings, existing types.VolumePlan) (affinity, nonAffinity map[*types.VolumeBinding]types.Volumes) {
-	affinity = map[*types.VolumeBinding]types.Volumes{}
-	nonAffinity = map[*types.VolumeBinding]types.Volumes{}
-
-	for _, req := range requests {
-		found := false
-		for binding, volumeMap := range existing {
-			if req.Source == binding.Source && req.Destination == binding.Destination && req.Flags == binding.Flags {
-				affinity[req] = volumeMap
-				found = true
-				break
-			}
-		}
-		if !found {
-			nonAffinity[req] = nil
-		}
-	}
-	return affinity, nonAffinity
-}
-
 func (h *host) getAffinityPlan(ctx context.Context, requests types.VolumeBindings, originVolumePlan types.VolumePlan, originRequests types.VolumeBindings) (types.VolumePlan, types.Disks, error) {
 	logger := log.WithFunc("resource.storage.getAffinityPlan")
 	if !slices.ContainsFunc(requests, func(req *types.VolumeBinding) bool { return req.RequireSchedule() || req.RequireIOPS() }) {
 		return types.VolumePlan{}, types.Disks{}, nil
 	}
 
-	oldMountRequests := h.classifyVolumeBindings(originRequests).mount
+	oldMountRequests := classifyVolumeBindings(originRequests).mount
 	for _, req := range oldMountRequests {
 		if req.RequireIOPS() {
 			disk := h.getDiskByPath(req.Source)
@@ -486,11 +424,11 @@ func (h *host) getAffinityPlan(ctx context.Context, requests types.VolumeBinding
 				logger.Errorf(ctx, err, "invalid path in the old mount requests: %s", req.Source)
 				return nil, nil, err
 			}
-			h.increaseIOPSQuota(disk, req)
+			increaseIOPSQuota(disk, req)
 		}
 	}
 
-	classes := h.classifyVolumeBindings(requests)
+	classes := classifyVolumeBindings(requests)
 	normalRequests, monoRequests := classes.normal, classes.mono
 	unlimitedRequests, mountRequests := classes.unlimited, classes.mount
 	needRescheduleRequests := types.VolumeBindings{}
@@ -510,12 +448,12 @@ func (h *host) getAffinityPlan(ctx context.Context, requests types.VolumeBinding
 				logger.Errorf(ctx, types.ErrInvalidVolume, "invalid path: %s", volume.device)
 				return nil, nil, types.ErrInvalidVolume
 			}
-			h.increaseIOPSQuota(disk, req)
+			increaseIOPSQuota(disk, req)
 		}
 	}
 
 	commonProcess := func(requests types.VolumeBindings) error {
-		affinity, nonAffinity := h.classifyAffinityRequests(requests, originVolumePlan)
+		affinity, nonAffinity := classifyAffinityRequests(requests, originVolumePlan)
 		for req, volumeMap := range affinity {
 			device := volumeMap.GetDevice()
 
@@ -531,11 +469,11 @@ func (h *host) getAffinityPlan(ctx context.Context, requests types.VolumeBinding
 				continue
 			}
 			disk := h.getDiskByPath(device)
-			if !h.isDiskIOPSQuotaQualified(disk, req) {
+			if !isDiskIOPSQuotaQualified(disk, req) {
 				logger.Errorf(ctx, coretypes.ErrInsufficientResource, "no IOPS quota to expand, %+v remains %+v, requires %+v", device, disk, req)
 				return coretypes.ErrInsufficientResource
 			}
-			h.decreaseIOPSQuota(disk, req)
+			decreaseIOPSQuota(disk, req)
 			diskPlan.Add(types.Disks{&types.Disk{
 				Device:    disk.Device,
 				Mounts:    disk.Mounts,
@@ -571,14 +509,13 @@ func (h *host) getAffinityPlan(ctx context.Context, requests types.VolumeBinding
 		}
 	}
 
-	affinity, nonAffinity := h.classifyAffinityRequests(monoRequests, originVolumePlan)
+	affinity, nonAffinity := classifyAffinityRequests(monoRequests, originVolumePlan)
 	if len(affinity) == 0 {
 		for req := range nonAffinity {
 			needRescheduleRequests = append(needRescheduleRequests, req)
 		}
 	} else {
-		// use the first volume map to get the whole mono volume plan
-		if totalVolumeSize < totalRequestSize { // check if the volume size is enough
+		if totalVolumeSize < totalRequestSize {
 			logger.Errorf(ctx, coretypes.ErrInsufficientResource, "no space to expand, the size of %+v is %+v, requires %+v", affinity[monoRequests[0]].GetDevice(), totalVolumeSize, totalRequestSize)
 			return nil, nil, coretypes.ErrInsufficientResource
 		}
@@ -629,6 +566,65 @@ func GetAffinityPlan(ctx context.Context, resourceInfo *types.NodeResourceInfo, 
 func GetVolumePlans(ctx context.Context, resourceInfo *types.NodeResourceInfo, volumeRequest types.VolumeBindings, maxDeployCount int) ([]types.VolumePlan, []types.Disks) {
 	h := newHost(resourceInfo, maxDeployCount)
 	return h.getVolumePlans(ctx, volumeRequest)
+}
+
+func isDiskIOPSQuotaQualified(disk *types.Disk, req *types.VolumeBinding) bool {
+	return disk.ReadBPS >= req.ReadBPS && disk.WriteBPS >= req.WriteBPS && disk.ReadIOPS >= req.ReadIOPS && disk.WriteIOPS >= req.WriteIOPS
+}
+
+func decreaseIOPSQuota(disk *types.Disk, req *types.VolumeBinding) {
+	disk.ReadIOPS -= req.ReadIOPS
+	disk.WriteIOPS -= req.WriteIOPS
+	disk.ReadBPS -= req.ReadBPS
+	disk.WriteBPS -= req.WriteBPS
+}
+
+func increaseIOPSQuota(disk *types.Disk, req *types.VolumeBinding) {
+	disk.ReadIOPS += req.ReadIOPS
+	disk.WriteIOPS += req.WriteIOPS
+	disk.ReadBPS += req.ReadBPS
+	disk.WriteBPS += req.WriteBPS
+}
+
+func classifyVolumeBindings(volumeBindings types.VolumeBindings) requestClasses {
+	classes := requestClasses{}
+	for _, binding := range volumeBindings {
+		switch {
+		case binding.RequireScheduleMonopoly():
+			classes.mono = append(classes.mono, binding)
+		case binding.RequireScheduleUnlimitedQuota():
+			classes.unlimited = append(classes.unlimited, binding)
+		case binding.RequireSchedule():
+			classes.normal = append(classes.normal, binding)
+		default:
+			classes.mount = append(classes.mount, binding)
+		}
+	}
+
+	slices.SortStableFunc(classes.mono, compareBindingSize)
+	slices.SortStableFunc(classes.normal, compareBindingSize)
+
+	return classes
+}
+
+func classifyAffinityRequests(requests types.VolumeBindings, existing types.VolumePlan) (affinity, nonAffinity map[*types.VolumeBinding]types.Volumes) {
+	affinity = map[*types.VolumeBinding]types.Volumes{}
+	nonAffinity = map[*types.VolumeBinding]types.Volumes{}
+
+	for _, req := range requests {
+		found := false
+		for binding, volumeMap := range existing {
+			if req.Source == binding.Source && req.Destination == binding.Destination && req.Flags == binding.Flags {
+				affinity[req] = volumeMap
+				found = true
+				break
+			}
+		}
+		if !found {
+			nonAffinity[req] = nil
+		}
+	}
+	return affinity, nonAffinity
 }
 
 func compareVolume(v, v1 *volume) int {

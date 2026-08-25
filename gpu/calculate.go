@@ -11,12 +11,7 @@ import (
 	gputypes "github.com/projecteru2/resource-extend/gpu/types"
 )
 
-func (p Plugin) CalculateDeploy(
-	ctx context.Context, nodename string, deployCount int,
-	resourceRequest plugintypes.WorkloadResourceRequest,
-) (
-	*plugintypes.CalculateDeployResponse, error,
-) {
+func (p Plugin) CalculateDeploy(ctx context.Context, nodename string, deployCount int, resourceRequest plugintypes.WorkloadResourceRequest) (*plugintypes.CalculateDeployResponse, error) {
 	logger := log.WithFunc("resource.gpu.CalculateDeploy").WithField("node", nodename)
 	req := &gputypes.WorkloadResourceRequest{}
 	if err := req.Parse(resourceRequest); err != nil {
@@ -29,14 +24,11 @@ func (p Plugin) CalculateDeploy(
 
 	nodeResourceInfo, err := p.store.Get(ctx, nodename)
 	if err != nil {
-		logger.WithField("node", nodename).Error(ctx, err)
+		logger.Error(ctx, err, "failed to get resource info of node")
 		return nil, err
 	}
 
-	var enginesParams []*gputypes.EngineParams
-	var workloadsResource []*gputypes.WorkloadResource
-
-	enginesParams, workloadsResource, err = p.doAlloc(nodeResourceInfo, deployCount, req)
+	enginesParams, workloadsResource, err := p.doAlloc(nodeResourceInfo, deployCount, req)
 	if err != nil {
 		return nil, err
 	}
@@ -55,13 +47,7 @@ func (p Plugin) CalculateDeploy(
 	}, nil
 }
 
-func (p Plugin) CalculateRealloc(
-	ctx context.Context, nodename string,
-	resource plugintypes.WorkloadResource,
-	resourceRequest plugintypes.WorkloadResourceRequest,
-) (
-	*plugintypes.CalculateReallocResponse, error,
-) {
+func (p Plugin) CalculateRealloc(ctx context.Context, nodename string, resource plugintypes.WorkloadResource, resourceRequest plugintypes.WorkloadResourceRequest) (*plugintypes.CalculateReallocResponse, error) {
 	req := &gputypes.WorkloadResourceRequest{}
 	if err := req.Parse(resourceRequest); err != nil {
 		return nil, err
@@ -93,9 +79,8 @@ func (p Plugin) CalculateRealloc(
 		return nil, err
 	}
 
-	var enginesParams []*gputypes.EngineParams
-	var workloadsResource []*gputypes.WorkloadResource
-	if enginesParams, workloadsResource, err = p.doAlloc(nodeResourceInfo, 1, newReq); err != nil {
+	enginesParams, workloadsResource, err := p.doAlloc(nodeResourceInfo, 1, newReq)
+	if err != nil {
 		return nil, err
 	}
 
@@ -113,9 +98,7 @@ func (p Plugin) CalculateRealloc(
 }
 
 func (p Plugin) CalculateRemap(context.Context, string, map[string]plugintypes.WorkloadResource) (*plugintypes.CalculateRemapResponse, error) {
-	return &plugintypes.CalculateRemapResponse{
-		EngineParamsMap: nil,
-	}, nil
+	return &plugintypes.CalculateRemapResponse{}, nil
 }
 
 func (p Plugin) doAlloc(resourceInfo *gputypes.NodeResourceInfo, deployCount int, req *gputypes.WorkloadResourceRequest) ([]*gputypes.EngineParams, []*gputypes.WorkloadResource, error) {

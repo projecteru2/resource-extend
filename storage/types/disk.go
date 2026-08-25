@@ -26,7 +26,7 @@ func (d *Disk) String() string {
 func (d *Disk) Parse(s string) (err error) {
 	parts := strings.Split(s, ":")
 	if len(parts) != 6 {
-		return ErrInvalidStorage
+		return ErrInvalidDisk
 	}
 	d.Device = parts[0]
 	d.Mounts = strings.Split(parts[1], ",")
@@ -54,10 +54,6 @@ func (d *Disk) DeepCopy() *Disk {
 		ReadBPS:   d.ReadBPS,
 		WriteBPS:  d.WriteBPS,
 	}
-}
-
-func compareDiskDevice(d, d1 *Disk) int {
-	return cmp.Compare(d.Device, d1.Device)
 }
 
 type Disks []*Disk
@@ -167,4 +163,8 @@ func (d *Disks) RemoveMounts() Disks {
 		disk.Mounts = nil
 	}
 	return disks
+}
+
+func compareDiskDevice(d, d1 *Disk) int {
+	return cmp.Compare(d.Device, d1.Device)
 }

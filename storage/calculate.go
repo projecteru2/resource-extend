@@ -121,7 +121,7 @@ func (p Plugin) CalculateRealloc(ctx context.Context, nodename string, resource 
 		originBindingSet[binding.GetMapKey()] = struct{}{}
 	}
 
-	engineParams := &storagetypes.EngineParams{Storage: targetWorkloadResource.StorageLimit, IOPSOptions: p.toIOPSOptions(targetWorkloadResource.DisksLimit)}
+	engineParams := &storagetypes.EngineParams{Storage: targetWorkloadResource.StorageLimit, IOPSOptions: toIOPSOptions(targetWorkloadResource.DisksLimit)}
 	newBindings := req.VolumesLimit.ApplyPlan(volumePlan)
 	if len(newBindings) != len(originBindingSet) {
 		engineParams.VolumeChanged = true
@@ -143,9 +143,7 @@ func (p Plugin) CalculateRealloc(ctx context.Context, nodename string, resource 
 }
 
 func (p Plugin) CalculateRemap(context.Context, string, map[string]plugintypes.WorkloadResource) (*plugintypes.CalculateRemapResponse, error) {
-	return &plugintypes.CalculateRemapResponse{
-		EngineParamsMap: nil,
-	}, nil
+	return &plugintypes.CalculateRemapResponse{}, nil
 }
 
 func (p Plugin) doAlloc(ctx context.Context, resourceInfo *storagetypes.NodeResourceInfo, deployCount int, req *storagetypes.WorkloadResourceRequest) ([]*storagetypes.EngineParams, []*storagetypes.WorkloadResource, error) {
@@ -185,7 +183,7 @@ func (p Plugin) doAlloc(ctx context.Context, resourceInfo *storagetypes.NodeReso
 		volumePlanLimit := getVolumePlanLimit(req.VolumesLimit, req.VolumesLimit, volumePlan)
 		disksLimit := getDisksLimit(req.VolumesLimit, volumePlanLimit, resourceInfo.Capacity.Disks)
 
-		engineParam.IOPSOptions = p.toIOPSOptions(disksLimit)
+		engineParam.IOPSOptions = toIOPSOptions(disksLimit)
 
 		workloadResource := &storagetypes.WorkloadResource{
 			VolumesRequest:    req.VolumesRequest,

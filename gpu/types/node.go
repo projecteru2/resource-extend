@@ -12,14 +12,11 @@ type NodeResource struct {
 	ProdCountMap ProdCountMap `json:"prod_count_map"`
 }
 
-func NewNodeResource(gm ProdCountMap) *NodeResource {
-	r := &NodeResource{
-		ProdCountMap: gm,
+func NewNodeResource(prodCountMap ProdCountMap) *NodeResource {
+	if prodCountMap == nil {
+		prodCountMap = ProdCountMap{}
 	}
-	if r.ProdCountMap == nil {
-		r.ProdCountMap = ProdCountMap{}
-	}
-	return r
+	return &NodeResource{ProdCountMap: prodCountMap}
 }
 
 func (r *NodeResource) AsRawParams() resourcetypes.RawParams {
@@ -37,10 +34,7 @@ func (r *NodeResource) Validate() error {
 }
 
 func (r *NodeResource) DeepCopy() *NodeResource {
-	res := &NodeResource{
-		ProdCountMap: r.ProdCountMap.DeepCopy(),
-	}
-	return res
+	return &NodeResource{ProdCountMap: r.ProdCountMap.DeepCopy()}
 }
 
 func (r *NodeResource) Add(r1 *NodeResource) {
@@ -111,7 +105,7 @@ func (n *NodeResourceRequest) LoadFromOrigin(nodeResource *NodeResource, resourc
 	if n == nil {
 		return
 	}
-	if !resourceRequest.IsSet("prod_count_map") {
+	if !resourceRequest.IsSet(prodCountMapKey) {
 		n.ProdCountMap = nodeResource.ProdCountMap
 	}
 }
