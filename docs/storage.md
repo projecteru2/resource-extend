@@ -61,14 +61,16 @@ reset to zero.
 2. Normal bindings are packed onto used devices with a min-heap, smallest device that still fits first, so
    large free devices stay whole.
 3. Monopoly bindings take unused devices; the requests on one device split it proportionally, with the
-   remainder going to the first request.
-4. The plugin then repeatedly converts one unused device into a used one while that increases the number of
-   plans it can build, and keeps the best result.
+   rounding remainder going to one of them.
+4. The plugin then converts unused devices into used ones for as long as monopoly capacity exceeds normal
+   capacity, and takes the plans from the last pass.
 5. Unlimited bindings are pinned to whichever device has the most space left after the other two passes.
 6. Mount bindings never move; their IOPS quota is charged to the disk covering their source path.
 
 Node deploy capacity is the number of plans that survive, capped by `scheduler.max_deploy_count`, and
 further capped by `(capacity.storage - usage.storage) / storage-request` when the request asks for storage.
+A request with no binding that needs placement or IOPS skips the scheduler entirely and reports
+`scheduler.max_deploy_count`.
 
 `get-most-idle-node` returns the first node it is given with priority 1: the storage plugin expresses no
 preference about build placement and defers to the other plugins.

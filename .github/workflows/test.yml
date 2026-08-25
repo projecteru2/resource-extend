@@ -24,7 +24,7 @@ jobs:
         run: go mod download
 
       - name: Vet
-        run: go vet ./...
+        run: make vet
 
       - name: Test with coverage
         run: go test -race -timeout 600s -count=1 -cover -coverprofile=coverage.out ./...
