@@ -308,8 +308,11 @@ func (p Plugin) doGetNodeDeployCapacity(ctx context.Context, nodeResourceInfo *s
 		Weight: 1,
 	}
 
-	volumePlans, _ := schedule.GetVolumePlans(ctx, nodeResourceInfo, req.VolumesRequest, p.config.Scheduler.MaxDeployCount)
-	capacityInfo.Capacity = len(volumePlans)
+	capacityInfo.Capacity = p.config.Scheduler.MaxDeployCount
+	if req.VolumesRequest.NeedSchedule() {
+		volumePlans, _ := schedule.GetVolumePlans(ctx, nodeResourceInfo, req.VolumesRequest, p.config.Scheduler.MaxDeployCount)
+		capacityInfo.Capacity = len(volumePlans)
+	}
 
 	if req.StorageRequest > 0 {
 		storageCapacity := int((nodeResourceInfo.Capacity.Storage - nodeResourceInfo.Usage.Storage) / req.StorageRequest)

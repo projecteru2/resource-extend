@@ -122,9 +122,7 @@ func (d *Disks) Add(d1 Disks) {
 		}
 	}
 
-	for _, disk := range toAppend {
-		*d = append(*d, disk.DeepCopy())
-	}
+	*d = append(*d, toAppend...)
 }
 
 func (d *Disks) Sub(d1 Disks) {

@@ -275,6 +275,23 @@ func TestFixNodeResource(t *testing.T) {
 	assert.Equal(t, int64(1), parseNodeResource(t, d.Usage).Storage)
 }
 
+func BenchmarkDoGetNodeDeployCapacity(b *testing.B) {
+	plugin := Plugin{config: coretypes.Config{Scheduler: coretypes.SchedulerConfig{MaxDeployCount: 10000}}}
+	nodeResourceInfo := &types.NodeResourceInfo{
+		Capacity: &types.NodeResource{Volumes: types.Volumes{"/data0": 1 << 40}, Disks: types.Disks{}, Storage: 1 << 40},
+		Usage:    &types.NodeResource{Volumes: types.Volumes{"/data0": 0}, Disks: types.Disks{}},
+	}
+	req := &types.WorkloadResourceRequest{}
+	if err := req.Parse(resourcetypes.RawParams{"storage": "1G"}); err != nil {
+		b.Fatalf("setup: %v", err)
+	}
+
+	b.ReportAllocs()
+	for b.Loop() {
+		plugin.doGetNodeDeployCapacity(b.Context(), nodeResourceInfo, req)
+	}
+}
+
 func parseNodeResource(t *testing.T, raw resourcetypes.RawParams) *types.NodeResource {
 	t.Helper()
 	r := &types.NodeResource{}

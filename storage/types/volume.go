@@ -170,6 +170,10 @@ func (vbs VolumeBindings) Validate() error {
 	return nil
 }
 
+func (vbs VolumeBindings) NeedSchedule() bool {
+	return slices.ContainsFunc(vbs, func(vb *VolumeBinding) bool { return vb.RequireSchedule() || vb.RequireIOPS() })
+}
+
 func (vbs *VolumeBindings) UnmarshalJSON(b []byte) (err error) {
 	volumes := []string{}
 	if err = json.Unmarshal(b, &volumes); err != nil {

@@ -152,11 +152,7 @@ func (h *host) getMonoPlan(monoRequests types.VolumeBindings, volume *volume) (t
 
 func (h *host) getMonoPlans(monoRequests types.VolumeBindings) ([]types.VolumePlan, []types.Disks) {
 	if len(monoRequests) == 0 {
-		return repeatWith(h.maxDeployCount, func() types.VolumePlan {
-				return types.VolumePlan{}
-			}), repeatWith(h.maxDeployCount, func() types.Disks {
-				return types.Disks{}
-			})
+		return make([]types.VolumePlan, h.maxDeployCount), make([]types.Disks, h.maxDeployCount)
 	}
 	if len(h.unusedVolumes) == 0 {
 		return nil, nil
@@ -260,7 +256,7 @@ func (h *host) getNormalPlans(normalRequests, mountRequests types.VolumeBindings
 
 func (h *host) getUnlimitedPlans(normalPlans, monoPlans []types.VolumePlan, unlimitedRequests types.VolumeBindings, capacity int) ([]types.VolumePlan, error) {
 	if len(unlimitedRequests) == 0 {
-		return repeatWith(capacity, func() types.VolumePlan { return types.VolumePlan{} }), nil
+		return make([]types.VolumePlan, capacity), nil
 	}
 	allVolumes := slices.Concat(h.usedVolumes.DeepCopy(), h.unusedVolumes.DeepCopy())
 	if len(allVolumes) == 0 {
@@ -309,9 +305,7 @@ func (h *host) getMountDiskPlan(reqs types.VolumeBindings) (types.Disks, error) 
 }
 
 func (h *host) getVolumePlans(ctx context.Context, requests types.VolumeBindings) ([]types.VolumePlan, []types.Disks) {
-	if !slices.ContainsFunc(requests, func(req *types.VolumeBinding) bool {
-		return req.RequireSchedule() || req.RequireIOPS()
-	}) {
+	if !requests.NeedSchedule() {
 		return repeatWith(h.maxDeployCount, func() types.VolumePlan {
 				return types.VolumePlan{}
 			}), repeatWith(h.maxDeployCount, func() types.Disks {
@@ -389,8 +383,8 @@ func (h *host) getVolumePlans(ctx context.Context, requests types.VolumeBindings
 		return nil, nil
 	}
 
-	resVolumePlans := repeatWith(bestCapacity, func() types.VolumePlan { return types.VolumePlan{} })
-	resDiskPlans := repeatWith(bestCapacity, func() types.Disks { return types.Disks{} })
+	resVolumePlans := make([]types.VolumePlan, bestCapacity)
+	resDiskPlans := make([]types.Disks, bestCapacity)
 
 	for i := range bestCapacity {
 		resVolumePlans[i] = normalVolumePlans[i]
@@ -404,17 +398,19 @@ func (h *host) getVolumePlans(ctx context.Context, requests types.VolumeBindings
 }
 
 func (h *host) getVolumeByDevice(device string) *volume {
-	for _, vol := range slices.Concat(h.usedVolumes, h.unusedVolumes) {
-		if vol.device == device {
-			return vol
-		}
+	hasDevice := func(v *volume) bool { return v.device == device }
+	if i := slices.IndexFunc(h.usedVolumes, hasDevice); i >= 0 {
+		return h.usedVolumes[i]
+	}
+	if i := slices.IndexFunc(h.unusedVolumes, hasDevice); i >= 0 {
+		return h.unusedVolumes[i]
 	}
 	return nil
 }
 
 func (h *host) getAffinityPlan(ctx context.Context, requests types.VolumeBindings, originVolumePlan types.VolumePlan, originRequests types.VolumeBindings) (types.VolumePlan, types.Disks, error) {
 	logger := log.WithFunc("resource.storage.getAffinityPlan")
-	if !slices.ContainsFunc(requests, func(req *types.VolumeBinding) bool { return req.RequireSchedule() || req.RequireIOPS() }) {
+	if !requests.NeedSchedule() {
 		return types.VolumePlan{}, types.Disks{}, nil
 	}
 
