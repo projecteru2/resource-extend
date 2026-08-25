@@ -4,7 +4,7 @@ go 1.27.0
 
 require (
 	github.com/cockroachdb/errors v1.14.0
-	github.com/projecteru2/core v0.0.0-20260825064033-3609293686bd
+	github.com/projecteru2/core v0.0.0-20260825075516-7465c31f0a51
 	github.com/sanity-io/litter v1.5.8
 	github.com/stretchr/testify v1.12.1
 	github.com/urfave/cli/v3 v3.11.0
