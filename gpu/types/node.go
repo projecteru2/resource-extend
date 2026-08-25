@@ -3,12 +3,13 @@ package types
 import (
 	"fmt"
 
-	"github.com/go-viper/mapstructure/v2"
 	resourcetypes "github.com/projecteru2/core/resource/types"
+
+	"github.com/projecteru2/resource-extend/internal/decode"
 )
 
 type NodeResource struct {
-	ProdCountMap ProdCountMap `json:"prod_count_map" mapstructure:"prod_count_map"`
+	ProdCountMap ProdCountMap `json:"prod_count_map"`
 }
 
 func NewNodeResource(gm ProdCountMap) *NodeResource {
@@ -28,7 +29,7 @@ func (r *NodeResource) AsRawParams() resourcetypes.RawParams {
 }
 
 func (r *NodeResource) Parse(rawParams resourcetypes.RawParams) error {
-	return mapstructure.Decode(rawParams, r)
+	return decode.Decode(rawParams, r)
 }
 
 func (r *NodeResource) Validate() error {
@@ -85,11 +86,11 @@ func (n *NodeResourceInfo) GetAvailableResource() *NodeResource {
 }
 
 type NodeResourceRequest struct {
-	ProdCountMap ProdCountMap `json:"prod_count_map" mapstructure:"prod_count_map"`
+	ProdCountMap ProdCountMap `json:"prod_count_map"`
 }
 
 func (n *NodeResourceRequest) Parse(rawParams resourcetypes.RawParams) error {
-	if err := mapstructure.Decode(rawParams, n); err != nil {
+	if err := decode.Decode(rawParams, n); err != nil {
 		return err
 	}
 	if n.ProdCountMap == nil {

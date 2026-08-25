@@ -5,7 +5,6 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/docker/go-units"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	plugintypes "github.com/projecteru2/core/resource/plugins/types"
 	resourcetypes "github.com/projecteru2/core/resource/types"
@@ -14,6 +13,8 @@ import (
 
 	"github.com/projecteru2/resource-extend/gpu/types"
 )
+
+const gb = 1000 * 1000 * 1000
 
 func TestAddNode(t *testing.T) {
 	ctx := t.Context()
@@ -28,7 +29,7 @@ func TestAddNode(t *testing.T) {
 		},
 	}
 
-	info := &enginetypes.Info{NCPU: 2, MemTotal: 4 * units.GB}
+	info := &enginetypes.Info{NCPU: 2, MemTotal: 4 * gb}
 
 	_, err := cm.AddNode(ctx, node, req, info)
 	assert.Equal(t, err, coretypes.ErrNodeExists)

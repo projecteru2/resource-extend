@@ -4,8 +4,6 @@ go 1.27.0
 
 require (
 	github.com/cockroachdb/errors v1.14.0
-	github.com/docker/go-units v0.5.0
-	github.com/go-viper/mapstructure/v2 v2.5.0
 	github.com/projecteru2/core v0.0.0-20260825005017-ee20dafdc9ea
 	github.com/sanity-io/litter v1.5.8
 	github.com/stretchr/testify v1.12.1
@@ -23,10 +21,12 @@ require (
 	github.com/coreos/go-semver v0.3.1 // indirect
 	github.com/coreos/go-systemd/v22 v22.7.0 // indirect
 	github.com/docker/go-connections v0.8.1 // indirect
+	github.com/docker/go-units v0.5.0 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/getsentry/sentry-go v0.48.0 // indirect
 	github.com/go-logr/logr v1.4.4 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
+	github.com/go-viper/mapstructure/v2 v2.5.0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang-jwt/jwt/v5 v5.3.1 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect

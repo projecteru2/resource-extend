@@ -2,27 +2,28 @@ package types
 
 import (
 	"cmp"
-	"encoding/json"
 	"slices"
 	"sync"
 
 	"github.com/cockroachdb/errors"
 	resourcetypes "github.com/projecteru2/core/resource/types"
 	coreutils "github.com/projecteru2/core/utils"
+
+	"github.com/projecteru2/resource-extend/internal/decode"
 )
 
 type WorkloadResource struct {
-	VolumesRequest VolumeBindings `json:"volumes_request" mapstructure:"volumes_request"`
-	VolumesLimit   VolumeBindings `json:"volumes_limit" mapstructure:"volumes_limit"`
+	VolumesRequest VolumeBindings `json:"volumes_request"`
+	VolumesLimit   VolumeBindings `json:"volumes_limit"`
 
-	VolumePlanRequest VolumePlan `json:"volume_plan_request" mapstructure:"volume_plan_request"`
-	VolumePlanLimit   VolumePlan `json:"volume_plan_limit" mapstructure:"volume_plan_limit"`
+	VolumePlanRequest VolumePlan `json:"volume_plan_request"`
+	VolumePlanLimit   VolumePlan `json:"volume_plan_limit"`
 
-	StorageRequest int64 `json:"storage_request" mapstructure:"storage_request"`
-	StorageLimit   int64 `json:"storage_limit" mapstructure:"storage_limit"`
+	StorageRequest int64 `json:"storage_request"`
+	StorageLimit   int64 `json:"storage_limit"`
 
-	DisksRequest Disks `json:"disks_request" mapstructure:"disks_request"`
-	DisksLimit   Disks `json:"disks_limit" mapstructure:"disks_limit"`
+	DisksRequest Disks `json:"disks_request"`
+	DisksLimit   Disks `json:"disks_limit"`
 }
 
 func (w *WorkloadResource) AsRawParams() resourcetypes.RawParams {
@@ -39,12 +40,7 @@ func (w *WorkloadResource) AsRawParams() resourcetypes.RawParams {
 }
 
 func (w *WorkloadResource) Parse(rawParams resourcetypes.RawParams) error {
-	// Have to use json because volume plan use customize marshal
-	body, err := json.Marshal(rawParams)
-	if err != nil {
-		return err
-	}
-	return json.Unmarshal(body, w)
+	return decode.Decode(rawParams, w)
 }
 
 func compareBindingString(b, b1 *VolumeBinding) int {

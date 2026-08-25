@@ -3,12 +3,13 @@ package types
 import (
 	"maps"
 
-	"github.com/go-viper/mapstructure/v2"
 	resourcetypes "github.com/projecteru2/core/resource/types"
+
+	"github.com/projecteru2/resource-extend/internal/decode"
 )
 
 type WorkloadResource struct {
-	ProdCountMap ProdCountMap `json:"prod_count_map" mapstructure:"prod_count_map"`
+	ProdCountMap ProdCountMap `json:"prod_count_map"`
 }
 
 func (w *WorkloadResource) AsRawParams() resourcetypes.RawParams {
@@ -22,7 +23,7 @@ func (w *WorkloadResource) Validate() error {
 }
 
 func (w *WorkloadResource) Parse(rawParams resourcetypes.RawParams) error {
-	return mapstructure.Decode(rawParams, w)
+	return decode.Decode(rawParams, w)
 }
 
 func (w *WorkloadResource) DeepCopy() *WorkloadResource {
@@ -45,7 +46,7 @@ func (w *WorkloadResource) Count() int {
 }
 
 type WorkloadResourceRequest struct {
-	ProdCountMap ProdCountMap `json:"prod_count_map" mapstructure:"prod_count_map"`
+	ProdCountMap ProdCountMap `json:"prod_count_map"`
 }
 
 func (w *WorkloadResourceRequest) ValidateProd() error {
@@ -58,7 +59,7 @@ func (w *WorkloadResourceRequest) Validate() error {
 }
 
 func (w *WorkloadResourceRequest) Parse(rawParams resourcetypes.RawParams) (err error) {
-	return mapstructure.Decode(rawParams, w)
+	return decode.Decode(rawParams, w)
 }
 
 func (w *WorkloadResourceRequest) MergeFromResource(r *WorkloadResource) {

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/docker/go-units"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	plugintypes "github.com/projecteru2/core/resource/plugins/types"
 	resourcetypes "github.com/projecteru2/core/resource/types"
@@ -25,14 +24,14 @@ func TestAddNode(t *testing.T) {
 	req := plugintypes.NodeResourceRequest{
 		"volumes": vols,
 	}
-	info := &enginetypes.Info{StorageTotal: units.TB}
+	info := &enginetypes.Info{StorageTotal: tb}
 
 	_, err := st.AddNode(ctx, node, req, info)
 	assert.Equal(t, err, coretypes.ErrNodeExists)
 
 	r, err := st.AddNode(ctx, nodeForAdd, req, info)
 	assert.Nil(t, err)
-	assert.Equal(t, int64(units.TiB), parseNodeResource(t, r.Capacity).Storage)
+	assert.Equal(t, int64(tib), parseNodeResource(t, r.Capacity).Storage)
 }
 
 func TestRemoveNode(t *testing.T) {
@@ -62,7 +61,7 @@ func TestGetNodesDeployCapacity(t *testing.T) {
 	_, err = st.GetNodesDeployCapacity(ctx, []string{"??"}, req)
 	assert.ErrorIs(t, err, coretypes.ErrInvaildCount)
 
-	req = plugintypes.WorkloadResourceRequest{"storage": fmt.Sprintf("%v", units.TiB)}
+	req = plugintypes.WorkloadResourceRequest{"storage": fmt.Sprintf("%v", tib)}
 	r, err := st.GetNodesDeployCapacity(ctx, nodes, req)
 	assert.NoError(t, err)
 	assert.Equal(t, 40, r.Total)
@@ -76,7 +75,7 @@ func TestGetNodesDeployCapacity(t *testing.T) {
 
 	req = plugintypes.WorkloadResourceRequest{
 		"volumes": []string{"AUTO:/dir0:rwm:1G"},
-		"storage": fmt.Sprintf("%v", units.TiB),
+		"storage": fmt.Sprintf("%v", tib),
 	}
 	r, err = st.GetNodesDeployCapacity(ctx, nodes, req)
 	assert.NoError(t, err)
@@ -92,7 +91,7 @@ func TestSetNodeResourceCapacity(t *testing.T) {
 
 	r, err := st.GetNodeResourceInfo(ctx, node, nil)
 	assert.Nil(t, err)
-	assert.Equal(t, int64(4*units.TiB), parseNodeResource(t, r.Capacity).Storage)
+	assert.Equal(t, int64(4*tib), parseNodeResource(t, r.Capacity).Storage)
 
 	resourceRequest := plugintypes.NodeResourceRequest{
 		"volumes": []string{"/data4:1T"},
@@ -100,29 +99,29 @@ func TestSetNodeResourceCapacity(t *testing.T) {
 	}
 
 	nodeResource := plugintypes.NodeResource{
-		"volumes": types.Volumes{"/data4": units.TiB},
-		"storage": units.TiB,
+		"volumes": types.Volumes{"/data4": tib},
+		"storage": tib,
 	}
 
 	d, err := st.SetNodeResourceCapacity(ctx, node, nodeResource, nil, true, true)
 	assert.NoError(t, err)
-	assert.Equal(t, int64(5*units.TiB), parseNodeResource(t, d.After).Storage)
+	assert.Equal(t, int64(5*tib), parseNodeResource(t, d.After).Storage)
 
 	d, err = st.SetNodeResourceCapacity(ctx, node, nodeResource, nil, true, false)
 	assert.NoError(t, err)
-	assert.Equal(t, int64(4*units.TiB), parseNodeResource(t, d.After).Storage)
+	assert.Equal(t, int64(4*tib), parseNodeResource(t, d.After).Storage)
 
 	d, err = st.SetNodeResourceCapacity(ctx, node, nil, resourceRequest, true, true)
 	assert.NoError(t, err)
-	assert.Equal(t, int64(6*units.TiB), parseNodeResource(t, d.After).Storage)
+	assert.Equal(t, int64(6*tib), parseNodeResource(t, d.After).Storage)
 
 	d, err = st.SetNodeResourceCapacity(ctx, node, nil, resourceRequest, true, false)
 	assert.NoError(t, err)
-	assert.Equal(t, int64(4*units.TiB), parseNodeResource(t, d.After).Storage)
+	assert.Equal(t, int64(4*tib), parseNodeResource(t, d.After).Storage)
 
 	d, err = st.SetNodeResourceCapacity(ctx, node, nil, resourceRequest, false, false)
 	assert.NoError(t, err)
-	assert.Equal(t, int64(2*units.TiB), parseNodeResource(t, d.After).Storage)
+	assert.Equal(t, int64(2*tib), parseNodeResource(t, d.After).Storage)
 }
 
 func TestGetNodeResourceInfo(t *testing.T) {
@@ -137,7 +136,7 @@ func TestGetNodeResourceInfo(t *testing.T) {
 
 	d, err := st.GetNodeResourceInfo(ctx, node, nil)
 	assert.NoError(t, err)
-	assert.Equal(t, int64(4*units.TiB), parseNodeResource(t, d.Capacity).Storage)
+	assert.Equal(t, int64(4*tib), parseNodeResource(t, d.Capacity).Storage)
 
 	workloadsResource := []plugintypes.WorkloadResource{
 		{"storage_request": 1},
@@ -157,26 +156,26 @@ func TestSetNodeResourceInfo(t *testing.T) {
 	node := nodes[0]
 
 	capacity := plugintypes.NodeResource{
-		"volumes": types.Volumes{"/data4": units.TiB},
-		"storage": units.TiB,
+		"volumes": types.Volumes{"/data4": tib},
+		"storage": tib,
 	}
 
 	usage := plugintypes.NodeResource{
-		"volumes": types.Volumes{"/data3": units.TiB},
-		"storage": 4 * units.TiB,
+		"volumes": types.Volumes{"/data3": tib},
+		"storage": 4 * tib,
 	}
 
 	r, err := st.GetNodeResourceInfo(ctx, node, nil)
 	assert.Nil(t, err)
-	assert.Equal(t, int64(4*units.TiB), parseNodeResource(t, r.Capacity).Storage)
+	assert.Equal(t, int64(4*tib), parseNodeResource(t, r.Capacity).Storage)
 
 	_, err = st.SetNodeResourceInfo(ctx, node, capacity, usage)
 	assert.NoError(t, err)
 
 	r, err = st.GetNodeResourceInfo(ctx, node, nil)
 	assert.Nil(t, err)
-	assert.Equal(t, int64(4*units.TiB), parseNodeResource(t, r.Usage).Storage)
-	assert.Equal(t, int64(2*units.TiB), parseNodeResource(t, r.Capacity).Storage)
+	assert.Equal(t, int64(4*tib), parseNodeResource(t, r.Usage).Storage)
+	assert.Equal(t, int64(2*tib), parseNodeResource(t, r.Capacity).Storage)
 }
 
 func TestSetNodeResourceUsage(t *testing.T) {
@@ -188,7 +187,7 @@ func TestSetNodeResourceUsage(t *testing.T) {
 
 	r, err := st.GetNodeResourceInfo(ctx, node, nil)
 	assert.Nil(t, err)
-	assert.Equal(t, int64(4*units.TiB), parseNodeResource(t, r.Capacity).Storage)
+	assert.Equal(t, int64(4*tib), parseNodeResource(t, r.Capacity).Storage)
 
 	resourceRequest := plugintypes.NodeResourceRequest{
 		"volumes": []string{"/data4:1T"},
@@ -196,8 +195,8 @@ func TestSetNodeResourceUsage(t *testing.T) {
 	}
 
 	nodeResource := plugintypes.NodeResource{
-		"volumes": types.Volumes{"/data4": units.TiB},
-		"storage": units.TiB,
+		"volumes": types.Volumes{"/data4": tib},
+		"storage": tib,
 	}
 
 	workloadsResource := []plugintypes.WorkloadResource{
@@ -207,7 +206,7 @@ func TestSetNodeResourceUsage(t *testing.T) {
 
 	d, err := st.SetNodeResourceUsage(ctx, node, nodeResource, nil, nil, true, true)
 	assert.NoError(t, err)
-	assert.Equal(t, int64(units.TiB), parseNodeResource(t, d.After).Storage)
+	assert.Equal(t, int64(tib), parseNodeResource(t, d.After).Storage)
 
 	d, err = st.SetNodeResourceUsage(ctx, node, nodeResource, nil, nil, true, false)
 	assert.NoError(t, err)
@@ -215,7 +214,7 @@ func TestSetNodeResourceUsage(t *testing.T) {
 
 	d, err = st.SetNodeResourceUsage(ctx, node, nil, resourceRequest, nil, true, true)
 	assert.NoError(t, err)
-	assert.Equal(t, int64(2*units.TiB), parseNodeResource(t, d.After).Storage)
+	assert.Equal(t, int64(2*tib), parseNodeResource(t, d.After).Storage)
 
 	d, err = st.SetNodeResourceUsage(ctx, node, nil, resourceRequest, nil, true, false)
 	assert.NoError(t, err)
@@ -235,7 +234,7 @@ func TestSetNodeResourceUsage(t *testing.T) {
 
 	d, err = st.SetNodeResourceUsage(ctx, node, nodeResource, nil, nil, false, false)
 	assert.NoError(t, err)
-	assert.Equal(t, int64(units.TiB), parseNodeResource(t, d.After).Storage)
+	assert.Equal(t, int64(tib), parseNodeResource(t, d.After).Storage)
 }
 
 func TestGetMostIdleNode(t *testing.T) {

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/docker/go-units"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	plugintypes "github.com/projecteru2/core/resource/plugins/types"
 	resourcetypes "github.com/projecteru2/core/resource/types"
@@ -39,7 +38,7 @@ func TestCalculateDeploy(t *testing.T) {
 	assert.ErrorIs(t, err, coretypes.ErrInsufficientResource)
 
 	req = plugintypes.WorkloadResourceRequest{
-		"storage": fmt.Sprintf("%v", units.GiB),
+		"storage": fmt.Sprintf("%v", gib),
 	}
 	d, err := st.CalculateDeploy(ctx, node, 10, req)
 	assert.NoError(t, err)
@@ -113,8 +112,8 @@ func TestCalculateRealloc(t *testing.T) {
 	req = plugintypes.WorkloadResourceRequest{
 		"volume-request":  []string{"AUTO:/dir1:mrw:100GiB"},
 		"volume-limit":    []string{"AUTO:/dir1:mrw:100GiB"},
-		"storage-request": fmt.Sprintf("%v", 4*units.TiB),
-		"storage-limit":   fmt.Sprintf("%v", 4*units.TiB),
+		"storage-request": fmt.Sprintf("%v", 4*tib),
+		"storage-limit":   fmt.Sprintf("%v", 4*tib),
 	}
 	_, err = st.CalculateRealloc(ctx, node, resource, req)
 	assert.ErrorIs(t, err, coretypes.ErrInsufficientResource)
@@ -129,8 +128,8 @@ func TestCalculateRealloc(t *testing.T) {
 	req = plugintypes.WorkloadResourceRequest{
 		"volume-request":  []string{"AUTO:/dir1:mrw:100GiB"},
 		"volume-limit":    []string{"AUTO:/dir1:mrw:100GiB"},
-		"storage-request": fmt.Sprintf("%v", units.GiB),
-		"storage-limit":   fmt.Sprintf("%v", units.GiB),
+		"storage-request": fmt.Sprintf("%v", gib),
+		"storage-limit":   fmt.Sprintf("%v", gib),
 	}
 	d, err := st.CalculateRealloc(ctx, node, resource, req)
 	assert.NoError(t, err)
@@ -155,8 +154,8 @@ func TestCalculateRealloc(t *testing.T) {
 	assert.Equal(t, litter.Sdump(plan), litter.Sdump(wr.VolumePlanRequest))
 
 	req = plugintypes.WorkloadResourceRequest{
-		"storage-request": fmt.Sprintf("%v", units.GiB),
-		"storage-limit":   fmt.Sprintf("%v", units.GiB),
+		"storage-request": fmt.Sprintf("%v", gib),
+		"storage-limit":   fmt.Sprintf("%v", gib),
 	}
 	d, err = st.CalculateRealloc(ctx, node, resource, req)
 	assert.NoError(t, err)
@@ -199,7 +198,7 @@ func TestCalculateReallocKeepsDisksWithoutReschedule(t *testing.T) {
 		"volumes": []string{"/data0:1T"},
 		"disks":   []string{"/dev/vda:/data0:1000:1000:1G:1G"},
 	}
-	_, err := st.AddNode(ctx, "disknode", req, &enginetypes.Info{StorageTotal: units.TB})
+	_, err := st.AddNode(ctx, "disknode", req, &enginetypes.Info{StorageTotal: tb})
 	assert.NoError(t, err)
 
 	binding, err := types.NewVolumeBinding("AUTO:/dir0:rw:100GiB:100:100:1M:1M")
@@ -209,12 +208,12 @@ func TestCalculateReallocKeepsDisksWithoutReschedule(t *testing.T) {
 		VolumesLimit:      types.VolumeBindings{binding},
 		VolumePlanRequest: types.VolumePlan{binding: types.Volumes{"/data0": 107374182400}},
 		VolumePlanLimit:   types.VolumePlan{binding: types.Volumes{"/data0": 107374182400}},
-		DisksRequest:      types.Disks{{Device: "/dev/vda", ReadIOPS: 100, WriteIOPS: 100, ReadBPS: units.MiB, WriteBPS: units.MiB}},
+		DisksRequest:      types.Disks{{Device: "/dev/vda", ReadIOPS: 100, WriteIOPS: 100, ReadBPS: mib, WriteBPS: mib}},
 	}
 
 	d, err := st.CalculateRealloc(ctx, "disknode", origin.AsRawParams(), plugintypes.WorkloadResourceRequest{
-		"storage-request": fmt.Sprintf("%v", units.GiB),
-		"storage-limit":   fmt.Sprintf("%v", units.GiB),
+		"storage-request": fmt.Sprintf("%v", gib),
+		"storage-limit":   fmt.Sprintf("%v", gib),
 	})
 	assert.NoError(t, err)
 

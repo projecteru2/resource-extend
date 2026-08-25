@@ -6,15 +6,16 @@ import (
 	"strings"
 
 	"github.com/cockroachdb/errors"
-	"github.com/go-viper/mapstructure/v2"
 	resourcetypes "github.com/projecteru2/core/resource/types"
 	coreutils "github.com/projecteru2/core/utils"
+
+	"github.com/projecteru2/resource-extend/internal/decode"
 )
 
 type NodeResource struct {
-	Volumes Volumes `json:"volumes" mapstructure:"volumes"`
-	Disks   Disks   `json:"disks" mapstructure:"disks"`
-	Storage int64   `json:"storage" mapstructure:"storage"`
+	Volumes Volumes `json:"volumes"`
+	Disks   Disks   `json:"disks"`
+	Storage int64   `json:"storage"`
 }
 
 func (n *NodeResource) AsRawParams() resourcetypes.RawParams {
@@ -26,7 +27,7 @@ func (n *NodeResource) AsRawParams() resourcetypes.RawParams {
 }
 
 func (n *NodeResource) Parse(rawParams resourcetypes.RawParams) error {
-	return mapstructure.Decode(rawParams, n)
+	return decode.Decode(rawParams, n)
 }
 
 func (n *NodeResource) DeepCopy() *NodeResource {
