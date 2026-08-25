@@ -102,11 +102,14 @@ func (h *host) getDiskByPath(path string) *types.Disk {
 }
 
 func (h *host) getMonoPlan(monoRequests types.VolumeBindings, volume *volume) (types.VolumePlan, *types.Disk, error) {
-	totalSize := sumBy(monoRequests, func(req *types.VolumeBinding) int64 { return req.SizeInBytes })
-	totalReadIOPS := sumBy(monoRequests, func(req *types.VolumeBinding) int64 { return req.ReadIOPS })
-	totalWriteIOPS := sumBy(monoRequests, func(req *types.VolumeBinding) int64 { return req.WriteIOPS })
-	totalReadBPS := sumBy(monoRequests, func(req *types.VolumeBinding) int64 { return req.ReadBPS })
-	totalWriteBPS := sumBy(monoRequests, func(req *types.VolumeBinding) int64 { return req.WriteBPS })
+	var totalSize, totalReadIOPS, totalWriteIOPS, totalReadBPS, totalWriteBPS int64
+	for _, req := range monoRequests {
+		totalSize += req.SizeInBytes
+		totalReadIOPS += req.ReadIOPS
+		totalWriteIOPS += req.WriteIOPS
+		totalReadBPS += req.ReadBPS
+		totalWriteBPS += req.WriteBPS
+	}
 
 	if volume.size < totalSize {
 		return nil, nil, coretypes.ErrInsufficientResource
@@ -501,7 +504,7 @@ func (h *host) getAffinityPlan(ctx context.Context, requests types.VolumeBinding
 		return nil, nil, err
 	}
 
-	totalRequestSize := sumBy(monoRequests, func(req *types.VolumeBinding) int64 { return req.SizeInBytes })
+	totalRequestSize := monoRequests.TotalSize()
 	totalVolumeSize := int64(0)
 	for req, volumeMap := range originVolumePlan {
 		if req.RequireScheduleMonopoly() {

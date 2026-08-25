@@ -81,10 +81,14 @@ func (r *runner) serve(ctx context.Context, h handler) error {
 	return nil
 }
 
-// New builds the command tree of a resource plugin binary.
-func New(name, usage, configPath string, newPlugin Factory) *cli.Command {
+// Main runs the command tree of a resource plugin binary and exits on failure.
+func Main(name, usage, configPath string, newPlugin Factory) {
+	cli.VersionPrinter = func(_ *cli.Command) {
+		fmt.Print(version.String())
+	}
+
 	r := &runner{newPlugin: newPlugin}
-	return &cli.Command{
+	app := &cli.Command{
 		Name:    name,
 		Usage:   usage,
 		Version: version.VERSION,
@@ -98,6 +102,11 @@ func New(name, usage, configPath string, newPlugin Factory) *cli.Command {
 			},
 		},
 		Commands: r.commands(),
+	}
+
+	if err := app.Run(context.Background(), os.Args); err != nil {
+		cli.HandleExitCoder(err)
+		os.Exit(1)
 	}
 }
 

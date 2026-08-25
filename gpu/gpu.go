@@ -21,21 +21,20 @@ const (
 var _ plugins.Plugin = (*Plugin)(nil)
 
 type Plugin struct {
-	name  string
 	store *nodestore.Store[*gputypes.NodeResourceInfo]
 }
 
 func NewPlugin(ctx context.Context, config coretypes.Config, embeddedETCD *embedded.Cluster) (*Plugin, error) {
-	store, err := nodestore.New(ctx, config, nodeResourceInfoKey, func() *gputypes.NodeResourceInfo {
+	store, err := nodestore.New(config, nodeResourceInfoKey, func() *gputypes.NodeResourceInfo {
 		return &gputypes.NodeResourceInfo{}
 	}, embeddedETCD)
 	if err != nil {
 		log.WithFunc("resource.gpu.NewPlugin").Error(ctx, err)
 		return nil, err
 	}
-	return &Plugin{name: name, store: store}, nil
+	return &Plugin{store: store}, nil
 }
 
 func (p Plugin) Name() string {
-	return p.name
+	return name
 }

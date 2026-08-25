@@ -36,7 +36,7 @@ func (p Plugin) AddNode(ctx context.Context, nodename string, resource plugintyp
 	}
 	capacity := gputypes.NewNodeResource(req.ProdCountMap)
 	if info != nil && capacity.Count() == 0 {
-		if b, ok := info.Resources[p.name]; ok {
+		if b, ok := info.Resources[name]; ok {
 			if err := json.Unmarshal(b, capacity); err != nil {
 				return nil, err
 			}
@@ -88,11 +88,7 @@ func (p Plugin) GetNodesDeployCapacity(ctx context.Context, nodenames []string, 
 		nodeDeployCapacity := p.doGetNodeDeployCapacity(nodeResourceInfo, req)
 		if nodeDeployCapacity.Capacity > 0 {
 			nodesDeployCapacityMap[nodename] = nodeDeployCapacity
-			if total == math.MaxInt || nodeDeployCapacity.Capacity == math.MaxInt {
-				total = math.MaxInt
-			} else {
-				total += nodeDeployCapacity.Capacity
-			}
+			total += nodeDeployCapacity.Capacity
 		}
 	}
 	return &plugintypes.GetNodesDeployCapacityResponse{
@@ -297,64 +293,38 @@ func (p Plugin) doGetNodeDeployCapacity(nodeResourceInfo *gputypes.NodeResourceI
 	return capacityInfo
 }
 
-func (p Plugin) overwriteNodeResource(req *gputypes.NodeResourceRequest, nodeResource *gputypes.NodeResource, workloadsResource []*gputypes.WorkloadResource) *gputypes.NodeResource {
-	resp := gputypes.NewNodeResource(nil)
-	if req != nil {
-		nodeResource = &gputypes.NodeResource{
-			ProdCountMap: req.ProdCountMap,
-		}
-	}
-
-	if nodeResource != nil {
-		resp.Add(nodeResource)
-		return resp
-	}
-
-	for _, workloadResource := range workloadsResource {
-		nodeResource = &gputypes.NodeResource{
-			ProdCountMap: workloadResource.ProdCountMap,
-		}
-		resp.Add(nodeResource)
-	}
-	return resp
-}
-
-func (p Plugin) incrUpdateNodeResource(req *gputypes.NodeResourceRequest, nodeResource, origin *gputypes.NodeResource, workloadsResource []*gputypes.WorkloadResource, incr bool) *gputypes.NodeResource {
-	resp := origin.DeepCopy()
-	if req != nil {
-		nodeResource = &gputypes.NodeResource{
-			ProdCountMap: req.ProdCountMap,
-		}
-	}
-
-	if nodeResource != nil {
-		if incr {
-			resp.Add(nodeResource)
-		} else {
-			resp.Sub(nodeResource)
-		}
-		return resp
-	}
-
-	for _, workloadResource := range workloadsResource {
-		nodeResource = &gputypes.NodeResource{
-			ProdCountMap: workloadResource.ProdCountMap,
-		}
-		if incr {
-			resp.Add(nodeResource)
-		} else {
-			resp.Sub(nodeResource)
-		}
-	}
-	return resp
-}
-
 // calculateNodeResource priority: node resource request > node resource > workload resource args list
 func (p Plugin) calculateNodeResource(req *gputypes.NodeResourceRequest, nodeResource, origin *gputypes.NodeResource, workloadsResource []*gputypes.WorkloadResource, delta, incr bool) *gputypes.NodeResource {
+	var resp *gputypes.NodeResource
 	if origin == nil || !delta {
-		return p.overwriteNodeResource(req, nodeResource, workloadsResource)
+		resp = gputypes.NewNodeResource(nil)
+		incr = true
+	} else {
+		resp = origin.DeepCopy()
 	}
-	return p.incrUpdateNodeResource(req, nodeResource, origin, workloadsResource, incr)
+
+	if req != nil {
+		nodeResource = &gputypes.NodeResource{ProdCountMap: req.ProdCountMap}
+	}
+
+	if nodeResource != nil {
+		if incr {
+			resp.Add(nodeResource)
+		} else {
+			resp.Sub(nodeResource)
+		}
+		return resp
+	}
+
+	for _, workloadResource := range workloadsResource {
+		nodeResource = &gputypes.NodeResource{ProdCountMap: workloadResource.ProdCountMap}
+		if incr {
+			resp.Add(nodeResource)
+		} else {
+			resp.Sub(nodeResource)
+		}
+	}
+	return resp
 }
 
 func (p Plugin) parseNodeResourceInfos(resourceRequest plugintypes.NodeResourceRequest, resource plugintypes.NodeResource, workloadsResource []plugintypes.WorkloadResource) (*gputypes.NodeResourceRequest, *gputypes.NodeResource, []*gputypes.WorkloadResource, error) {

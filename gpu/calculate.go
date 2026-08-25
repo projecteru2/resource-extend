@@ -104,7 +104,6 @@ func (p Plugin) CalculateRemap(context.Context, string, map[string]plugintypes.W
 func (p Plugin) doAlloc(resourceInfo *gputypes.NodeResourceInfo, deployCount int, req *gputypes.WorkloadResourceRequest) ([]*gputypes.EngineParams, []*gputypes.WorkloadResource, error) {
 	enginesParams := []*gputypes.EngineParams{}
 	workloadsResource := []*gputypes.WorkloadResource{}
-	var err error
 
 	availableResource := resourceInfo.GetAvailableResource()
 	for range deployCount {
@@ -112,23 +111,13 @@ func (p Plugin) doAlloc(resourceInfo *gputypes.NodeResourceInfo, deployCount int
 		for reqProd, reqCount := range req.ProdCountMap {
 			capCount, ok := availableResource.ProdCountMap[reqProd]
 			if !ok || capCount < reqCount {
-				err = coretypes.ErrInsufficientResource
-				return enginesParams, workloadsResource, err
+				return enginesParams, workloadsResource, coretypes.ErrInsufficientResource
 			}
 			availableResource.ProdCountMap[reqProd] -= reqCount
 			prodCountMap[reqProd] = reqCount
 		}
-		if req.Count() == prodCountMap.TotalCount() {
-			workloadsResource = append(workloadsResource, &gputypes.WorkloadResource{
-				ProdCountMap: prodCountMap.DeepCopy(),
-			})
-			enginesParams = append(enginesParams, &gputypes.EngineParams{
-				ProdCountMap: prodCountMap.DeepCopy(),
-			})
-		} else {
-			err = coretypes.ErrInsufficientResource
-			break
-		}
+		workloadsResource = append(workloadsResource, &gputypes.WorkloadResource{ProdCountMap: prodCountMap.DeepCopy()})
+		enginesParams = append(enginesParams, &gputypes.EngineParams{ProdCountMap: prodCountMap})
 	}
-	return enginesParams, workloadsResource, err
+	return enginesParams, workloadsResource, nil
 }
