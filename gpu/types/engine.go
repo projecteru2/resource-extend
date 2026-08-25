@@ -1,12 +1,13 @@
 package types
 
 import (
-	"github.com/go-viper/mapstructure/v2"
 	resourcetypes "github.com/projecteru2/core/resource/types"
+
+	"github.com/projecteru2/resource-extend/internal/decode"
 )
 
 type EngineParams struct {
-	ProdCountMap ProdCountMap `json:"prod_count_map" mapstructure:"prod_count_map"`
+	ProdCountMap ProdCountMap `json:"prod_count_map"`
 }
 
 func (ep *EngineParams) AsRawParams() resourcetypes.RawParams {
@@ -16,7 +17,7 @@ func (ep *EngineParams) AsRawParams() resourcetypes.RawParams {
 }
 
 func (ep *EngineParams) Parse(rawParams resourcetypes.RawParams) error {
-	return mapstructure.Decode(rawParams, ep)
+	return decode.Decode(rawParams, ep)
 }
 
 func (ep *EngineParams) Count() int {
