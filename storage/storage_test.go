@@ -5,12 +5,19 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/docker/go-units"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	plugintypes "github.com/projecteru2/core/resource/plugins/types"
 	"github.com/projecteru2/core/store/etcdv3/embedded"
 	coretypes "github.com/projecteru2/core/types"
 	"github.com/stretchr/testify/assert"
+)
+
+const (
+	mib = 1 << 20
+	gib = 1 << 30
+	tib = 1 << 40
+
+	tb = 1000 * 1000 * 1000 * 1000
 )
 
 func TestName(t *testing.T) {
@@ -42,7 +49,7 @@ func generateNodes(
 	ctx context.Context, t *testing.T, st *Plugin, nums int, vols []string, index int,
 ) []string {
 	reqs := generateNodeResourceRequests(t, nums, vols, index)
-	info := &enginetypes.Info{StorageTotal: units.TB}
+	info := &enginetypes.Info{StorageTotal: tb}
 	names := []string{}
 	for name, req := range reqs {
 		_, err := st.AddNode(ctx, name, req, info)

@@ -3,7 +3,6 @@ package storage
 import (
 	"testing"
 
-	"github.com/docker/go-units"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/projecteru2/resource-extend/storage/types"
@@ -18,7 +17,7 @@ func TestGetDisksLimitSkipsUnknownMount(t *testing.T) {
 func TestGetDisksLimitSkipsUnknownPlanDevice(t *testing.T) {
 	binding, err := types.NewVolumeBinding("AUTO:/data:rw:1G:100:100:1M:1M")
 	assert.NoError(t, err)
-	plan := types.VolumePlan{binding: types.Volumes{"/unknown": units.GiB}}
+	plan := types.VolumePlan{binding: types.Volumes{"/unknown": gib}}
 	assert.Empty(t, getDisksLimit(types.VolumeBindings{binding}, plan, types.Disks{}))
 }
 

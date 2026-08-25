@@ -4,13 +4,17 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/docker/go-units"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/projecteru2/resource-extend/storage/types"
 )
 
-const maxDeployCount = 1000
+const (
+	maxDeployCount = 1000
+
+	gib = 1 << 30
+	tib = 1 << 40
+)
 
 func TestGetVolumePlans(t *testing.T) {
 	resourceInfo := generateEmptyResourceInfo()
@@ -201,8 +205,8 @@ func TestAffinityPlan2(t *testing.T) {
 		"AUTO:/dir10:rw:800GiB",
 	})
 	resourceInfo := generateResourceInfo()
-	resourceInfo.Usage.Volumes["/data2"] = units.TiB
-	resourceInfo.Usage.Volumes["/data3"] = units.TiB
+	resourceInfo.Usage.Volumes["/data2"] = tib
+	resourceInfo.Usage.Volumes["/data3"] = tib
 	originRequest, existing := generateExistingVolumePlan(t)
 	mergedRequest := types.MergeVolumeBindings(req, originRequest)
 	plan, _, _ := GetAffinityPlan(t.Context(), resourceInfo, mergedRequest, existing, originRequest)
@@ -213,10 +217,10 @@ func generateResourceInfo() *types.NodeResourceInfo {
 	return &types.NodeResourceInfo{
 		Capacity: &types.NodeResource{
 			Volumes: types.Volumes{
-				"/data0": units.TiB,
-				"/data1": units.TiB,
-				"/data2": units.TiB,
-				"/data3": units.TiB,
+				"/data0": tib,
+				"/data1": tib,
+				"/data2": tib,
+				"/data3": tib,
 			},
 			Disks: []*types.Disk{
 				{
@@ -224,23 +228,23 @@ func generateResourceInfo() *types.NodeResourceInfo {
 					Mounts:    []string{"/", "/data"},
 					ReadIOPS:  1000,
 					WriteIOPS: 1000,
-					ReadBPS:   units.GiB,
-					WriteBPS:  units.GiB,
+					ReadBPS:   gib,
+					WriteBPS:  gib,
 				},
 				{
 					Device:    "/dev/vdb",
 					Mounts:    []string{"/data1"},
 					ReadIOPS:  0,
 					WriteIOPS: 0,
-					ReadBPS:   units.GiB,
-					WriteBPS:  units.GiB,
+					ReadBPS:   gib,
+					WriteBPS:  gib,
 				},
 			},
 		},
 		Usage: &types.NodeResource{
 			Volumes: types.Volumes{
-				"/data0": 200 * units.GiB,
-				"/data1": 300 * units.GiB,
+				"/data0": 200 * gib,
+				"/data1": 300 * gib,
 			},
 			Disks: []*types.Disk{
 				{
