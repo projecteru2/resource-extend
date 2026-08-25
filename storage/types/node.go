@@ -121,7 +121,6 @@ func (n *NodeResourceInfo) validateDisks() error {
 				return errors.Wrapf(ErrInvalidDisk, "disk %+v not found in capacity", disk.Device)
 			}
 		}
-
 	}
 	n.Usage.Disks = slices.DeleteFunc(n.Usage.Disks, func(disk *Disk) bool {
 		_, ok := toRemoveMap[disk.Device]

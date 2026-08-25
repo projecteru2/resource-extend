@@ -22,22 +22,21 @@ const (
 var _ plugins.Plugin = (*Plugin)(nil)
 
 type Plugin struct {
-	name   string
 	config coretypes.Config
 	store  *nodestore.Store[*storagetypes.NodeResourceInfo]
 }
 
 func NewPlugin(ctx context.Context, config coretypes.Config, embeddedETCD *embedded.Cluster) (*Plugin, error) {
-	store, err := nodestore.New(ctx, config, nodeResourceInfoKey, func() *storagetypes.NodeResourceInfo {
+	store, err := nodestore.New(config, nodeResourceInfoKey, func() *storagetypes.NodeResourceInfo {
 		return &storagetypes.NodeResourceInfo{}
 	}, embeddedETCD)
 	if err != nil {
 		log.WithFunc("resource.storage.NewPlugin").Error(ctx, err)
 		return nil, err
 	}
-	return &Plugin{name: name, config: config, store: store}, nil
+	return &Plugin{config: config, store: store}, nil
 }
 
 func (p Plugin) Name() string {
-	return p.name
+	return name
 }

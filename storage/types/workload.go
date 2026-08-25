@@ -43,10 +43,6 @@ func (w *WorkloadResource) Parse(rawParams resourcetypes.RawParams) error {
 	return decode.Decode(rawParams, w)
 }
 
-func compareBindingString(b, b1 *VolumeBinding) int {
-	return cmp.Compare(b.ToString(false), b1.ToString(false))
-}
-
 type WorkloadResourceRequest struct {
 	VolumesRequest VolumeBindings `json:"volumes_request"`
 	VolumesLimit   VolumeBindings `json:"volumes_limit"`
@@ -122,18 +118,10 @@ func (w *WorkloadResourceRequest) validateVolumes() error {
 		if request.SizeInBytes > 0 && limit.SizeInBytes > 0 && request.SizeInBytes > limit.SizeInBytes {
 			limit.SizeInBytes = request.SizeInBytes
 		}
-		if request.ReadIOPS > limit.ReadIOPS {
-			limit.ReadIOPS = request.ReadIOPS
-		}
-		if request.WriteIOPS > limit.WriteIOPS {
-			limit.WriteIOPS = request.WriteIOPS
-		}
-		if request.ReadBPS > limit.ReadBPS {
-			limit.ReadBPS = request.ReadBPS
-		}
-		if request.WriteBPS > limit.WriteBPS {
-			limit.WriteBPS = request.WriteBPS
-		}
+		limit.ReadIOPS = max(limit.ReadIOPS, request.ReadIOPS)
+		limit.WriteIOPS = max(limit.WriteIOPS, request.WriteIOPS)
+		limit.ReadBPS = max(limit.ReadBPS, request.ReadBPS)
+		limit.WriteBPS = max(limit.WriteBPS, request.WriteBPS)
 	}
 
 	for _, vb := range slices.Concat(w.VolumesRequest, w.VolumesLimit) {
@@ -148,17 +136,18 @@ func (w *WorkloadResourceRequest) validateStorage() error {
 	if w.StorageLimit < 0 || w.StorageRequest < 0 {
 		return errors.Wrap(ErrInvalidStorage, "storage limit or request less than 0")
 	}
-	if w.StorageLimit > 0 && w.StorageRequest == 0 {
-		w.StorageRequest = w.StorageLimit
-	}
+	w.StorageRequest = cmp.Or(w.StorageRequest, w.StorageLimit)
 	if w.StorageLimit > 0 && w.StorageRequest > 0 && w.StorageRequest > w.StorageLimit {
 		w.StorageLimit = w.StorageRequest // soft limit storage size
 	}
 
-	// ensure to change storage request / limit only once
 	w.once.Do(func() {
 		w.StorageRequest += w.VolumesRequest.TotalSize()
 		w.StorageLimit += w.VolumesLimit.TotalSize()
 	})
 	return nil
+}
+
+func compareBindingString(b, b1 *VolumeBinding) int {
+	return cmp.Compare(b.ToString(false), b1.ToString(false))
 }

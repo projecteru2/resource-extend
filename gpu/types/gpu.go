@@ -14,7 +14,7 @@ type ProdCountMap map[string]int
 func (pcm ProdCountMap) Validate() error {
 	for prod, count := range pcm {
 		if count <= 0 {
-			return errors.Wrapf(ErrInvalidGPUMap, "count is less or equal to zero: <product: %s, count: %d>", prod, count)
+			return errors.Wrapf(ErrInvalidGPUMap, "count is less than or equal to zero: <product: %s, count: %d>", prod, count)
 		}
 		if strings.TrimSpace(prod) == "" {
 			return errors.Wrap(ErrInvalidGPUProduct, "product is empty")
@@ -32,8 +32,8 @@ func (pcm ProdCountMap) ValidateProd() error {
 	return nil
 }
 
-func (pcm ProdCountMap) Add(g1 ProdCountMap) {
-	for prod, count := range g1 {
+func (pcm ProdCountMap) Add(pcm1 ProdCountMap) {
+	for prod, count := range pcm1 {
 		pcm[prod] += count
 		if pcm[prod] == 0 {
 			delete(pcm, prod)
@@ -41,8 +41,8 @@ func (pcm ProdCountMap) Add(g1 ProdCountMap) {
 	}
 }
 
-func (pcm ProdCountMap) Sub(g1 ProdCountMap) {
-	for prod, count := range g1 {
+func (pcm ProdCountMap) Sub(pcm1 ProdCountMap) {
+	for prod, count := range pcm1 {
 		pcm[prod] -= count
 		if pcm[prod] == 0 {
 			delete(pcm, prod)

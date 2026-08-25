@@ -35,7 +35,8 @@ scheduler:
 | `etcd.auth.username`, `etcd.auth.password` | both | no | — | etcd authentication |
 | `scheduler.max_deploy_count` | storage | no | `10000` | upper bound on the number of volume plans the scheduler enumerates for one node |
 
-`scheduler.max_deploy_count` bounds work, not placement: it caps how many candidate plans
+`scheduler.max_deploy_count` bounds work, not placement. It is the deploy capacity a node reports when a
+request needs no volume placement, and otherwise the ceiling on the candidate plans
 `get-nodes-deploy-capacity` and `calculate-deploy` build per node. Raising it lets a node report a larger
 deploy capacity for small volume requests at the cost of a longer scheduling pass.
 

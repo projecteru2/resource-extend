@@ -170,6 +170,10 @@ func (vbs VolumeBindings) Validate() error {
 	return nil
 }
 
+func (vbs VolumeBindings) NeedSchedule() bool {
+	return slices.ContainsFunc(vbs, func(vb *VolumeBinding) bool { return vb.RequireSchedule() || vb.RequireIOPS() })
+}
+
 func (vbs *VolumeBindings) UnmarshalJSON(b []byte) (err error) {
 	volumes := []string{}
 	if err = json.Unmarshal(b, &volumes); err != nil {
@@ -219,8 +223,8 @@ func (vbs VolumeBindings) ApplyPlan(plan VolumePlan) (res VolumeBindings) {
 
 func MergeVolumeBindings(vbs1 VolumeBindings, vbs2 ...VolumeBindings) (vbs VolumeBindings) {
 	vbMap := map[[3]string]*VolumeBinding{}
-	for _, vbs := range slices.Concat(vbs2, []VolumeBindings{vbs1}) {
-		for _, vb := range vbs {
+	for _, group := range slices.Concat(vbs2, []VolumeBindings{vbs1}) {
+		for _, vb := range group {
 			if binding, ok := vbMap[vb.GetMapKey()]; ok {
 				binding.SizeInBytes += vb.SizeInBytes
 				binding.ReadIOPS += vb.ReadIOPS
@@ -228,16 +232,7 @@ func MergeVolumeBindings(vbs1 VolumeBindings, vbs2 ...VolumeBindings) (vbs Volum
 				binding.ReadBPS += vb.ReadBPS
 				binding.WriteBPS += vb.WriteBPS
 			} else {
-				vbMap[vb.GetMapKey()] = &VolumeBinding{
-					Source:      vb.Source,
-					Destination: vb.Destination,
-					Flags:       vb.Flags,
-					SizeInBytes: vb.SizeInBytes,
-					ReadIOPS:    vb.ReadIOPS,
-					WriteIOPS:   vb.WriteIOPS,
-					ReadBPS:     vb.ReadBPS,
-					WriteBPS:    vb.WriteBPS,
-				}
+				vbMap[vb.GetMapKey()] = vb.DeepCopy()
 			}
 		}
 	}
@@ -270,7 +265,6 @@ func (v Volumes) Sub(v1 Volumes) {
 	}
 }
 
-// GetDevice returns the first device
 func (v Volumes) GetDevice() string {
 	for key := range v {
 		return key
@@ -278,7 +272,6 @@ func (v Volumes) GetDevice() string {
 	return ""
 }
 
-// GetSize returns the first size
 func (v Volumes) GetSize() int64 {
 	for _, size := range v {
 		return size

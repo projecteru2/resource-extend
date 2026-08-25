@@ -2,6 +2,7 @@ package schedule
 
 import (
 	"slices"
+	"strconv"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -211,6 +212,84 @@ func TestAffinityPlan2(t *testing.T) {
 	mergedRequest := types.MergeVolumeBindings(req, originRequest)
 	plan, _, _ := GetAffinityPlan(t.Context(), resourceInfo, mergedRequest, existing, originRequest)
 	assert.Equal(t, len(plan), 0)
+}
+
+func BenchmarkGetVolumePlans(b *testing.B) {
+	cases := map[string][]string{
+		"no-schedule": nil,
+		"normal": {
+			"AUTO:/dir0:rw:10GiB",
+			"AUTO:/dir1:rw:20GiB:100:100:1M:1M",
+			"/data0:/mnt:rw:0:100:100:1M:1M",
+		},
+		"mono": {
+			"AUTO:/dir0:rw:10GiB",
+			"AUTO:/dir1:rw:20GiB:100:100:1M:1M",
+			"AUTO:/dir2:mrw:100GiB",
+			"/data0:/mnt:rw:0:100:100:1M:1M",
+		},
+	}
+
+	for name, volumes := range cases {
+		b.Run(name, func(b *testing.B) {
+			resourceInfo := generateBenchResourceInfo()
+			requests, err := types.NewVolumeBindings(volumes)
+			if err != nil {
+				b.Fatalf("setup: %v", err)
+			}
+			if plans, _ := GetVolumePlans(b.Context(), resourceInfo, requests, maxDeployCount); len(plans) == 0 {
+				b.Fatal("setup: benchmark must schedule at least one plan")
+			}
+
+			b.ReportAllocs()
+			for b.Loop() {
+				GetVolumePlans(b.Context(), resourceInfo, requests, maxDeployCount)
+			}
+		})
+	}
+}
+
+func BenchmarkGetAffinityPlan(b *testing.B) {
+	resourceInfo := generateBenchResourceInfo()
+	originRequest, err := types.NewVolumeBindings([]string{
+		"AUTO:/dir0:rw:100GiB:100:100:1M:1M",
+		"AUTO:/dir1:mrw:100GiB",
+	})
+	if err != nil {
+		b.Fatalf("setup: %v", err)
+	}
+	existing := types.VolumePlan{}
+	if err := existing.UnmarshalJSON([]byte(`{"AUTO:/dir0:rw:100GiB:100:100:1M:1M": {"/data0": 107374182400}, "AUTO:/dir1:mrw:100GiB": {"/data1": 107374182400}}`)); err != nil {
+		b.Fatalf("setup: %v", err)
+	}
+	if _, _, err := GetAffinityPlan(b.Context(), resourceInfo, originRequest, existing, originRequest); err != nil {
+		b.Fatalf("setup: %v", err)
+	}
+
+	b.ReportAllocs()
+	for b.Loop() {
+		GetAffinityPlan(b.Context(), resourceInfo, originRequest, existing, originRequest)
+	}
+}
+
+func generateBenchResourceInfo() *types.NodeResourceInfo {
+	capacity := &types.NodeResource{Volumes: types.Volumes{}, Disks: types.Disks{}}
+	usage := &types.NodeResource{Volumes: types.Volumes{}, Disks: types.Disks{}}
+	for i := range 8 {
+		device := "/data" + strconv.Itoa(i)
+		capacity.Volumes[device] = tib
+		usage.Volumes[device] = int64(i) * gib
+		capacity.Disks = append(capacity.Disks, &types.Disk{
+			Device:    "/dev/vd" + strconv.Itoa(i),
+			Mounts:    []string{device},
+			ReadIOPS:  1000000,
+			WriteIOPS: 1000000,
+			ReadBPS:   1000 * gib,
+			WriteBPS:  1000 * gib,
+		})
+		usage.Disks = append(usage.Disks, &types.Disk{Device: "/dev/vd" + strconv.Itoa(i), Mounts: []string{device}})
+	}
+	return &types.NodeResourceInfo{Capacity: capacity, Usage: usage}
 }
 
 func generateResourceInfo() *types.NodeResourceInfo {
