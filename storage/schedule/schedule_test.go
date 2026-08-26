@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/projecteru2/resource-extend/storage/types"
 )
@@ -132,6 +133,34 @@ func TestGetVolumePlansSkipQuotaFreeDisks(t *testing.T) {
 	assert.NotEmpty(t, plans)
 	for _, diskPlan := range diskPlans {
 		assert.Empty(t, diskPlan)
+	}
+}
+
+func TestMonoRemainderIsDeterministic(t *testing.T) {
+	requests := generateVolumeBindings(t, []string{
+		"AUTO:/dir1:rwm:3GiB",
+		"AUTO:/dir2:rwm:3GiB",
+		"AUTO:/dir3:rwm:3GiB",
+	})
+	resourceInfo := &types.NodeResourceInfo{
+		Capacity: &types.NodeResource{Volumes: types.Volumes{"/data0": 10 * gib}},
+		Usage:    &types.NodeResource{Volumes: types.Volumes{}},
+	}
+
+	plans, _ := GetVolumePlans(t.Context(), resourceInfo, requests, maxDeployCount)
+	require.Len(t, plans, 1)
+	first := plans[0]
+
+	total := int64(0)
+	for _, volumeMap := range first {
+		total += volumeMap.GetSize()
+	}
+	assert.Equal(t, int64(10*gib), total)
+
+	for range 8 {
+		again, _ := GetVolumePlans(t.Context(), resourceInfo, requests, maxDeployCount)
+		require.Len(t, again, 1)
+		assert.Equal(t, first.String(), again[0].String())
 	}
 }
 

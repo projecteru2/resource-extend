@@ -147,11 +147,8 @@ func (h *host) getMonoPlan(monoRequests types.VolumeBindings, volume *volume) (t
 	}
 
 	if volume.size != 0 {
-		for _, volumeMap := range volumePlan {
-			volumeMap[volumeMap.GetDevice()] += volume.size
-			volume.size = 0
-			break
-		}
+		volumePlan[monoRequests[0]][volume.device] += volume.size
+		volume.size = 0
 	}
 
 	var diskPlan *types.Disk
