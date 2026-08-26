@@ -28,7 +28,7 @@ Four kinds of binding fall out of that:
 |---|---|---|
 | mount | source is a real path | not placed; only its IOPS quota is charged to the covering disk |
 | normal | `AUTO` with a size | placed on a used device large enough, smallest first |
-| monopoly | `AUTO` with flag `m` | takes an unused device to itself; several monopoly bindings share one device proportionally |
+| monopoly | `AUTO` with flag `m` and a positive size | takes an unused device to itself; several monopoly bindings share one device proportionally |
 | unlimited | `AUTO`, size 0 and no IOPS | placed on the device with the most free space, charged nothing |
 
 Request and limit are separate lists (`volumes-request` and `volumes`). They must describe the same
@@ -63,7 +63,7 @@ verbatim.
 2. Normal bindings are packed onto used devices with a min-heap, smallest device that still fits first, so
    large free devices stay whole.
 3. Monopoly bindings take unused devices; the requests on one device split it proportionally, with the
-   rounding remainder going to one of them.
+   rounding remainder going to the first of them.
 4. The plugin then converts unused devices into used ones for as long as monopoly capacity exceeds normal
    capacity, and takes the plans from the last pass. A capacity query weighs the node's full potential;
    `calculate-deploy` opens unused devices no further than the requested count needs, keeping the rest
