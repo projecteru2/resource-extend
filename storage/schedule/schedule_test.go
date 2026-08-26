@@ -135,6 +135,17 @@ func TestGetVolumePlansSkipQuotaFreeDisks(t *testing.T) {
 	}
 }
 
+func TestGetVolumePlansMixedCapAtMaxDeployCount(t *testing.T) {
+	requests := generateVolumeBindings(t, []string{
+		"AUTO:/dir1:rw:1GiB",
+		"AUTO:/dir2:rwm:1GiB",
+	})
+	resourceInfo := generateResourceInfo()
+	plans, diskPlans := GetVolumePlans(t.Context(), resourceInfo, requests, 1)
+	assert.Len(t, plans, 1)
+	assert.Len(t, diskPlans, 1)
+}
+
 func TestGetAffinityPlan(t *testing.T) {
 	requests := []types.VolumeBindings{
 		generateVolumeBindings(t, []string{

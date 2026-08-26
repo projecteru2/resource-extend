@@ -339,7 +339,7 @@ func (h *host) getVolumePlans(ctx context.Context, requests types.VolumeBindings
 		monoVolumePlans, monoDiskPlans := scratch.getMonoPlans(monoRequests)
 		normalCapacity = len(normalVolumePlans)
 		monoCapacity = len(monoVolumePlans)
-		bestCapacity = min(normalCapacity, monoCapacity)
+		bestCapacity = min(normalCapacity, monoCapacity, h.maxDeployCount)
 		bestVolumePlans = [2][]types.VolumePlan{normalVolumePlans, monoVolumePlans}
 		bestDiskPlans = [2][]types.Disks{normalDiskPlans, monoDiskPlans}
 	}
