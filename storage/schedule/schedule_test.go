@@ -121,6 +121,20 @@ func TestGetVolumePlansWithIOPS(t *testing.T) {
 	}
 }
 
+func TestGetVolumePlansSkipQuotaFreeDisks(t *testing.T) {
+	requests := generateVolumeBindings(t, []string{
+		"AUTO:/dir1:rw:100GiB",
+		"AUTO:/dir2:rwm:1GiB",
+		"/mnt/data:/dir3:rw",
+	})
+	resourceInfo := generateResourceInfo()
+	plans, diskPlans := GetVolumePlans(t.Context(), resourceInfo, requests, maxDeployCount)
+	assert.NotEmpty(t, plans)
+	for _, diskPlan := range diskPlans {
+		assert.Empty(t, diskPlan)
+	}
+}
+
 func TestGetAffinityPlan(t *testing.T) {
 	requests := []types.VolumeBindings{
 		generateVolumeBindings(t, []string{

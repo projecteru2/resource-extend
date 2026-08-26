@@ -114,8 +114,9 @@ func (h *host) getMonoPlan(monoRequests types.VolumeBindings, volume *volume) (t
 		return nil, nil, coretypes.ErrInsufficientResource
 	}
 
+	total := &types.VolumeBinding{SizeInBytes: totalSize, ReadIOPS: totalReadIOPS, WriteIOPS: totalWriteIOPS, ReadBPS: totalReadBPS, WriteBPS: totalWriteBPS}
 	disk := h.getDiskByPath(volume.device)
-	if !isDiskIOPSQuotaQualified(disk, &types.VolumeBinding{SizeInBytes: totalSize, ReadIOPS: totalReadIOPS, WriteIOPS: totalWriteIOPS, ReadBPS: totalReadBPS, WriteBPS: totalWriteBPS}) {
+	if !isDiskIOPSQuotaQualified(disk, total) {
 		return nil, nil, coretypes.ErrInsufficientResource
 	}
 
@@ -136,15 +137,18 @@ func (h *host) getMonoPlan(monoRequests types.VolumeBindings, volume *volume) (t
 		}
 	}
 
-	diskPlan := &types.Disk{
-		Device:    disk.Device,
-		Mounts:    disk.Mounts,
-		ReadIOPS:  totalReadIOPS,
-		WriteIOPS: totalWriteIOPS,
-		ReadBPS:   totalReadBPS,
-		WriteBPS:  totalWriteBPS,
+	var diskPlan *types.Disk
+	if total.RequireIOPS() {
+		diskPlan = &types.Disk{
+			Device:    disk.Device,
+			Mounts:    disk.Mounts,
+			ReadIOPS:  totalReadIOPS,
+			WriteIOPS: totalWriteIOPS,
+			ReadBPS:   totalReadBPS,
+			WriteBPS:  totalWriteBPS,
+		}
+		h.disks.Sub(types.Disks{diskPlan})
 	}
-	h.disks.Sub(types.Disks{diskPlan})
 
 	return volumePlan, diskPlan, nil
 }
@@ -166,8 +170,12 @@ func (h *host) getMonoPlans(monoRequests types.VolumeBindings) ([]types.VolumePl
 		if err != nil {
 			continue
 		}
+		monoDisks := types.Disks{}
+		if diskPlan != nil {
+			monoDisks = types.Disks{diskPlan}
+		}
 		volumePlans = append(volumePlans, volumePlan)
-		diskPlans = append(diskPlans, types.Disks{diskPlan})
+		diskPlans = append(diskPlans, monoDisks)
 	}
 
 	return volumePlans, diskPlans
@@ -199,14 +207,16 @@ func (h *host) getNormalPlan(normalRequests types.VolumeBindings) (types.VolumeP
 			decreaseIOPSQuota(disk, req)
 			volume.size -= req.SizeInBytes
 			volumePlan[req] = types.Volumes{volume.device: req.SizeInBytes}
-			diskPlan.Add(types.Disks{&types.Disk{
-				Device:    disk.Device,
-				Mounts:    disk.Mounts,
-				ReadIOPS:  req.ReadIOPS,
-				WriteIOPS: req.WriteIOPS,
-				ReadBPS:   req.ReadBPS,
-				WriteBPS:  req.WriteBPS,
-			}})
+			if req.RequireIOPS() {
+				diskPlan.Add(types.Disks{&types.Disk{
+					Device:    disk.Device,
+					Mounts:    disk.Mounts,
+					ReadIOPS:  req.ReadIOPS,
+					WriteIOPS: req.WriteIOPS,
+					ReadBPS:   req.ReadBPS,
+					WriteBPS:  req.WriteBPS,
+				}})
+			}
 			allocated = true
 			volumeToPush = append(volumeToPush, volume)
 			break
@@ -286,6 +296,9 @@ func (h *host) getUnlimitedPlans(normalPlans, monoPlans []types.VolumePlan, unli
 func (h *host) getMountDiskPlan(reqs types.VolumeBindings) (types.Disks, error) {
 	diskPlan := types.Disks{}
 	for _, req := range reqs {
+		if !req.RequireIOPS() {
+			continue
+		}
 		disk := h.getDiskByPath(req.Source)
 		if !isDiskIOPSQuotaQualified(disk, req) {
 			return nil, coretypes.ErrInsufficientResource
@@ -533,7 +546,9 @@ func (h *host) getAffinityPlan(ctx context.Context, requests types.VolumeBinding
 		}
 
 		volumePlan.Merge(monoVolumePlan)
-		diskPlan.Add(types.Disks{monoDiskPlan})
+		if monoDiskPlan != nil {
+			diskPlan.Add(types.Disks{monoDiskPlan})
+		}
 	}
 
 	if err := commonProcess(unlimitedRequests); err != nil {
