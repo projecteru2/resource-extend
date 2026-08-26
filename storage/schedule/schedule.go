@@ -347,18 +347,29 @@ func (h *host) getVolumePlans(ctx context.Context, requests types.VolumeBindings
 		bestDiskPlans = [2][]types.Disks{normalDiskPlans, monoDiskPlans}
 	}
 
-	getPlans()
-
-	for monoCapacity > normalCapacity {
-		p, _ := slices.BinarySearchFunc(h.unusedVolumes, minNormalRequestSize, func(v *volume, size int64) int { return cmp.Compare(v.size, size) })
-		if p == len(h.unusedVolumes) {
-			break
-		}
-		v := h.unusedVolumes[p]
-		h.unusedVolumes = slices.Delete(h.unusedVolumes, p, p+1)
-		h.usedVolumes = append(h.usedVolumes, v)
-
+	base := h.clone()
+	adequateStart, _ := slices.BinarySearchFunc(base.unusedVolumes, minNormalRequestSize, func(v *volume, size int64) int { return cmp.Compare(v.size, size) })
+	promote := func(m int) {
+		h.usedVolumes = slices.Concat(base.usedVolumes, base.unusedVolumes[adequateStart:adequateStart+m])
+		h.unusedVolumes = slices.Concat(base.unusedVolumes[:adequateStart], base.unusedVolumes[adequateStart+m:])
 		getPlans()
+	}
+
+	promote(0)
+
+	// promotion moves the capacities monotonically, so the sequential stop point is binary-searchable
+	if adequate := len(base.unusedVolumes) - adequateStart; adequate > 0 && monoCapacity > normalCapacity {
+		lo, hi := 1, adequate
+		for lo < hi {
+			mid := (lo + hi) / 2
+			promote(mid)
+			if monoCapacity > normalCapacity {
+				lo = mid + 1
+			} else {
+				hi = mid
+			}
+		}
+		promote(lo)
 	}
 
 	normalVolumePlans, monoVolumePlans := bestVolumePlans[0], bestVolumePlans[1]
