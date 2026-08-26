@@ -20,6 +20,8 @@ const (
 	tb = 1000 * 1000 * 1000 * 1000
 )
 
+var defaultVols = []string{"/data0:1T", "/data1:1T", "/data2:1T", "/data3:1T"}
+
 func TestName(t *testing.T) {
 	st := initStorage(t.Context(), t)
 	assert.Equal(t, name, st.Name())
@@ -45,10 +47,8 @@ func initStorage(ctx context.Context, t *testing.T) *Plugin {
 	return st
 }
 
-func generateNodes(
-	ctx context.Context, t *testing.T, st *Plugin, nums int, vols []string, index int,
-) []string {
-	reqs := generateNodeResourceRequests(t, nums, vols, index)
+func generateNodes(ctx context.Context, t *testing.T, st *Plugin, nums int, vols []string, index int) []string {
+	reqs := generateNodeResourceRequests(nums, vols, index)
 	info := &enginetypes.Info{StorageTotal: tb}
 	names := []string{}
 	for name, req := range reqs {
@@ -65,7 +65,7 @@ func generateNodes(
 	return names
 }
 
-func generateNodeResourceRequests(t *testing.T, nums int, vols []string, index int) map[string]plugintypes.NodeResourceRequest {
+func generateNodeResourceRequests(nums int, vols []string, index int) map[string]plugintypes.NodeResourceRequest {
 	infos := map[string]plugintypes.NodeResourceRequest{}
 	for i := index; i < index+nums; i++ {
 		info := plugintypes.NodeResourceRequest{

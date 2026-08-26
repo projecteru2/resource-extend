@@ -1,6 +1,7 @@
 package types
 
 import (
+	"cmp"
 	"encoding/json"
 	"fmt"
 	"maps"
@@ -25,10 +26,7 @@ type VolumeBinding struct {
 	WriteBPS    int64  `json:"write_bps"`
 }
 
-func NewVolumeBinding(volume string) (_ *VolumeBinding, err error) {
-	var src, dst, flags string
-	var size, readIOPS, writeIOPS, readBPS, writeBPS int64
-
+func NewVolumeBinding(volume string) (*VolumeBinding, error) {
 	parts := strings.Split(volume, ":")
 	if len(parts) > 8 || len(parts) < 2 {
 		return nil, errors.Wrap(ErrInvalidVolume, volume)
@@ -39,12 +37,9 @@ func NewVolumeBinding(volume string) (_ *VolumeBinding, err error) {
 	for len(parts) < 8 {
 		parts = append(parts, "0")
 	}
-	src = parts[0]
-	dst = parts[1]
-	flags = parts[2]
 
-	ptrs := []*int64{&size, &readIOPS, &writeIOPS, &readBPS, &writeBPS}
-	for i, ptr := range ptrs {
+	vb := &VolumeBinding{Source: parts[0], Destination: parts[1]}
+	for i, ptr := range []*int64{&vb.SizeInBytes, &vb.ReadIOPS, &vb.WriteIOPS, &vb.ReadBPS, &vb.WriteBPS} {
 		value, err := utils.ParseRAMInHuman(parts[i+3])
 		if err != nil {
 			return nil, err
@@ -52,23 +47,9 @@ func NewVolumeBinding(volume string) (_ *VolumeBinding, err error) {
 		*ptr = value
 	}
 
-	flagParts := strings.Split(flags, "")
+	flagParts := strings.Split(parts[2], "")
 	slices.Sort(flagParts)
-
-	vb := &VolumeBinding{
-		Source:      src,
-		Destination: dst,
-		Flags:       strings.Join(flagParts, ""),
-		SizeInBytes: size,
-		ReadIOPS:    readIOPS,
-		WriteIOPS:   writeIOPS,
-		ReadBPS:     readBPS,
-		WriteBPS:    writeBPS,
-	}
-
-	if vb.Flags == "" {
-		vb.Flags = "rw"
-	}
+	vb.Flags = cmp.Or(strings.Join(flagParts, ""), "rw")
 
 	return vb, vb.Validate()
 }
@@ -144,6 +125,17 @@ func (vb VolumeBinding) DeepCopy() *VolumeBinding {
 	}
 }
 
+func (vb VolumeBinding) DiskQuota(disk *Disk) *Disk {
+	return &Disk{
+		Device:    disk.Device,
+		Mounts:    disk.Mounts,
+		ReadIOPS:  vb.ReadIOPS,
+		WriteIOPS: vb.WriteIOPS,
+		ReadBPS:   vb.ReadBPS,
+		WriteBPS:  vb.WriteBPS,
+	}
+}
+
 type VolumeBindings []*VolumeBinding
 
 func NewVolumeBindings(volumes []string) (VolumeBindings, error) {
@@ -184,20 +176,11 @@ func (vbs *VolumeBindings) UnmarshalJSON(b []byte) (err error) {
 }
 
 func (vbs VolumeBindings) MarshalJSON() ([]byte, error) {
-	volumes := []string{}
-	for _, vb := range vbs {
-		volumes = append(volumes, vb.ToString(false))
-	}
-	bs, err := json.Marshal(volumes)
-	return bs, err
+	return json.Marshal(vbs.strings())
 }
 
 func (vbs VolumeBindings) String() string {
-	volumes := []string{}
-	for _, vb := range vbs {
-		volumes = append(volumes, vb.ToString(false))
-	}
-	return strings.Join(volumes, ",")
+	return strings.Join(vbs.strings(), ",")
 }
 
 func (vbs VolumeBindings) TotalSize() (total int64) {
@@ -219,6 +202,14 @@ func (vbs VolumeBindings) ApplyPlan(plan VolumePlan) (res VolumeBindings) {
 		res = append(res, newVb)
 	}
 	return res
+}
+
+func (vbs VolumeBindings) strings() []string {
+	volumes := make([]string, len(vbs))
+	for i, vb := range vbs {
+		volumes[i] = vb.ToString(false)
+	}
+	return volumes
 }
 
 func MergeVolumeBindings(vbs1 VolumeBindings, vbs2 ...VolumeBindings) (vbs VolumeBindings) {
@@ -313,8 +304,7 @@ func (p VolumePlan) MarshalJSON() ([]byte, error) {
 	for vb, vmap := range p {
 		plan[vb.ToString(false)] = vmap
 	}
-	bs, err := json.Marshal(plan)
-	return bs, err
+	return json.Marshal(plan)
 }
 
 func (p VolumePlan) String() string {

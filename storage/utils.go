@@ -40,7 +40,7 @@ func getDisksLimit(volumeLimit storagetypes.VolumeBindings, volumePlanLimit stor
 			continue
 		}
 		if disk := disks.GetDiskByPath(binding.Source); disk != nil {
-			disksLimit.Add(getDiskLimit(disk, binding))
+			disksLimit.Add(storagetypes.Disks{binding.DiskQuota(disk)})
 		}
 	}
 	for binding, volumeMap := range volumePlanLimit {
@@ -48,21 +48,10 @@ func getDisksLimit(volumeLimit storagetypes.VolumeBindings, volumePlanLimit stor
 			continue
 		}
 		if disk := disks.GetDiskByPath(volumeMap.GetDevice()); disk != nil {
-			disksLimit.Add(getDiskLimit(disk, binding))
+			disksLimit.Add(storagetypes.Disks{binding.DiskQuota(disk)})
 		}
 	}
 	return disksLimit
-}
-
-func getDiskLimit(disk *storagetypes.Disk, binding *storagetypes.VolumeBinding) storagetypes.Disks {
-	return storagetypes.Disks{{
-		Device:    disk.Device,
-		Mounts:    disk.Mounts,
-		ReadIOPS:  binding.ReadIOPS,
-		WriteIOPS: binding.WriteIOPS,
-		ReadBPS:   binding.ReadBPS,
-		WriteBPS:  binding.WriteBPS,
-	}}
 }
 
 func getDeltaWorkloadResourceArgs(originResource, targetWorkloadResource *storagetypes.WorkloadResource) *storagetypes.WorkloadResource {
@@ -82,7 +71,6 @@ func getDeltaWorkloadResourceArgs(originResource, targetWorkloadResource *storag
 			Source:      "fake-source",
 			Destination: "fake-destination",
 			Flags:       "fake-flags",
-			SizeInBytes: 0,
 		}: deltaVolumes},
 		StorageRequest: targetWorkloadResource.StorageRequest - originResource.StorageRequest,
 		DisksRequest:   deltaDisks,

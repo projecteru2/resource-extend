@@ -6,8 +6,8 @@ import (
 	"github.com/cockroachdb/errors"
 	"github.com/projecteru2/core/log"
 	plugintypes "github.com/projecteru2/core/resource/plugins/types"
-	resourcetypes "github.com/projecteru2/core/resource/types"
 	coretypes "github.com/projecteru2/core/types"
+	"github.com/projecteru2/core/utils"
 	"github.com/sanity-io/litter"
 
 	"github.com/projecteru2/resource-extend/storage/schedule"
@@ -36,18 +36,9 @@ func (p Plugin) CalculateDeploy(ctx context.Context, nodename string, deployCoun
 		return nil, err
 	}
 
-	epRaws := make([]resourcetypes.RawParams, 0, len(enginesParams))
-	for _, ep := range enginesParams {
-		epRaws = append(epRaws, ep.AsRawParams())
-	}
-	wrRaws := make([]resourcetypes.RawParams, 0, len(workloadsResource))
-	for _, wr := range workloadsResource {
-		wrRaws = append(wrRaws, wr.AsRawParams())
-	}
-
 	return &plugintypes.CalculateDeployResponse{
-		EnginesParams:     epRaws,
-		WorkloadsResource: wrRaws,
+		EnginesParams:     utils.Map(enginesParams, (*storagetypes.EngineParams).AsRawParams),
+		WorkloadsResource: utils.Map(workloadsResource, (*storagetypes.WorkloadResource).AsRawParams),
 	}, nil
 }
 
@@ -67,9 +58,6 @@ func (p Plugin) CalculateRealloc(ctx context.Context, nodename string, resource 
 		return nil, err
 	}
 
-	if req.VolumesRequest == nil {
-		req.VolumesRequest = req.VolumesLimit
-	}
 	needVolumeReschedule := req.VolumesRequest.NeedSchedule()
 
 	req = &storagetypes.WorkloadResourceRequest{

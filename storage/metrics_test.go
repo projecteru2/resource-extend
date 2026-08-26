@@ -21,7 +21,7 @@ func TestGetMetrics(t *testing.T) {
 	_, err := st.GetMetrics(ctx, "", "")
 	assert.Error(t, err)
 
-	nodes := generateNodes(ctx, t, st, 1, []string{"/data0:1T", "/data1:1T", "/data2:1T", "/data3:1T"}, 0)
+	nodes := generateNodes(ctx, t, st, 1, defaultVols, 0)
 	m, err := st.GetMetrics(ctx, "testpod", nodes[0])
 	assert.NoError(t, err)
 	assert.Len(t, *m, 2)

@@ -4,8 +4,6 @@ import (
 	"fmt"
 
 	resourcetypes "github.com/projecteru2/core/resource/types"
-
-	"github.com/projecteru2/resource-extend/internal/decode"
 )
 
 type NodeResource struct {
@@ -26,7 +24,7 @@ func (r *NodeResource) AsRawParams() resourcetypes.RawParams {
 }
 
 func (r *NodeResource) Parse(rawParams resourcetypes.RawParams) error {
-	return decode.Decode(rawParams, r)
+	return resourcetypes.Decode(rawParams, r)
 }
 
 func (r *NodeResource) Validate() error {
@@ -84,7 +82,7 @@ type NodeResourceRequest struct {
 }
 
 func (n *NodeResourceRequest) Parse(rawParams resourcetypes.RawParams) error {
-	if err := decode.Decode(rawParams, n); err != nil {
+	if err := resourcetypes.Decode(rawParams, n); err != nil {
 		return err
 	}
 	if n.ProdCountMap == nil {

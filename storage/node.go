@@ -6,7 +6,6 @@ import (
 	"math"
 	"slices"
 
-	"github.com/cockroachdb/errors"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
 	plugintypes "github.com/projecteru2/core/resource/plugins/types"
@@ -25,11 +24,7 @@ type workloadsUsage struct {
 }
 
 func (p Plugin) AddNode(ctx context.Context, nodename string, resource plugintypes.NodeResourceRequest, info *enginetypes.Info) (*plugintypes.AddNodeResponse, error) {
-	switch _, err := p.store.Get(ctx, nodename); {
-	case err == nil:
-		return nil, coretypes.ErrNodeExists
-	case !errors.IsAny(err, coretypes.ErrInvaildCount, coretypes.ErrNodeNotExists):
-		log.WithFunc("resource.storage.AddNode").WithField("node", nodename).Error(ctx, err, "failed to get resource info of node")
+	if err := p.store.CheckAbsent(ctx, nodename); err != nil {
 		return nil, err
 	}
 
@@ -126,8 +121,7 @@ func (p Plugin) SetNodeResourceCapacity(ctx context.Context, nodename string, re
 	if err != nil {
 		return nil, err
 	}
-	origin := nodeResourceInfo.Capacity
-	before := origin.DeepCopy()
+	before := nodeResourceInfo.Capacity.DeepCopy()
 
 	if req != nil {
 		if len(req.RMDisks) > 0 {
@@ -203,8 +197,7 @@ func (p Plugin) SetNodeResourceUsage(ctx context.Context, nodename string, resou
 	if err != nil {
 		return nil, err
 	}
-	origin := nodeResourceInfo.Usage
-	before := origin.DeepCopy()
+	before := nodeResourceInfo.Usage.DeepCopy()
 
 	nodeResourceInfo.Usage = p.calculateNodeResource(req, nodeResource, nodeResourceInfo.Usage, wrksResource, delta, incr)
 
@@ -294,14 +287,7 @@ func (p Plugin) getNodeResourceInfo(ctx context.Context, nodename string, worklo
 	for _, disk := range nodeResourceInfo.Usage.Disks {
 		d := usage.disks.GetDiskByDevice(disk.Device)
 		if d == nil {
-			d = &storagetypes.Disk{
-				Device:    disk.Device,
-				Mounts:    disk.Mounts,
-				ReadIOPS:  0,
-				WriteIOPS: 0,
-				ReadBPS:   0,
-				WriteBPS:  0,
-			}
+			d = &storagetypes.Disk{Device: disk.Device}
 		}
 		d.Mounts = disk.Mounts
 		computedDisk := d.String()
@@ -338,7 +324,7 @@ func (p Plugin) doGetNodeDeployCapacity(ctx context.Context, nodeResourceInfo *s
 	if len(req.VolumesRequest) > 0 || req.StorageRequest == 0 {
 		capacityInfo.Usage = utils.AdvancedDivide(float64(nodeResourceInfo.Usage.Volumes.Total()), float64(capVolumesTotal))
 		capacityInfo.Rate = utils.AdvancedDivide(float64(req.VolumesRequest.TotalSize()), float64(capVolumesTotal))
-	} else if req.StorageRequest > 0 {
+	} else {
 		capacityInfo.Usage = utils.AdvancedDivide(float64(nodeResourceInfo.Usage.Storage), float64(nodeResourceInfo.Capacity.Storage))
 		capacityInfo.Rate = utils.AdvancedDivide(float64(req.StorageRequest), float64(nodeResourceInfo.Capacity.Storage))
 	}
@@ -350,7 +336,7 @@ func (p Plugin) doGetNodeDeployCapacity(ctx context.Context, nodeResourceInfo *s
 func (p Plugin) calculateNodeResource(req *storagetypes.NodeResourceRequest, nodeResource, origin *storagetypes.NodeResource, workloadsResource []*storagetypes.WorkloadResource, delta, incr bool) *storagetypes.NodeResource {
 	var resp *storagetypes.NodeResource
 	if origin == nil || !delta { // no delta means node resource rewrite with whole new data
-		resp = (&storagetypes.NodeResource{}).DeepCopy()
+		resp = &storagetypes.NodeResource{Volumes: storagetypes.Volumes{}, Disks: storagetypes.Disks{}}
 		// a full rewrite must force incr, or the values are stored negative
 		incr = true
 	} else {

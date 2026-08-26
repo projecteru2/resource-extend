@@ -60,14 +60,7 @@ type Disks []*Disk
 func (d Disks) DeepCopy() Disks {
 	disks := make(Disks, len(d))
 	for i, disk := range d {
-		disks[i] = &Disk{
-			Device:    disk.Device,
-			Mounts:    disk.Mounts,
-			ReadIOPS:  disk.ReadIOPS,
-			WriteIOPS: disk.WriteIOPS,
-			ReadBPS:   disk.ReadBPS,
-			WriteBPS:  disk.WriteBPS,
-		}
+		disks[i] = disk.DeepCopy()
 	}
 	return disks
 }
@@ -129,20 +122,18 @@ func (d *Disks) Sub(d1 Disks) {
 				disk.Mounts = disk1.Mounts
 			}
 		} else {
-			toAppend = append(toAppend, disk1.DeepCopy())
+			toAppend = append(toAppend, &Disk{
+				Device:    disk1.Device,
+				Mounts:    disk1.Mounts,
+				ReadIOPS:  -disk1.ReadIOPS,
+				WriteIOPS: -disk1.WriteIOPS,
+				ReadBPS:   -disk1.ReadBPS,
+				WriteBPS:  -disk1.WriteBPS,
+			})
 		}
 	}
 
-	for _, disk := range toAppend {
-		*d = append(*d, &Disk{
-			Device:    disk.Device,
-			Mounts:    disk.Mounts,
-			ReadIOPS:  -disk.ReadIOPS,
-			WriteIOPS: -disk.WriteIOPS,
-			ReadBPS:   -disk.ReadBPS,
-			WriteBPS:  -disk.WriteBPS,
-		})
-	}
+	*d = append(*d, toAppend...)
 }
 
 // RemoveMounts remove mounts so Add / Sub won't affect the origin mounts

@@ -6,11 +6,10 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/cockroachdb/errors"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
 	plugintypes "github.com/projecteru2/core/resource/plugins/types"
-	coretypes "github.com/projecteru2/core/types"
+	"github.com/projecteru2/core/utils"
 	"github.com/sanity-io/litter"
 
 	gputypes "github.com/projecteru2/resource-extend/gpu/types"
@@ -19,11 +18,7 @@ import (
 const maxCapacity = 1000000
 
 func (p Plugin) AddNode(ctx context.Context, nodename string, resource plugintypes.NodeResourceRequest, info *enginetypes.Info) (*plugintypes.AddNodeResponse, error) {
-	switch _, err := p.store.Get(ctx, nodename); {
-	case err == nil:
-		return nil, coretypes.ErrNodeExists
-	case !errors.IsAny(err, coretypes.ErrInvaildCount, coretypes.ErrNodeNotExists):
-		log.WithFunc("resource.gpu.AddNode").WithField("node", nodename).Error(ctx, err, "failed to get resource info of node")
+	if err := p.store.CheckAbsent(ctx, nodename); err != nil {
 		return nil, err
 	}
 
@@ -99,7 +94,7 @@ func (p Plugin) GetNodesDeployCapacity(ctx context.Context, nodenames []string, 
 
 func (p Plugin) SetNodeResourceCapacity(ctx context.Context, nodename string, resource plugintypes.NodeResource, resourceRequest plugintypes.NodeResourceRequest, delta, incr bool) (*plugintypes.SetNodeResourceCapacityResponse, error) {
 	logger := log.WithFunc("resource.gpu.SetNodeResourceCapacity").WithField("node", nodename)
-	req, nodeResource, _, err := p.parseNodeResourceInfos(resourceRequest, resource, nil)
+	req, nodeResource, _, err := p.parseNodeResourceInfos(resource, resourceRequest, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -159,7 +154,7 @@ func (p Plugin) SetNodeResourceInfo(ctx context.Context, nodename string, capaci
 
 func (p Plugin) SetNodeResourceUsage(ctx context.Context, nodename string, resource plugintypes.NodeResource, resourceRequest plugintypes.NodeResourceRequest, workloadsResource []plugintypes.WorkloadResource, delta, incr bool) (*plugintypes.SetNodeResourceUsageResponse, error) {
 	logger := log.WithFunc("resource.gpu.SetNodeResourceUsage").WithField("node", nodename)
-	req, nodeResource, wrksResource, err := p.parseNodeResourceInfos(resourceRequest, resource, workloadsResource)
+	req, nodeResource, wrksResource, err := p.parseNodeResourceInfos(resource, resourceRequest, workloadsResource)
 	if err != nil {
 		return nil, err
 	}
@@ -194,11 +189,7 @@ func (p Plugin) GetMostIdleNode(ctx context.Context, nodenames []string) (*plugi
 	}
 
 	for nodename, nodeResourceInfo := range nodesResourceInfo {
-		var idle float64
-		if nodeResourceInfo.CapCount() > 0 {
-			idle = float64(nodeResourceInfo.UsageCount()) / float64(nodeResourceInfo.CapCount())
-		}
-
+		idle := utils.AdvancedDivide(float64(nodeResourceInfo.UsageCount()), float64(nodeResourceInfo.CapCount()))
 		if idle < minIdle {
 			mostIdleNode = nodename
 			minIdle = idle
@@ -286,10 +277,8 @@ func (p Plugin) doGetNodeDeployCapacity(nodeResourceInfo *gputypes.NodeResourceI
 			}
 		}
 	}
-	if nodeResourceInfo.CapCount() > 0 {
-		capacityInfo.Usage = float64(nodeResourceInfo.UsageCount()) / float64(nodeResourceInfo.CapCount())
-		capacityInfo.Rate = float64(req.Count()) / float64(nodeResourceInfo.CapCount())
-	}
+	capacityInfo.Usage = utils.AdvancedDivide(float64(nodeResourceInfo.UsageCount()), float64(nodeResourceInfo.CapCount()))
+	capacityInfo.Rate = utils.AdvancedDivide(float64(req.Count()), float64(nodeResourceInfo.CapCount()))
 	return capacityInfo
 }
 
@@ -327,7 +316,7 @@ func (p Plugin) calculateNodeResource(req *gputypes.NodeResourceRequest, nodeRes
 	return resp
 }
 
-func (p Plugin) parseNodeResourceInfos(resourceRequest plugintypes.NodeResourceRequest, resource plugintypes.NodeResource, workloadsResource []plugintypes.WorkloadResource) (*gputypes.NodeResourceRequest, *gputypes.NodeResource, []*gputypes.WorkloadResource, error) {
+func (p Plugin) parseNodeResourceInfos(resource plugintypes.NodeResource, resourceRequest plugintypes.NodeResourceRequest, workloadsResource []plugintypes.WorkloadResource) (*gputypes.NodeResourceRequest, *gputypes.NodeResource, []*gputypes.WorkloadResource, error) {
 	var req *gputypes.NodeResourceRequest
 	var nodeResource *gputypes.NodeResource
 	wrksResource := []*gputypes.WorkloadResource{}

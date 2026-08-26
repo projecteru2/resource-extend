@@ -4,8 +4,6 @@ import (
 	"maps"
 
 	resourcetypes "github.com/projecteru2/core/resource/types"
-
-	"github.com/projecteru2/resource-extend/internal/decode"
 )
 
 type WorkloadResource struct {
@@ -23,7 +21,7 @@ func (w *WorkloadResource) Validate() error {
 }
 
 func (w *WorkloadResource) Parse(rawParams resourcetypes.RawParams) error {
-	return decode.Decode(rawParams, w)
+	return resourcetypes.Decode(rawParams, w)
 }
 
 func (w *WorkloadResource) DeepCopy() *WorkloadResource {
@@ -56,7 +54,7 @@ func (w *WorkloadResourceRequest) Validate() error {
 }
 
 func (w *WorkloadResourceRequest) Parse(rawParams resourcetypes.RawParams) error {
-	return decode.Decode(rawParams, w)
+	return resourcetypes.Decode(rawParams, w)
 }
 
 func (w *WorkloadResourceRequest) MergeFromResource(r *WorkloadResource) {

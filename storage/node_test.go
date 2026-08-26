@@ -11,7 +11,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/projecteru2/resource-extend/internal/decode"
 	"github.com/projecteru2/resource-extend/storage/types"
 )
 
@@ -39,8 +38,7 @@ func TestAddNode(t *testing.T) {
 func TestRemoveNode(t *testing.T) {
 	ctx := t.Context()
 	st := initStorage(ctx, t)
-	vols := []string{"/data0:1T", "/data1:1T", "/data2:1T", "/data3:1T"}
-	nodes := generateNodes(ctx, t, st, 1, vols, 0)
+	nodes := generateNodes(ctx, t, st, 1, defaultVols, 0)
 	node := nodes[0]
 	nodeForDel := "test2"
 
@@ -53,8 +51,7 @@ func TestRemoveNode(t *testing.T) {
 func TestGetNodesDeployCapacity(t *testing.T) {
 	ctx := t.Context()
 	st := initStorage(ctx, t)
-	vols := []string{"/data0:1T", "/data1:1T", "/data2:1T", "/data3:1T"}
-	nodes := generateNodes(ctx, t, st, 10, vols, 0)
+	nodes := generateNodes(ctx, t, st, 10, defaultVols, 0)
 
 	_, err := st.GetNodesDeployCapacity(ctx, nodes, plugintypes.WorkloadResourceRequest{"storage": "-1"})
 	assert.ErrorIs(t, err, types.ErrInvalidStorage)
@@ -92,8 +89,7 @@ func TestGetNodesDeployCapacity(t *testing.T) {
 func TestSetNodeResourceCapacity(t *testing.T) {
 	ctx := t.Context()
 	st := initStorage(ctx, t)
-	vols := []string{"/data0:1T", "/data1:1T", "/data2:1T", "/data3:1T"}
-	nodes := generateNodes(ctx, t, st, 1, vols, 0)
+	nodes := generateNodes(ctx, t, st, 1, defaultVols, 0)
 	node := nodes[0]
 
 	r, err := st.GetNodeResourceInfo(ctx, node, nil)
@@ -138,8 +134,7 @@ func TestSetNodeResourceCapacity(t *testing.T) {
 func TestSetNodeResourceCapacityRollback(t *testing.T) {
 	ctx := t.Context()
 	st := initStorage(ctx, t)
-	vols := []string{"/data0:1T", "/data1:1T", "/data2:1T", "/data3:1T"}
-	node := generateNodes(ctx, t, st, 1, vols, 0)[0]
+	node := generateNodes(ctx, t, st, 1, defaultVols, 0)[0]
 	_, err := st.SetNodeResourceCapacity(ctx, node, nil, plugintypes.NodeResourceRequest{
 		"disks": []string{"/dev/vda:/,/data0:1000:1000:1G:1G"},
 	}, false, true)
@@ -155,7 +150,7 @@ func TestSetNodeResourceCapacityRollback(t *testing.T) {
 	require.NoError(t, err)
 
 	rollbackRequest := plugintypes.NodeResourceRequest{}
-	require.NoError(t, decode.Decode(updated.Before, &rollbackRequest))
+	require.NoError(t, resourcetypes.Decode(updated.Before, &rollbackRequest))
 	for range 2 {
 		_, err = st.SetNodeResourceCapacity(ctx, node, nil, rollbackRequest, false, false)
 		require.NoError(t, err)
@@ -169,8 +164,7 @@ func TestSetNodeResourceCapacityRollback(t *testing.T) {
 func TestGetNodeResourceInfo(t *testing.T) {
 	ctx := t.Context()
 	st := initStorage(ctx, t)
-	vols := []string{"/data0:1T", "/data1:1T", "/data2:1T", "/data3:1T"}
-	nodes := generateNodes(ctx, t, st, 1, vols, 0)
+	nodes := generateNodes(ctx, t, st, 1, defaultVols, 0)
 	node := nodes[0]
 
 	_, err := st.GetNodeResourceInfo(ctx, "abc", nil)
@@ -193,8 +187,7 @@ func TestGetNodeResourceInfo(t *testing.T) {
 func TestSetNodeResourceInfo(t *testing.T) {
 	ctx := t.Context()
 	st := initStorage(ctx, t)
-	vols := []string{"/data0:1T", "/data1:1T", "/data2:1T", "/data3:1T"}
-	nodes := generateNodes(ctx, t, st, 1, vols, 0)
+	nodes := generateNodes(ctx, t, st, 1, defaultVols, 0)
 	node := nodes[0]
 
 	capacity := plugintypes.NodeResource{
@@ -223,8 +216,7 @@ func TestSetNodeResourceInfo(t *testing.T) {
 func TestSetNodeResourceUsage(t *testing.T) {
 	ctx := t.Context()
 	st := initStorage(ctx, t)
-	vols := []string{"/data0:1T", "/data1:1T", "/data2:1T", "/data3:1T"}
-	nodes := generateNodes(ctx, t, st, 1, vols, 0)
+	nodes := generateNodes(ctx, t, st, 1, defaultVols, 0)
 	node := nodes[0]
 
 	r, err := st.GetNodeResourceInfo(ctx, node, nil)
@@ -282,8 +274,7 @@ func TestSetNodeResourceUsage(t *testing.T) {
 func TestGetMostIdleNode(t *testing.T) {
 	ctx := t.Context()
 	st := initStorage(ctx, t)
-	vols := []string{"/data0:1T", "/data1:1T", "/data2:1T", "/data3:1T"}
-	nodes := generateNodes(ctx, t, st, 1, vols, 0)
+	nodes := generateNodes(ctx, t, st, 1, defaultVols, 0)
 
 	d, err := st.GetMostIdleNode(ctx, nodes)
 	assert.NoError(t, err)
@@ -296,8 +287,7 @@ func TestGetMostIdleNode(t *testing.T) {
 func TestFixNodeResource(t *testing.T) {
 	ctx := t.Context()
 	st := initStorage(ctx, t)
-	vols := []string{"/data0:1T", "/data1:1T", "/data2:1T", "/data3:1T"}
-	nodes := generateNodes(ctx, t, st, 1, vols, 0)
+	nodes := generateNodes(ctx, t, st, 1, defaultVols, 0)
 	node := nodes[0]
 
 	_, err := st.FixNodeResource(ctx, "abc", nil)

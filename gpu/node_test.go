@@ -33,23 +33,19 @@ func TestAddNode(t *testing.T) {
 	_, err := cm.AddNode(ctx, node, req, info)
 	assert.Equal(t, err, coretypes.ErrNodeExists)
 
-	cv := &types.NodeResource{}
 	r, err := cm.AddNode(ctx, "xxx", nil, nil)
 	assert.Nil(t, err)
-	err = cv.Parse(r.Capacity)
-	assert.Nil(t, err)
+	cv := parseNodeResource(t, r.Capacity)
 	nr, err := cm.GetNodeResourceInfo(ctx, "xxx", nil)
 	assert.Nil(t, err)
-	err = cv.Parse(nr.Capacity)
-	assert.Nil(t, err)
+	cv = parseNodeResource(t, nr.Capacity)
 	assert.Equal(t, cv.Count(), 0)
 	assert.NotNil(t, cv.ProdCountMap)
 	cm.RemoveNode(ctx, "xxx")
 
 	r, err = cm.AddNode(ctx, nodeForAdd, req, info)
 	assert.Nil(t, err)
-	err = cv.Parse(r.Capacity)
-	assert.Nil(t, err)
+	cv = parseNodeResource(t, r.Capacity)
 	assert.Equal(t, cv.Count(), 2)
 
 	nRes := types.NodeResource{
@@ -69,8 +65,7 @@ func TestAddNode(t *testing.T) {
 
 	nr, err = cm.GetNodeResourceInfo(ctx, "xxx1", nil)
 	assert.Nil(t, err)
-	err = cv.Parse(nr.Capacity)
-	assert.Nil(t, err)
+	cv = parseNodeResource(t, nr.Capacity)
 	assert.Equal(t, cv.Count(), 2)
 	assert.NotNil(t, cv.ProdCountMap)
 	cm.RemoveNode(ctx, "xxx1")
@@ -226,11 +221,9 @@ func TestSetNodeResourceCapacity(t *testing.T) {
 	nodes := generateNodes(ctx, t, cm, 1, 0)
 	node := nodes[0]
 
-	capacity := &types.NodeResource{}
 	gr, err := cm.GetNodeResourceInfo(ctx, node, nil)
 	assert.Nil(t, err)
-	err = capacity.Parse(gr.Capacity)
-	assert.Nil(t, err)
+	capacity := parseNodeResource(t, gr.Capacity)
 	assert.Equal(t, capacity.Count(), 8)
 
 	nodeResource := plugintypes.NodeResource{
@@ -245,63 +238,54 @@ func TestSetNodeResourceCapacity(t *testing.T) {
 		},
 	}
 
-	parse := func(r *plugintypes.SetNodeResourceCapacityResponse) (*types.NodeResource, *types.NodeResource) {
-		before := &types.NodeResource{}
-		err := before.Parse(r.Before)
-		assert.Nil(t, err)
-		after := &types.NodeResource{}
-		err = after.Parse(r.After)
-		assert.Nil(t, err)
-		return before, after
-	}
 	r, err := cm.SetNodeResourceCapacity(ctx, node, nil, nil, true, true)
 	assert.Nil(t, err)
-	_, v := parse(r)
+	v := parseNodeResource(t, r.After)
 	assert.Equal(t, v.Count(), 8)
 
 	r, err = cm.SetNodeResourceCapacity(ctx, node, nil, nil, true, false)
 	assert.Nil(t, err)
-	_, v = parse(r)
+	v = parseNodeResource(t, r.After)
 	assert.Equal(t, v.Count(), 8)
 
 	r, err = cm.SetNodeResourceCapacity(ctx, node, nil, nodeResourceRequest, true, true)
 	assert.Nil(t, err)
-	_, v = parse(r)
+	v = parseNodeResource(t, r.After)
 	assert.Equal(t, v.Count(), 9)
 
 	r, err = cm.SetNodeResourceCapacity(ctx, node, nil, nodeResourceRequest, true, false)
 	assert.Nil(t, err)
-	_, v = parse(r)
+	v = parseNodeResource(t, r.After)
 	assert.Equal(t, v.Count(), 8)
 
 	r, err = cm.SetNodeResourceCapacity(ctx, node, nodeResource, nil, true, true)
 	assert.Nil(t, err)
-	_, v = parse(r)
+	v = parseNodeResource(t, r.After)
 	assert.Equal(t, v.Count(), 9)
 
 	r, err = cm.SetNodeResourceCapacity(ctx, node, nil, nodeResource, true, false)
 	assert.Nil(t, err)
-	_, v = parse(r)
+	v = parseNodeResource(t, r.After)
 	assert.Equal(t, v.Count(), 8)
 
 	r, err = cm.SetNodeResourceCapacity(ctx, node, nil, nodeResourceRequest, false, false)
 	assert.Nil(t, err)
-	_, v = parse(r)
+	v = parseNodeResource(t, r.After)
 	assert.Equal(t, v.Count(), 1)
 
 	r, err = cm.SetNodeResourceCapacity(ctx, node, nodeResource, nil, false, false)
 	assert.Nil(t, err)
-	_, v = parse(r)
+	v = parseNodeResource(t, r.After)
 	assert.Equal(t, v.Count(), 1)
 
 	r, err = cm.SetNodeResourceCapacity(ctx, node, nodeResource, nodeResourceRequest, false, false)
 	assert.Nil(t, err)
-	_, v = parse(r)
+	v = parseNodeResource(t, r.After)
 	assert.Equal(t, v.Count(), 1)
 
 	r, err = cm.SetNodeResourceCapacity(ctx, node, nil, nil, false, false)
 	assert.Nil(t, err)
-	_, v = parse(r)
+	v = parseNodeResource(t, r.After)
 	assert.Equal(t, v.Count(), 0)
 
 	nodeResourceRequest1 := plugintypes.NodeResourceRequest{
@@ -311,7 +295,7 @@ func TestSetNodeResourceCapacity(t *testing.T) {
 	}
 	r, err = cm.SetNodeResourceCapacity(ctx, node, nil, nodeResourceRequest1, true, true)
 	assert.Nil(t, err)
-	_, v = parse(r)
+	v = parseNodeResource(t, r.After)
 	assert.Equal(t, v.Count(), 1)
 
 	nodeResourceRequest1 = plugintypes.NodeResourceRequest{
@@ -321,7 +305,7 @@ func TestSetNodeResourceCapacity(t *testing.T) {
 	}
 	r, err = cm.SetNodeResourceCapacity(ctx, node, nil, nodeResourceRequest1, true, true)
 	assert.Nil(t, err)
-	_, v = parse(r)
+	v = parseNodeResource(t, r.After)
 	assert.Equal(t, v.Count(), 0)
 }
 
@@ -353,9 +337,7 @@ func TestGetAndFixNodeResourceInfo(t *testing.T) {
 	r, err = cm.FixNodeResource(ctx, node, workloadsResource)
 	assert.Nil(t, err)
 	assert.Len(t, r.Diffs, 3)
-	usage := &types.NodeResource{}
-	err = usage.Parse(r.Usage)
-	assert.Nil(t, err)
+	usage := parseNodeResource(t, r.Usage)
 	assert.Equal(t, usage.Count(), 2)
 }
 
@@ -365,13 +347,10 @@ func TestSetNodeResourceInfo(t *testing.T) {
 	nodes := generateNodes(ctx, t, cm, 1, 0)
 	node := nodes[0]
 
-	capacity, usage := &types.NodeResource{}, &types.NodeResource{}
 	r, err := cm.GetNodeResourceInfo(ctx, node, nil)
 	assert.Nil(t, err)
-	err = capacity.Parse(r.Capacity)
-	assert.Nil(t, err)
-	err = usage.Parse(r.Usage)
-	assert.Nil(t, err)
+	capacity := parseNodeResource(t, r.Capacity)
+	usage := parseNodeResource(t, r.Usage)
 	assert.Equal(t, 8, capacity.Count())
 	assert.Equal(t, 0, usage.Count())
 
@@ -391,11 +370,9 @@ func TestSetNodeResourceUsage(t *testing.T) {
 	nodes := generateNodes(ctx, t, cm, 1, 0)
 	node := nodes[0]
 
-	usage := &types.NodeResource{}
 	gr, err := cm.GetNodeResourceInfo(ctx, node, nil)
 	assert.Nil(t, err)
-	err = usage.Parse(gr.Usage)
-	assert.Nil(t, err)
+	usage := parseNodeResource(t, gr.Usage)
 	assert.Equal(t, usage.Count(), 0)
 
 	nodeResource := plugintypes.NodeResource{
@@ -418,98 +395,89 @@ func TestSetNodeResourceUsage(t *testing.T) {
 		},
 	}
 
-	parse := func(r *plugintypes.SetNodeResourceUsageResponse) (*types.NodeResource, *types.NodeResource) {
-		before := &types.NodeResource{}
-		err := before.Parse(r.Before)
-		assert.Nil(t, err)
-		after := &types.NodeResource{}
-		err = after.Parse(r.After)
-		assert.Nil(t, err)
-		return before, after
-	}
 	r, err := cm.SetNodeResourceUsage(ctx, node, nil, nil, nil, true, true)
 	assert.Nil(t, err)
-	_, v := parse(r)
+	v := parseNodeResource(t, r.After)
 	assert.Equal(t, v.Count(), 0)
 
 	r, err = cm.SetNodeResourceUsage(ctx, node, nil, nil, nil, true, false)
 	assert.Nil(t, err)
-	_, v = parse(r)
+	v = parseNodeResource(t, r.After)
 	assert.Equal(t, v.Count(), 0)
 
 	r, err = cm.SetNodeResourceUsage(ctx, node, nil, nodeResourceRequest, nil, true, true)
 	assert.Nil(t, err)
-	_, v = parse(r)
+	v = parseNodeResource(t, r.After)
 	assert.Equal(t, v.Count(), 1)
 
 	r, err = cm.SetNodeResourceUsage(ctx, node, nil, nodeResourceRequest, nil, true, false)
 	assert.Nil(t, err)
-	_, v = parse(r)
+	v = parseNodeResource(t, r.After)
 	assert.Equal(t, v.Count(), 0)
 
 	r, err = cm.SetNodeResourceUsage(ctx, node, nodeResource, nil, nil, true, true)
 	assert.Nil(t, err)
-	_, v = parse(r)
+	v = parseNodeResource(t, r.After)
 	assert.Equal(t, v.Count(), 1)
 
 	r, err = cm.SetNodeResourceUsage(ctx, node, nodeResource, nil, nil, true, false)
 	assert.Nil(t, err)
-	_, v = parse(r)
+	v = parseNodeResource(t, r.After)
 	assert.Equal(t, v.Count(), 0)
 
 	r, err = cm.SetNodeResourceUsage(ctx, node, nil, nil, workloadsResource, true, true)
 	assert.Nil(t, err)
-	_, v = parse(r)
+	v = parseNodeResource(t, r.After)
 	assert.Equal(t, v.Count(), 1)
 
 	r, err = cm.SetNodeResourceUsage(ctx, node, nil, nil, workloadsResource, true, false)
 	assert.Nil(t, err)
-	_, v = parse(r)
+	v = parseNodeResource(t, r.After)
 	assert.Equal(t, v.Count(), 0)
 
 	r, err = cm.SetNodeResourceUsage(ctx, node, nil, nil, nil, true, false)
 	assert.Nil(t, err)
-	_, v = parse(r)
+	v = parseNodeResource(t, r.After)
 	assert.Equal(t, v.Count(), 0)
 
 	r, err = cm.SetNodeResourceUsage(ctx, node, nil, nodeResourceRequest, nil, false, false)
 	assert.Nil(t, err)
-	_, v = parse(r)
+	v = parseNodeResource(t, r.After)
 	assert.Equal(t, v.Count(), 1)
 
 	r, err = cm.SetNodeResourceUsage(ctx, node, nodeResource, nil, nil, false, false)
 	assert.Nil(t, err)
-	_, v = parse(r)
+	v = parseNodeResource(t, r.After)
 	assert.Equal(t, v.Count(), 1)
 
 	r, err = cm.SetNodeResourceUsage(ctx, node, nil, nil, workloadsResource, false, false)
 	assert.Nil(t, err)
-	_, v = parse(r)
+	v = parseNodeResource(t, r.After)
 	assert.Equal(t, v.Count(), 1)
 
 	r, err = cm.SetNodeResourceUsage(ctx, node, nodeResource, nodeResourceRequest, nil, false, true)
 	assert.Nil(t, err)
-	_, v = parse(r)
+	v = parseNodeResource(t, r.After)
 	assert.Equal(t, v.Count(), 1)
 
 	r, err = cm.SetNodeResourceUsage(ctx, node, nil, nodeResourceRequest, workloadsResource, false, true)
 	assert.Nil(t, err)
-	_, v = parse(r)
+	v = parseNodeResource(t, r.After)
 	assert.Equal(t, v.Count(), 1)
 
 	r, err = cm.SetNodeResourceUsage(ctx, node, nodeResource, nil, workloadsResource, false, true)
 	assert.Nil(t, err)
-	_, v = parse(r)
+	v = parseNodeResource(t, r.After)
 	assert.Equal(t, v.Count(), 1)
 
 	r, err = cm.SetNodeResourceUsage(ctx, node, nodeResource, nodeResourceRequest, workloadsResource, false, true)
 	assert.Nil(t, err)
-	_, v = parse(r)
+	v = parseNodeResource(t, r.After)
 	assert.Equal(t, v.Count(), 1)
 
 	r, err = cm.SetNodeResourceUsage(ctx, node, nodeResource, nodeResourceRequest, workloadsResource, true, false)
 	assert.Nil(t, err)
-	_, v = parse(r)
+	v = parseNodeResource(t, r.After)
 	assert.Equal(t, v.Count(), 0)
 
 	nodeResourceRequest1 := plugintypes.NodeResourceRequest{
@@ -519,7 +487,7 @@ func TestSetNodeResourceUsage(t *testing.T) {
 	}
 	r, err = cm.SetNodeResourceUsage(ctx, node, nil, nodeResourceRequest1, nil, true, true)
 	assert.Nil(t, err)
-	_, v = parse(r)
+	v = parseNodeResource(t, r.After)
 	assert.Equal(t, v.Count(), 1)
 
 	nodeResourceRequest1 = plugintypes.NodeResourceRequest{
@@ -529,7 +497,7 @@ func TestSetNodeResourceUsage(t *testing.T) {
 	}
 	r, err = cm.SetNodeResourceUsage(ctx, node, nil, nodeResourceRequest1, nil, true, true)
 	assert.Nil(t, err)
-	_, v = parse(r)
+	v = parseNodeResource(t, r.After)
 	assert.Equal(t, v.Count(), 0)
 }
 
@@ -554,4 +522,10 @@ func TestGetMostIdleNode(t *testing.T) {
 	nodes = append(nodes, "node-x")
 	_, err = cm.GetMostIdleNode(ctx, nodes)
 	assert.Error(t, err)
+}
+
+func parseNodeResource(t *testing.T, raw resourcetypes.RawParams) *types.NodeResource {
+	res := &types.NodeResource{}
+	assert.NoError(t, res.Parse(raw))
+	return res
 }

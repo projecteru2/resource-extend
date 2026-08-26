@@ -40,7 +40,7 @@ func TestWorkloadResourceRequest(t *testing.T) {
 	}
 
 	req = &WorkloadResourceRequest{}
-	err = req.Parse(params)
+	assert.NoError(t, req.Parse(params))
 	assert.Error(t, req.Validate())
 
 	params = resourcetypes.RawParams{
@@ -51,7 +51,7 @@ func TestWorkloadResourceRequest(t *testing.T) {
 	}
 
 	req = &WorkloadResourceRequest{}
-	err = req.Parse(params)
+	assert.NoError(t, req.Parse(params))
 	assert.Error(t, req.Validate())
 }
 

@@ -39,11 +39,16 @@ func initGPU(ctx context.Context, t *testing.T) *Plugin {
 	return cm
 }
 
-func generateNodes(
-	ctx context.Context, t *testing.T, cm *Plugin,
-	nums, index int,
-) []string {
-	reqs := generateNodeResourceRequests(t, nums, index, "test", 8)
+func generateNodes(ctx context.Context, t *testing.T, cm *Plugin, nums, index int) []string {
+	return generatePrefixedNodes(ctx, t, cm, nums, index, "test", 8)
+}
+
+func generateEmptyNodes(ctx context.Context, t *testing.T, cm *Plugin, nums, index int) []string {
+	return generatePrefixedNodes(ctx, t, cm, nums, index, "test-empty", 0)
+}
+
+func generatePrefixedNodes(ctx context.Context, t *testing.T, cm *Plugin, nums, index int, namePrefix string, numGPUs int) []string {
+	reqs := generateNodeResourceRequests(nums, index, namePrefix, numGPUs)
 	info := &enginetypes.Info{NCPU: 8, MemTotal: 2048}
 	names := []string{}
 	for name, req := range reqs {
@@ -61,29 +66,7 @@ func generateNodes(
 	return names
 }
 
-func generateEmptyNodes(
-	ctx context.Context, t *testing.T, cm *Plugin,
-	nums, index int,
-) []string {
-	reqs := generateNodeResourceRequests(t, nums, index, "test-empty", 0)
-	info := &enginetypes.Info{NCPU: 8, MemTotal: 2048}
-	names := []string{}
-	for name, req := range reqs {
-		_, err := cm.AddNode(ctx, name, req, info)
-		assert.NoError(t, err)
-		names = append(names, name)
-	}
-	t.Cleanup(func() {
-		cleanupCtx := context.WithoutCancel(ctx)
-		for name := range reqs {
-			_, err := cm.RemoveNode(cleanupCtx, name)
-			assert.NoError(t, err)
-		}
-	})
-	return names
-}
-
-func generateNodeResourceRequests(t *testing.T, nums, index int, namePrefix string, numGPUs int) map[string]plugintypes.NodeResourceRequest {
+func generateNodeResourceRequests(nums, index int, namePrefix string, numGPUs int) map[string]plugintypes.NodeResourceRequest {
 	gpuMap := types.ProdCountMap{
 		"nvidia-3070": numGPUs / 2,
 		"nvidia-3090": numGPUs / 2,

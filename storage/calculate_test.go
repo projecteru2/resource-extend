@@ -17,8 +17,7 @@ import (
 func TestCalculateDeploy(t *testing.T) {
 	ctx := t.Context()
 	st := initStorage(ctx, t)
-	vols := []string{"/data0:1T", "/data1:1T", "/data2:1T", "/data3:1T"}
-	nodes := generateNodes(ctx, t, st, 1, vols, 0)
+	nodes := generateNodes(ctx, t, st, 1, defaultVols, 0)
 	node := nodes[0]
 
 	req := plugintypes.WorkloadResourceRequest{"storage": "-1"}
@@ -59,8 +58,7 @@ func TestCalculateDeploy(t *testing.T) {
 func TestCalculateRealloc(t *testing.T) {
 	ctx := t.Context()
 	st := initStorage(ctx, t)
-	vols := []string{"/data0:1T", "/data1:1T", "/data2:1T", "/data3:1T"}
-	nodes := generateNodes(ctx, t, st, 1, vols, 0)
+	nodes := generateNodes(ctx, t, st, 1, defaultVols, 0)
 	node := nodes[0]
 
 	bindings, err := types.NewVolumeBindings([]string{
@@ -70,12 +68,7 @@ func TestCalculateRealloc(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	b1, err := types.NewVolumeBinding("AUTO:/dir0:rw:100GiB")
-	assert.NoError(t, err)
-	b2, err := types.NewVolumeBinding("AUTO:/dir1:mrw:100GiB")
-	assert.NoError(t, err)
-	b3, err := types.NewVolumeBinding("AUTO:/dir2:rw:0")
-	assert.NoError(t, err)
+	b1, b2, b3 := bindings[0], bindings[1], bindings[2]
 
 	plan := types.VolumePlan{
 		b1: types.Volumes{"/data0": 107374182400},
@@ -88,8 +81,6 @@ func TestCalculateRealloc(t *testing.T) {
 		VolumesLimit:      bindings,
 		VolumePlanRequest: plan,
 		VolumePlanLimit:   plan,
-		StorageRequest:    0,
-		StorageLimit:      0,
 	}
 	resource := plugintypes.WorkloadResource(wrkResource.AsRawParams())
 
@@ -183,8 +174,7 @@ func TestCalculateRealloc(t *testing.T) {
 func TestCalculateRemap(t *testing.T) {
 	ctx := t.Context()
 	st := initStorage(ctx, t)
-	vols := []string{"/data0:1T", "/data1:1T", "/data2:1T", "/data3:1T"}
-	nodes := generateNodes(ctx, t, st, 1, vols, 0)
+	nodes := generateNodes(ctx, t, st, 1, defaultVols, 0)
 	node := nodes[0]
 	d, err := st.CalculateRemap(ctx, node, nil)
 	assert.NoError(t, err)

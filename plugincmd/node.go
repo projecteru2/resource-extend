@@ -2,7 +2,6 @@ package plugincmd
 
 import (
 	"context"
-	"encoding/json"
 
 	"github.com/cockroachdb/errors"
 	enginetypes "github.com/projecteru2/core/engine/types"
@@ -33,12 +32,8 @@ func addNode(ctx context.Context, p plugins.Plugin, in resourcetypes.RawParams) 
 		return nil, err
 	}
 	// enginetypes.Info carries []byte resources, so it only round-trips through JSON.
-	data, err := json.Marshal(in.RawParams("info"))
-	if err != nil {
-		return nil, err
-	}
 	info := &enginetypes.Info{}
-	if err := json.Unmarshal(data, info); err != nil {
+	if err := resourcetypes.Decode(in.RawParams("info"), info); err != nil {
 		return nil, err
 	}
 	return p.AddNode(ctx, node, in.RawParams("resource"), info)

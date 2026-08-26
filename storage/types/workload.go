@@ -3,13 +3,10 @@ package types
 import (
 	"cmp"
 	"slices"
-	"sync"
 
 	"github.com/cockroachdb/errors"
 	resourcetypes "github.com/projecteru2/core/resource/types"
 	"github.com/projecteru2/core/utils"
-
-	"github.com/projecteru2/resource-extend/internal/decode"
 )
 
 type WorkloadResource struct {
@@ -40,7 +37,7 @@ func (w *WorkloadResource) AsRawParams() resourcetypes.RawParams {
 }
 
 func (w *WorkloadResource) Parse(rawParams resourcetypes.RawParams) error {
-	return decode.Decode(rawParams, w)
+	return resourcetypes.Decode(rawParams, w)
 }
 
 type WorkloadResourceRequest struct {
@@ -49,7 +46,7 @@ type WorkloadResourceRequest struct {
 	StorageRequest int64          `json:"storage_request"`
 	StorageLimit   int64          `json:"storage_limit"`
 
-	once sync.Once
+	storageFolded bool
 }
 
 func (w *WorkloadResourceRequest) Validate() error {
@@ -84,18 +81,19 @@ func (w *WorkloadResourceRequest) Parse(rawParams resourcetypes.RawParams) (err 
 		w.StorageLimit = storage
 		w.StorageRequest = storage
 	}
+
+	if len(w.VolumesLimit) > 0 && len(w.VolumesRequest) == 0 {
+		w.VolumesRequest = w.VolumesLimit
+	}
 	return nil
 }
 
 // SkipAddStorage will skip adding volume size to storage request / limit (used in realloc)
 func (w *WorkloadResourceRequest) SkipAddStorage() {
-	w.once.Do(func() {})
+	w.storageFolded = true
 }
 
 func (w *WorkloadResourceRequest) validateVolumes() error {
-	if len(w.VolumesLimit) > 0 && len(w.VolumesRequest) == 0 {
-		w.VolumesRequest = w.VolumesLimit
-	}
 	if len(w.VolumesRequest) != len(w.VolumesLimit) {
 		return errors.Wrap(ErrInvalidVolume, "different length of request and limit")
 	}
@@ -141,10 +139,11 @@ func (w *WorkloadResourceRequest) validateStorage() error {
 		w.StorageLimit = w.StorageRequest // soft limit storage size
 	}
 
-	w.once.Do(func() {
+	if !w.storageFolded {
+		w.storageFolded = true
 		w.StorageRequest += w.VolumesRequest.TotalSize()
 		w.StorageLimit += w.VolumesLimit.TotalSize()
-	})
+	}
 	return nil
 }
 

@@ -8,8 +8,6 @@ import (
 	"github.com/cockroachdb/errors"
 	resourcetypes "github.com/projecteru2/core/resource/types"
 	"github.com/projecteru2/core/utils"
-
-	"github.com/projecteru2/resource-extend/internal/decode"
 )
 
 type NodeResource struct {
@@ -27,7 +25,7 @@ func (n *NodeResource) AsRawParams() resourcetypes.RawParams {
 }
 
 func (n *NodeResource) Parse(rawParams resourcetypes.RawParams) error {
-	return decode.Decode(rawParams, n)
+	return resourcetypes.Decode(rawParams, n)
 }
 
 func (n *NodeResource) DeepCopy() *NodeResource {
@@ -39,17 +37,13 @@ func (n *NodeResource) RemoveEmpty() {
 }
 
 func (n *NodeResource) Add(n1 *NodeResource) {
-	for k, v := range n1.Volumes {
-		n.Volumes[k] += v
-	}
+	n.Volumes.Add(n1.Volumes)
 	n.Storage += n1.Storage
 	n.Disks.Add(n1.Disks)
 }
 
 func (n *NodeResource) Sub(n1 *NodeResource) {
-	for k, v := range n1.Volumes {
-		n.Volumes[k] -= v
-	}
+	n.Volumes.Sub(n1.Volumes)
 	n.Storage -= n1.Storage
 	n.Disks.Sub(n1.Disks)
 }
@@ -64,19 +58,12 @@ func (n *NodeResourceInfo) Validate() error {
 		return ErrInvalidCapacity
 	}
 	if n.Usage == nil {
-		n.Usage = &NodeResource{Volumes: Volumes{}, Disks: Disks{}, Storage: 0}
+		n.Usage = &NodeResource{Volumes: Volumes{}, Disks: Disks{}}
 		for device := range n.Capacity.Volumes {
 			n.Usage.Volumes[device] = 0
 		}
 		for _, disk := range n.Capacity.Disks {
-			n.Usage.Disks = append(n.Usage.Disks, &Disk{
-				Device:    disk.Device,
-				Mounts:    disk.Mounts,
-				ReadIOPS:  0,
-				WriteIOPS: 0,
-				ReadBPS:   0,
-				WriteBPS:  0,
-			})
+			n.Usage.Disks = append(n.Usage.Disks, &Disk{Device: disk.Device, Mounts: disk.Mounts})
 		}
 	}
 
@@ -84,12 +71,6 @@ func (n *NodeResourceInfo) Validate() error {
 	slices.SortFunc(n.Capacity.Disks, compareDiskDevice)
 
 	return errors.Join(n.validateVolume(), n.validateStorage(), n.validateDisks())
-}
-
-func (n *NodeResourceInfo) GetAvailableResource() *NodeResource {
-	res := n.Capacity.DeepCopy()
-	res.Sub(n.Usage)
-	return res
 }
 
 func (n *NodeResourceInfo) validateDisks() error {
@@ -152,12 +133,12 @@ func (n *NodeResourceInfo) validateStorage() error {
 }
 
 type NodeResourceRequest struct {
-	Volumes Volumes  `json:"volumes"`
-	Storage int64    `json:"storage"`
-	Disks   Disks    `json:"disks"`
-	RMDisks []string `json:"rm_disks"`
+	Volumes Volumes
+	Storage int64
+	Disks   Disks
+	RMDisks []string
 
-	RawParams resourcetypes.RawParams `json:"-"`
+	RawParams resourcetypes.RawParams
 }
 
 func (n *NodeResourceRequest) Parse(rawParams resourcetypes.RawParams) (err error) {

@@ -97,6 +97,18 @@ func (s *Store[T]) Delete(ctx context.Context, nodename string) error {
 	return err
 }
 
+// CheckAbsent returns ErrNodeExists when the node has resource info stored.
+func (s *Store[T]) CheckAbsent(ctx context.Context, nodename string) error {
+	switch _, err := s.Get(ctx, nodename); {
+	case err == nil:
+		return coretypes.ErrNodeExists
+	case errors.IsAny(err, coretypes.ErrInvaildCount, coretypes.ErrNodeNotExists):
+		return nil
+	default:
+		return err
+	}
+}
+
 func (s *Store[T]) key(nodename string) string {
 	return fmt.Sprintf(s.keyFmt, nodename)
 }

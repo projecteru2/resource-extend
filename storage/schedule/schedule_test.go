@@ -166,26 +166,11 @@ func TestGetAffinityPlan(t *testing.T) {
 	}
 
 	for _, request := range requests {
-		resourceInfo := generateResourceInfo()
-		originRequest, existing := generateExistingVolumePlan(t)
-		for _, volumeMap := range existing {
-			resourceInfo.Usage.Volumes[volumeMap.GetDevice()] += volumeMap.GetSize()
-		}
-		mergedRequest := types.MergeVolumeBindings(request, originRequest)
-
-		plan, _, _ := GetAffinityPlan(t.Context(), resourceInfo, mergedRequest, existing, originRequest)
+		resourceInfo, mergedRequest, _, plan := runAffinityPlan(t, request)
 		validateVolumePlan(t, resourceInfo, mergedRequest, plan)
 	}
 
-	resourceInfo := generateResourceInfo()
-	originRequest, existing := generateExistingVolumePlan(t)
-	for _, volumeMap := range existing {
-		resourceInfo.Usage.Volumes[volumeMap.GetDevice()] += volumeMap.GetSize()
-	}
-	emptyRequest := types.VolumeBindings{}
-	mergedRequest := types.MergeVolumeBindings(emptyRequest, originRequest)
-
-	plan, _, _ := GetAffinityPlan(t.Context(), resourceInfo, mergedRequest, existing, originRequest)
+	_, _, existing, plan := runAffinityPlan(t, types.VolumeBindings{})
 	assert.Equal(t, existing.String(), plan.String())
 
 	invalidRequests := []types.VolumeBindings{
@@ -202,14 +187,7 @@ func TestGetAffinityPlan(t *testing.T) {
 	}
 
 	for _, request := range invalidRequests {
-		resourceInfo := generateResourceInfo()
-		originRequest, existing := generateExistingVolumePlan(t)
-		for _, volumeMap := range existing {
-			resourceInfo.Usage.Volumes[volumeMap.GetDevice()] += volumeMap.GetSize()
-		}
-		mergedRequest := types.MergeVolumeBindings(request, originRequest)
-
-		plan, _, _ := GetAffinityPlan(t.Context(), resourceInfo, mergedRequest, existing, originRequest)
+		_, _, _, plan := runAffinityPlan(t, request)
 		assert.Equal(t, len(plan), 0)
 	}
 }
@@ -325,12 +303,10 @@ func generateResourceInfo() *types.NodeResourceInfo {
 					WriteBPS:  gib,
 				},
 				{
-					Device:    "/dev/vdb",
-					Mounts:    []string{"/data1"},
-					ReadIOPS:  0,
-					WriteIOPS: 0,
-					ReadBPS:   gib,
-					WriteBPS:  gib,
+					Device:   "/dev/vdb",
+					Mounts:   []string{"/data1"},
+					ReadBPS:  gib,
+					WriteBPS: gib,
 				},
 			},
 		},
@@ -340,22 +316,8 @@ func generateResourceInfo() *types.NodeResourceInfo {
 				"/data1": 300 * gib,
 			},
 			Disks: []*types.Disk{
-				{
-					Device:    "/dev/vda",
-					Mounts:    []string{"/", "/data"},
-					ReadIOPS:  0,
-					WriteIOPS: 0,
-					ReadBPS:   0,
-					WriteBPS:  0,
-				},
-				{
-					Device:    "/dev/vdb",
-					Mounts:    []string{"/data1"},
-					ReadIOPS:  0,
-					WriteIOPS: 0,
-					ReadBPS:   0,
-					WriteBPS:  0,
-				},
+				{Device: "/dev/vda", Mounts: []string{"/", "/data"}},
+				{Device: "/dev/vdb", Mounts: []string{"/data1"}},
 			},
 		},
 	}
@@ -406,10 +368,7 @@ func validateVolumePlan(t *testing.T, resourceInfo *types.NodeResourceInfo, volu
 		assert.True(t, ok)
 		disk := resourceInfo.Usage.Disks.GetDiskByPath(volumeMap.GetDevice())
 		assert.NotNil(t, disk)
-		disk.ReadIOPS += binding.ReadIOPS
-		disk.WriteIOPS += binding.WriteIOPS
-		disk.ReadBPS += binding.ReadBPS
-		disk.WriteBPS += binding.WriteBPS
+		increaseIOPSQuota(disk, binding)
 
 		switch {
 		case binding.RequireScheduleMonopoly():
@@ -433,10 +392,7 @@ func allocIOPSQuotaForMountRequests(resourceInfo *types.NodeResourceInfo, volume
 			continue
 		}
 		disk := resourceInfo.Usage.Disks.GetDiskByPath(binding.Source)
-		disk.ReadIOPS += binding.ReadIOPS
-		disk.WriteIOPS += binding.WriteIOPS
-		disk.ReadBPS += binding.ReadBPS
-		disk.WriteBPS += binding.WriteBPS
+		increaseIOPSQuota(disk, binding)
 	}
 }
 
@@ -451,6 +407,17 @@ func validateVolumePlans(t *testing.T, resourceInfo *types.NodeResourceInfo, vol
 	}) {
 		noMorePlans(t, resourceInfo, volumePlans, volumeRequest)
 	}
+}
+
+func runAffinityPlan(t *testing.T, request types.VolumeBindings) (*types.NodeResourceInfo, types.VolumeBindings, types.VolumePlan, types.VolumePlan) {
+	resourceInfo := generateResourceInfo()
+	originRequest, existing := generateExistingVolumePlan(t)
+	for _, volumeMap := range existing {
+		resourceInfo.Usage.Volumes[volumeMap.GetDevice()] += volumeMap.GetSize()
+	}
+	mergedRequest := types.MergeVolumeBindings(request, originRequest)
+	plan, _, _ := GetAffinityPlan(t.Context(), resourceInfo, mergedRequest, existing, originRequest)
+	return resourceInfo, mergedRequest, existing, plan
 }
 
 func generateVolumeBindings(t *testing.T, str []string) types.VolumeBindings {

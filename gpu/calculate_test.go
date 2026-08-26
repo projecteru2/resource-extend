@@ -63,10 +63,10 @@ func TestCalculateDeploy(t *testing.T) {
 	}
 	d, err = cm.CalculateDeploy(ctx, node, 4, req)
 	assert.Nil(t, err)
-	eParams, wResources = parse(d)
+	eParams, _ = parse(d)
 	assert.Len(t, eParams, 4)
 
-	d, err = cm.CalculateDeploy(ctx, node, 5, req)
+	_, err = cm.CalculateDeploy(ctx, node, 5, req)
 	assert.Error(t, err)
 }
 
