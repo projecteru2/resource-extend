@@ -9,7 +9,9 @@ import (
 	resourcetypes "github.com/projecteru2/core/resource/types"
 	coretypes "github.com/projecteru2/core/types"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
+	"github.com/projecteru2/resource-extend/internal/decode"
 	"github.com/projecteru2/resource-extend/storage/types"
 )
 
@@ -122,6 +124,41 @@ func TestSetNodeResourceCapacity(t *testing.T) {
 	d, err = st.SetNodeResourceCapacity(ctx, node, nil, resourceRequest, false, false)
 	assert.NoError(t, err)
 	assert.Equal(t, int64(2*tib), parseNodeResource(t, d.After).Storage)
+
+	d, err = st.SetNodeResourceCapacity(ctx, node, nil, plugintypes.NodeResourceRequest{}, false, false)
+	assert.NoError(t, err)
+	assert.Equal(t, int64(2*tib), parseNodeResource(t, d.After).Storage)
+}
+
+func TestSetNodeResourceCapacityRollback(t *testing.T) {
+	ctx := t.Context()
+	st := initStorage(ctx, t)
+	vols := []string{"/data0:1T", "/data1:1T", "/data2:1T", "/data3:1T"}
+	node := generateNodes(ctx, t, st, 1, vols, 0)[0]
+	_, err := st.SetNodeResourceCapacity(ctx, node, nil, plugintypes.NodeResourceRequest{
+		"disks": []string{"/dev/vda:/,/data0:1000:1000:1G:1G"},
+	}, false, true)
+	require.NoError(t, err)
+
+	original, err := st.GetNodeResourceInfo(ctx, node, nil)
+	require.NoError(t, err)
+
+	updated, err := st.SetNodeResourceCapacity(ctx, node, nil, plugintypes.NodeResourceRequest{
+		"volumes": []string{"/data4:1T"},
+		"storage": "1T",
+	}, false, true)
+	require.NoError(t, err)
+
+	rollbackRequest := plugintypes.NodeResourceRequest{}
+	require.NoError(t, decode.Decode(updated.Before, &rollbackRequest))
+	for range 2 {
+		_, err = st.SetNodeResourceCapacity(ctx, node, nil, rollbackRequest, false, false)
+		require.NoError(t, err)
+	}
+
+	restored, err := st.GetNodeResourceInfo(ctx, node, nil)
+	require.NoError(t, err)
+	assert.Equal(t, parseNodeResource(t, original.Capacity), parseNodeResource(t, restored.Capacity))
 }
 
 func TestGetNodeResourceInfo(t *testing.T) {

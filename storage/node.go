@@ -107,6 +107,13 @@ func (p Plugin) GetNodesDeployCapacity(ctx context.Context, nodenames []string, 
 
 func (p Plugin) SetNodeResourceCapacity(ctx context.Context, nodename string, resource plugintypes.NodeResource, resourceRequest plugintypes.NodeResourceRequest, delta, incr bool) (*plugintypes.SetNodeResourceCapacityResponse, error) {
 	logger := log.WithFunc("resource.storage.SetNodeResourceCapacity").WithField("node", nodename)
+	if resource == nil && !delta && !incr &&
+		resourceRequest.IsSet("volumes") && resourceRequest.IsSet("disks") && resourceRequest.IsSet("storage") {
+		rollbackResource := &storagetypes.NodeResource{}
+		if err := rollbackResource.Parse(resourceRequest); err == nil {
+			resource, resourceRequest = resourceRequest, nil
+		}
+	}
 	req, nodeResource, _, err := p.parseNodeResourceInfos(resource, resourceRequest, nil)
 	if err != nil {
 		return nil, err
