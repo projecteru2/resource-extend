@@ -352,7 +352,7 @@ func BenchmarkDoGetNodeDeployCapacity(b *testing.B) {
 
 	b.ReportAllocs()
 	for b.Loop() {
-		plugin.doGetNodeDeployCapacity(b.Context(), nodeResourceInfo, req)
+		plugin.doGetNodeDeployCapacity(nodeResourceInfo, req)
 	}
 }
 

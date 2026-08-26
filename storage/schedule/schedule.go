@@ -262,13 +262,22 @@ func (h *host) getNormalPlans(normalRequests, mountRequests types.VolumeBindings
 	return volumePlans, diskPlans
 }
 
-// getMountOnlyPlans reproduces the enumeration loop in closed form: same plans, same final disk quotas, same trailing failed pass.
 func (h *host) getMountOnlyPlans(mountRequests types.VolumeBindings, bound int) ([]types.VolumePlan, []types.Disks) {
 	volumePlans := []types.VolumePlan{}
 	diskPlans := []types.Disks{}
+	capacity, prototype := h.applyMountPasses(mountRequests, bound)
+	for range capacity {
+		volumePlans = append(volumePlans, types.VolumePlan{})
+		diskPlans = append(diskPlans, prototype.DeepCopy())
+	}
+	return volumePlans, diskPlans
+}
+
+// applyMountPasses reproduces the enumeration loop in closed form: same count, same final disk quotas, same trailing failed pass.
+func (h *host) applyMountPasses(mountRequests types.VolumeBindings, bound int) (int, types.Disks) {
 	prototype, err := h.getMountDiskPlan(mountRequests)
 	if err != nil || bound < 1 {
-		return volumePlans, diskPlans
+		return 0, nil
 	}
 
 	quotas := map[*types.Disk]*types.VolumeBinding{}
@@ -300,12 +309,7 @@ func (h *host) getMountOnlyPlans(mountRequests types.VolumeBindings, bound int) 
 	if capacity < bound {
 		_, _ = h.getMountDiskPlan(mountRequests)
 	}
-
-	for range capacity {
-		volumePlans = append(volumePlans, types.VolumePlan{})
-		diskPlans = append(diskPlans, prototype.DeepCopy())
-	}
-	return volumePlans, diskPlans
+	return capacity, prototype
 }
 
 func (h *host) getUnlimitedPlans(normalPlans, monoPlans []types.VolumePlan, unlimitedRequests types.VolumeBindings, capacity int) ([]types.VolumePlan, error) {
@@ -471,6 +475,97 @@ func (h *host) getMonoAffinityPlan(ctx context.Context, monoRequests types.Volum
 	return h.getMonoPlan(monoRequests, volume)
 }
 
+func (h *host) getVolumeCapacity(requests types.VolumeBindings) int {
+	if !requests.NeedSchedule() {
+		return h.maxDeployCount
+	}
+
+	classes := classifyVolumeBindings(requests)
+	normalRequests, monoRequests := classes.normal, classes.mono
+	if len(normalRequests)+len(monoRequests)+len(classes.unlimited) > 0 && len(h.unusedVolumes)+len(h.usedVolumes) == 0 {
+		return 0
+	}
+
+	minNormalRequestSize := int64(math.MaxInt)
+	if len(normalRequests) > 0 {
+		minNormalRequestSize = normalRequests[0].SizeInBytes
+	}
+
+	normalBound := math.MaxInt
+	if len(monoRequests) == 0 {
+		normalBound = h.maxDeployCount
+	}
+
+	var normalCapacity, monoCapacity int
+	getCapacities := func() {
+		scratch := h.clone()
+		normalCapacity = scratch.countNormalPlans(normalRequests, classes.mount, normalBound)
+		monoCapacity = scratch.countMonoPlans(monoRequests)
+	}
+
+	base := h.clone()
+	adequateStart, _ := slices.BinarySearchFunc(base.unusedVolumes, minNormalRequestSize, func(v *volume, size int64) int { return cmp.Compare(v.size, size) })
+	promote := func(m int) {
+		h.usedVolumes = slices.Concat(base.usedVolumes, base.unusedVolumes[adequateStart:adequateStart+m])
+		h.unusedVolumes = slices.Concat(base.unusedVolumes[:adequateStart], base.unusedVolumes[adequateStart+m:])
+		getCapacities()
+	}
+
+	promote(0)
+
+	if adequate := len(base.unusedVolumes) - adequateStart; adequate > 0 && monoCapacity > normalCapacity {
+		lo, hi := 1, adequate
+		for lo < hi {
+			mid := (lo + hi) / 2
+			promote(mid)
+			if monoCapacity > normalCapacity {
+				lo = mid + 1
+			} else {
+				hi = mid
+			}
+		}
+		promote(lo)
+	}
+
+	return min(normalCapacity, monoCapacity, h.maxDeployCount)
+}
+
+func (h *host) countNormalPlans(normalRequests, mountRequests types.VolumeBindings, bound int) int {
+	needScheduleMountRequest := slices.ContainsFunc(mountRequests, func(req *types.VolumeBinding) bool { return req.RequireIOPS() })
+	if len(normalRequests) == 0 && !needScheduleMountRequest {
+		return h.maxDeployCount
+	}
+	if len(normalRequests) == 0 {
+		capacity, _ := h.applyMountPasses(mountRequests, bound)
+		return capacity
+	}
+
+	capacity := 0
+	for capacity < bound {
+		if _, _, err := h.getNormalPlan(normalRequests); err != nil {
+			break
+		}
+		if _, err := h.getMountDiskPlan(mountRequests); err != nil {
+			break
+		}
+		capacity++
+	}
+	return capacity
+}
+
+func (h *host) countMonoPlans(monoRequests types.VolumeBindings) int {
+	if len(monoRequests) == 0 {
+		return h.maxDeployCount
+	}
+	capacity := 0
+	for _, volume := range h.unusedVolumes {
+		if _, _, err := h.getMonoPlan(monoRequests, volume); err == nil {
+			capacity++
+		}
+	}
+	return capacity
+}
+
 func (h *host) getVolumeByDevice(device string) *volume {
 	hasDevice := func(v *volume) bool { return v.device == device }
 	if i := slices.IndexFunc(h.usedVolumes, hasDevice); i >= 0 {
@@ -606,6 +701,12 @@ func GetAffinityPlan(ctx context.Context, resourceInfo *types.NodeResourceInfo, 
 func GetVolumePlans(ctx context.Context, resourceInfo *types.NodeResourceInfo, volumeRequest types.VolumeBindings, maxDeployCount int) ([]types.VolumePlan, []types.Disks) {
 	h := newHost(resourceInfo, maxDeployCount)
 	return h.getVolumePlans(ctx, volumeRequest)
+}
+
+// GetVolumeCapacity counts the plans GetVolumePlans would return without materializing them.
+func GetVolumeCapacity(resourceInfo *types.NodeResourceInfo, volumeRequest types.VolumeBindings, maxDeployCount int) int {
+	h := newHost(resourceInfo, maxDeployCount)
+	return h.getVolumeCapacity(volumeRequest)
 }
 
 func quotaHeadroom(disk *types.Disk, sum *types.VolumeBinding) int {

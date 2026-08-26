@@ -31,6 +31,17 @@ func TestGetVolumePlansMatchesReference(t *testing.T) {
 	}
 }
 
+func TestGetVolumeCapacityMatchesPlans(t *testing.T) {
+	for seed := range int64(propertySeeds) {
+		rng := rand.New(rand.NewSource(seed + propertySeeds))
+		resourceInfo, requests := generateRandomFixture(t, rng)
+
+		plans, _ := GetVolumePlans(t.Context(), resourceInfo, requests, maxDeployCount)
+		capacity := GetVolumeCapacity(resourceInfo, requests, maxDeployCount)
+		require.Equal(t, len(plans), capacity, "seed %d requests %s", seed, requests.String())
+	}
+}
+
 func sampleIndexes(n int) []int {
 	if n <= 64 {
 		indexes := make([]int, n)
