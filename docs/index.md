@@ -38,5 +38,5 @@ storage/     the storage plugin   -> cmd/resource-storage
 
 Source and issue tracker: [github.com/projecteru2/resource-extend](https://github.com/projecteru2/resource-extend).
 Part of the [Eru](https://github.com/projecteru2) cluster stack, alongside
-[core](https://github.com/projecteru2/core), [agent](https://github.com/projecteru2/agent),
-[cli](https://github.com/projecteru2/cli) and [yavirt](https://github.com/projecteru2/yavirt).
+[core](https://github.com/projecteru2/core), [agent](https://github.com/projecteru2/agent) and
+[cli](https://github.com/projecteru2/cli).

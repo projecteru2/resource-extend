@@ -46,7 +46,6 @@ Each plugin reads its own yaml from the working directory core runs it in, or fr
 - [core](https://github.com/projecteru2/core) — the scheduler that calls these plugins
 - [agent](https://github.com/projecteru2/agent) — per-node agent
 - [cli](https://github.com/projecteru2/cli) — command line client, source of the node and workload resource options
-- [yavirt](https://github.com/projecteru2/yavirt) — virtual machine engine
 
 ## Development
 
