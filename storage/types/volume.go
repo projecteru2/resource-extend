@@ -152,8 +152,8 @@ func NewVolumeBindings(volumes []string) (VolumeBindings, error) {
 
 func (vbs VolumeBindings) Validate() error {
 	for _, vb := range vbs {
-		if vb.RequireScheduleMonopoly() && vb.RequireScheduleUnlimitedQuota() {
-			return errors.Wrapf(ErrInvalidVolume, "monopoly volume can't be unlimited: %+v", vb)
+		if vb.RequireScheduleMonopoly() && vb.SizeInBytes <= 0 {
+			return errors.Wrapf(ErrInvalidVolume, "monopoly volume requires a positive size: %+v", vb)
 		}
 		if !vb.ValidIOParameters() {
 			return errors.Wrapf(ErrInvalidParams, "%+v", vb)
