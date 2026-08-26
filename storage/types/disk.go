@@ -84,11 +84,11 @@ func (d Disks) GetDiskByDevice(device string) *Disk {
 func (d Disks) GetDiskByPath(path string) *Disk {
 	var best *Disk
 	bestDepth := -1
-	path = addSlash(path)
+	path = strings.TrimSuffix(path, "/")
 	for _, disk := range d {
 		for _, mount := range disk.Mounts {
-			mount = addSlash(mount)
-			if depth := strings.Count(mount, "/"); depth >= bestDepth && strings.HasPrefix(path, mount) {
+			base := strings.TrimSuffix(mount, "/")
+			if depth := strings.Count(base, "/") + 1; depth >= bestDepth && mountCovers(path, base) {
 				best, bestDepth = disk, depth
 			}
 		}
@@ -152,6 +152,11 @@ func (d *Disks) RemoveMounts() Disks {
 		disk.Mounts = nil
 	}
 	return disks
+}
+
+// mountCovers takes both arguments without a trailing slash.
+func mountCovers(path, mount string) bool {
+	return path == mount || (strings.HasPrefix(path, mount) && path[len(mount)] == '/')
 }
 
 func compareDiskDevice(d, d1 *Disk) int {

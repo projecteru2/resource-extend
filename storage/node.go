@@ -330,13 +330,14 @@ func (p Plugin) doGetNodeDeployCapacity(ctx context.Context, nodeResourceInfo *s
 		capacityInfo.Capacity = min(capacityInfo.Capacity, storageCapacity)
 	}
 
-	if nodeResourceInfo.Capacity.Volumes.Total() == 0 && nodeResourceInfo.Capacity.Storage == 0 {
+	capVolumesTotal := nodeResourceInfo.Capacity.Volumes.Total()
+	if capVolumesTotal == 0 && nodeResourceInfo.Capacity.Storage == 0 {
 		return capacityInfo
 	}
 
 	if len(req.VolumesRequest) > 0 || req.StorageRequest == 0 {
-		capacityInfo.Usage = utils.AdvancedDivide(float64(nodeResourceInfo.Usage.Volumes.Total()), float64(nodeResourceInfo.Capacity.Volumes.Total()))
-		capacityInfo.Rate = utils.AdvancedDivide(float64(req.VolumesRequest.TotalSize()), float64(nodeResourceInfo.Capacity.Volumes.Total()))
+		capacityInfo.Usage = utils.AdvancedDivide(float64(nodeResourceInfo.Usage.Volumes.Total()), float64(capVolumesTotal))
+		capacityInfo.Rate = utils.AdvancedDivide(float64(req.VolumesRequest.TotalSize()), float64(capVolumesTotal))
 	} else if req.StorageRequest > 0 {
 		capacityInfo.Usage = utils.AdvancedDivide(float64(nodeResourceInfo.Usage.Storage), float64(nodeResourceInfo.Capacity.Storage))
 		capacityInfo.Rate = utils.AdvancedDivide(float64(req.StorageRequest), float64(nodeResourceInfo.Capacity.Storage))
