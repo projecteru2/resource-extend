@@ -161,6 +161,38 @@ func TestSetNodeResourceCapacityRollback(t *testing.T) {
 	assert.Equal(t, parseNodeResource(t, original.Capacity), parseNodeResource(t, restored.Capacity))
 }
 
+func TestSetNodeResourceCapacityRMDisks(t *testing.T) {
+	ctx := t.Context()
+	st := initStorage(ctx, t)
+	node := generateNodes(ctx, t, st, 1, defaultVols, 0)[0]
+	_, err := st.SetNodeResourceCapacity(ctx, node, nil, plugintypes.NodeResourceRequest{
+		"disks": []string{"/dev/vda:/,/data0:1000:1000:1G:1G", "/dev/vdb:/data1:1000:1000:1G:1G"},
+	}, false, true)
+	require.NoError(t, err)
+
+	_, err = st.SetNodeResourceCapacity(ctx, node, nil, plugintypes.NodeResourceRequest{"rm-disks": "/dev/vda"}, true, true)
+	assert.ErrorIs(t, err, coretypes.ErrInvalidEngineArgs)
+
+	d, err := st.SetNodeResourceCapacity(ctx, node, nil, plugintypes.NodeResourceRequest{"rm-disks": "/dev/vdb"}, false, false)
+	require.NoError(t, err)
+	disks := parseNodeResource(t, d.After).Disks
+	require.Len(t, disks, 1)
+	assert.Equal(t, "/dev/vda", disks[0].Device)
+
+	r, err := st.GetNodeResourceInfo(ctx, node, nil)
+	require.NoError(t, err)
+	for _, disk := range parseNodeResource(t, r.Usage).Disks {
+		assert.NotEqual(t, "/dev/vdb", disk.Device)
+	}
+
+	_, err = st.SetNodeResourceUsage(ctx, node, plugintypes.NodeResource{
+		"disks": types.Disks{{Device: "/dev/vda", ReadIOPS: 10}},
+	}, nil, nil, true, true)
+	require.NoError(t, err)
+	_, err = st.SetNodeResourceCapacity(ctx, node, nil, plugintypes.NodeResourceRequest{"rm-disks": "/dev/vda"}, false, false)
+	assert.ErrorIs(t, err, types.ErrInvalidDisk)
+}
+
 func TestGetNodeResourceInfo(t *testing.T) {
 	ctx := t.Context()
 	st := initStorage(ctx, t)
