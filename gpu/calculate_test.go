@@ -1,7 +1,6 @@
 package gpu
 
 import (
-	"errors"
 	"testing"
 
 	plugintypes "github.com/projecteru2/core/resource/plugins/types"
@@ -24,7 +23,7 @@ func TestCalculateDeploy(t *testing.T) {
 		},
 	}
 	_, err := cm.CalculateDeploy(ctx, node, 100, req)
-	assert.True(t, errors.Is(err, types.ErrInvalidGPUMap))
+	assert.ErrorIs(t, err, types.ErrInvalidGPUMap)
 
 	req = plugintypes.WorkloadResourceRequest{
 		"prod_count_map": types.ProdCountMap{
@@ -33,7 +32,7 @@ func TestCalculateDeploy(t *testing.T) {
 		},
 	}
 	_, err = cm.CalculateDeploy(ctx, "xxx", 100, req)
-	assert.True(t, errors.Is(err, coretypes.ErrNodeNotExists))
+	assert.ErrorIs(t, err, coretypes.ErrNodeNotExists)
 
 	parse := func(d *plugintypes.CalculateDeployResponse) (eps []*types.EngineParams, wrs []*types.WorkloadResource) {
 		assert.NotNil(t, d.EnginesParams)
@@ -91,7 +90,7 @@ func TestCalculateRealloc(t *testing.T) {
 	req := plugintypes.WorkloadResourceRequest{}
 
 	_, err = cm.CalculateRealloc(ctx, "xxx", origin, req)
-	assert.True(t, errors.Is(err, coretypes.ErrNodeNotExists))
+	assert.ErrorIs(t, err, coretypes.ErrNodeNotExists)
 
 	parse := func(d *plugintypes.CalculateReallocResponse) (*types.EngineParams, *types.WorkloadResource, *types.WorkloadResource) {
 		assert.NotNil(t, d.EngineParams)

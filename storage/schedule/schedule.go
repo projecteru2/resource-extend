@@ -93,7 +93,6 @@ func newHost(resourceInfo *types.NodeResourceInfo, maxDeployCount int) *host {
 	return h
 }
 
-// getDiskByPath returns an empty disk when no mount covers path.
 func (h *host) getDiskByPath(path string) *types.Disk {
 	if disk := h.disks.GetDiskByPath(path); disk != nil {
 		return disk
@@ -321,10 +320,8 @@ func (h *host) getVolumePlans(ctx context.Context, requests types.VolumeBindings
 	}
 
 	minNormalRequestSize := int64(math.MaxInt)
-	for _, normalRequest := range normalRequests {
-		if normalRequest.SizeInBytes < minNormalRequestSize {
-			minNormalRequestSize = normalRequest.SizeInBytes
-		}
+	if len(normalRequests) > 0 {
+		minNormalRequestSize = normalRequests[0].SizeInBytes
 	}
 
 	var (
@@ -627,10 +624,7 @@ func classifyAffinityRequests(requests types.VolumeBindings, existing types.Volu
 }
 
 func compareVolume(v, v1 *volume) int {
-	if c := cmp.Compare(v.size, v1.size); c != 0 {
-		return c
-	}
-	return cmp.Compare(v.device, v1.device)
+	return cmp.Or(cmp.Compare(v.size, v1.size), cmp.Compare(v.device, v1.device))
 }
 
 func compareBindingSize(b, b1 *types.VolumeBinding) int {

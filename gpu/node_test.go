@@ -2,7 +2,6 @@ package gpu
 
 import (
 	"encoding/json"
-	"errors"
 	"testing"
 
 	enginetypes "github.com/projecteru2/core/engine/types"
@@ -116,7 +115,7 @@ func TestGetNodesDeployCapacity(t *testing.T) {
 	}
 
 	_, err = cm.GetNodesDeployCapacity(ctx, []string{"xxx"}, req)
-	assert.True(t, errors.Is(err, coretypes.ErrInvaildCount))
+	assert.ErrorIs(t, err, coretypes.ErrInvaildCount)
 
 	r, err = cm.GetNodesDeployCapacity(ctx, nodes, nil)
 	assert.Nil(t, err)
@@ -333,7 +332,7 @@ func TestGetAndFixNodeResourceInfo(t *testing.T) {
 	node := nodes[0]
 
 	_, err := cm.GetNodeResourceInfo(ctx, "xxx", nil)
-	assert.True(t, errors.Is(err, coretypes.ErrNodeNotExists))
+	assert.ErrorIs(t, err, coretypes.ErrNodeNotExists)
 
 	r, err := cm.GetNodeResourceInfo(ctx, node, nil)
 	assert.Nil(t, err)

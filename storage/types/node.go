@@ -7,7 +7,7 @@ import (
 
 	"github.com/cockroachdb/errors"
 	resourcetypes "github.com/projecteru2/core/resource/types"
-	coreutils "github.com/projecteru2/core/utils"
+	"github.com/projecteru2/core/utils"
 
 	"github.com/projecteru2/resource-extend/internal/decode"
 )
@@ -170,7 +170,7 @@ func (n *NodeResourceRequest) Parse(rawParams resourcetypes.RawParams) (err erro
 			return errors.Wrap(ErrInvalidVolume, "volume should have 2 parts")
 		}
 
-		size, parseErr := coreutils.ParseRAMInHuman(parts[1])
+		size, parseErr := utils.ParseRAMInHuman(parts[1])
 		if parseErr != nil {
 			return parseErr
 		}
@@ -178,7 +178,7 @@ func (n *NodeResourceRequest) Parse(rawParams resourcetypes.RawParams) (err erro
 	}
 	n.Volumes = volumes
 
-	if n.Storage, err = coreutils.ParseRAMInHuman(n.RawParams.String("storage")); err != nil {
+	if n.Storage, err = utils.ParseRAMInHuman(n.RawParams.String("storage")); err != nil {
 		return err
 	}
 

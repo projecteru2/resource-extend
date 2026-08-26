@@ -3,10 +3,10 @@ package storage
 import (
 	"fmt"
 
-	"github.com/projecteru2/resource-extend/storage/types"
+	storagetypes "github.com/projecteru2/resource-extend/storage/types"
 )
 
-func toIOPSOptions(disks types.Disks) map[string]string {
+func toIOPSOptions(disks storagetypes.Disks) map[string]string {
 	iopsOptions := make(map[string]string, len(disks))
 	for _, disk := range disks {
 		iopsOptions[disk.Device] = fmt.Sprintf("%d:%d:%d:%d", disk.ReadIOPS, disk.WriteIOPS, disk.ReadBPS, disk.WriteBPS)
@@ -14,10 +14,10 @@ func toIOPSOptions(disks types.Disks) map[string]string {
 	return iopsOptions
 }
 
-func getVolumePlanLimit(volumeRequest, volumeLimit types.VolumeBindings, volumePlan types.VolumePlan) types.VolumePlan {
-	volumePlanLimit := types.VolumePlan{}
+func getVolumePlanLimit(volumeRequest, volumeLimit storagetypes.VolumeBindings, volumePlan storagetypes.VolumePlan) storagetypes.VolumePlan {
+	volumePlanLimit := storagetypes.VolumePlan{}
 
-	volumeBindingToVolumes := map[[3]string]types.Volumes{}
+	volumeBindingToVolumes := map[[3]string]storagetypes.Volumes{}
 	for binding, volumeMap := range volumePlan {
 		volumeBindingToVolumes[binding.GetMapKey()] = volumeMap
 	}
@@ -27,20 +27,20 @@ func getVolumePlanLimit(volumeRequest, volumeLimit types.VolumeBindings, volumeP
 			continue
 		}
 		if volumeMap, ok := volumeBindingToVolumes[binding.GetMapKey()]; ok {
-			volumePlanLimit[binding] = types.Volumes{volumeMap.GetDevice(): volumeMap.GetSize() + binding.SizeInBytes - volumeRequest[index].SizeInBytes}
+			volumePlanLimit[binding] = storagetypes.Volumes{volumeMap.GetDevice(): volumeMap.GetSize() + binding.SizeInBytes - volumeRequest[index].SizeInBytes}
 		}
 	}
 	return volumePlanLimit
 }
 
-func getDisksLimit(volumeLimit types.VolumeBindings, volumePlanLimit types.VolumePlan, disks types.Disks) types.Disks {
-	disksLimit := types.Disks{}
+func getDisksLimit(volumeLimit storagetypes.VolumeBindings, volumePlanLimit storagetypes.VolumePlan, disks storagetypes.Disks) storagetypes.Disks {
+	disksLimit := storagetypes.Disks{}
 	for _, binding := range volumeLimit {
 		if !binding.RequireIOPS() || binding.RequireSchedule() {
 			continue
 		}
 		if disk := disks.GetDiskByPath(binding.Source); disk != nil {
-			disksLimit.Add(limitOf(disk, binding))
+			disksLimit.Add(getDiskLimit(disk, binding))
 		}
 	}
 	for binding, volumeMap := range volumePlanLimit {
@@ -48,14 +48,14 @@ func getDisksLimit(volumeLimit types.VolumeBindings, volumePlanLimit types.Volum
 			continue
 		}
 		if disk := disks.GetDiskByPath(volumeMap.GetDevice()); disk != nil {
-			disksLimit.Add(limitOf(disk, binding))
+			disksLimit.Add(getDiskLimit(disk, binding))
 		}
 	}
 	return disksLimit
 }
 
-func limitOf(disk *types.Disk, binding *types.VolumeBinding) types.Disks {
-	return types.Disks{{
+func getDiskLimit(disk *storagetypes.Disk, binding *storagetypes.VolumeBinding) storagetypes.Disks {
+	return storagetypes.Disks{{
 		Device:    disk.Device,
 		Mounts:    disk.Mounts,
 		ReadIOPS:  binding.ReadIOPS,
@@ -65,8 +65,8 @@ func limitOf(disk *types.Disk, binding *types.VolumeBinding) types.Disks {
 	}}
 }
 
-func getDeltaWorkloadResourceArgs(originResource, targetWorkloadResource *types.WorkloadResource) *types.WorkloadResource {
-	deltaVolumes := types.Volumes{}
+func getDeltaWorkloadResourceArgs(originResource, targetWorkloadResource *storagetypes.WorkloadResource) *storagetypes.WorkloadResource {
+	deltaVolumes := storagetypes.Volumes{}
 	for _, volumeMap := range targetWorkloadResource.VolumePlanRequest {
 		deltaVolumes.Add(volumeMap)
 	}
@@ -77,8 +77,8 @@ func getDeltaWorkloadResourceArgs(originResource, targetWorkloadResource *types.
 	deltaDisks := targetWorkloadResource.DisksRequest.DeepCopy()
 	deltaDisks.Sub(originResource.DisksRequest)
 
-	return &types.WorkloadResource{
-		VolumePlanRequest: types.VolumePlan{&types.VolumeBinding{
+	return &storagetypes.WorkloadResource{
+		VolumePlanRequest: storagetypes.VolumePlan{&storagetypes.VolumeBinding{
 			Source:      "fake-source",
 			Destination: "fake-destination",
 			Flags:       "fake-flags",

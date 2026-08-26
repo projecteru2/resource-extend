@@ -7,7 +7,7 @@ import (
 
 	"github.com/cockroachdb/errors"
 	resourcetypes "github.com/projecteru2/core/resource/types"
-	coreutils "github.com/projecteru2/core/utils"
+	"github.com/projecteru2/core/utils"
 
 	"github.com/projecteru2/resource-extend/internal/decode"
 )
@@ -70,14 +70,14 @@ func (w *WorkloadResourceRequest) Parse(rawParams resourcetypes.RawParams) (err 
 		return err
 	}
 
-	if w.StorageRequest, err = coreutils.ParseRAMInHuman(rawParams.String("storage-request")); err != nil {
+	if w.StorageRequest, err = utils.ParseRAMInHuman(rawParams.String("storage-request")); err != nil {
 		return err
 	}
-	if w.StorageLimit, err = coreutils.ParseRAMInHuman(rawParams.String("storage-limit")); err != nil {
+	if w.StorageLimit, err = utils.ParseRAMInHuman(rawParams.String("storage-limit")); err != nil {
 		return err
 	}
 	if rawParams.IsSet("storage") {
-		storage, err := coreutils.ParseRAMInHuman(rawParams.String("storage"))
+		storage, err := utils.ParseRAMInHuman(rawParams.String("storage"))
 		if err != nil {
 			return err
 		}
