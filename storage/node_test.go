@@ -68,6 +68,11 @@ func TestGetNodesDeployCapacity(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, 40, r.Total)
 
+	req = plugintypes.WorkloadResourceRequest{"storage": "1G"}
+	r, err = st.GetNodesDeployCapacity(ctx, nodes, req)
+	assert.NoError(t, err)
+	assert.Equal(t, 1000, r.Total)
+
 	req = plugintypes.WorkloadResourceRequest{
 		"volumes": []string{"AUTO:/dir0:rwm:1G"},
 	}

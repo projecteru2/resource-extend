@@ -327,9 +327,7 @@ func (p Plugin) doGetNodeDeployCapacity(ctx context.Context, nodeResourceInfo *s
 
 	if req.StorageRequest > 0 {
 		storageCapacity := int((nodeResourceInfo.Capacity.Storage - nodeResourceInfo.Usage.Storage) / req.StorageRequest)
-		if req.VolumesLimit == nil || (storageCapacity < capacityInfo.Capacity) {
-			capacityInfo.Capacity = storageCapacity
-		}
+		capacityInfo.Capacity = min(capacityInfo.Capacity, storageCapacity)
 	}
 
 	if nodeResourceInfo.Capacity.Volumes.Total() == 0 && nodeResourceInfo.Capacity.Storage == 0 {
