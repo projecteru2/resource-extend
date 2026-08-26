@@ -3,7 +3,6 @@ package types
 import (
 	"cmp"
 	"fmt"
-	"slices"
 	"strconv"
 	"strings"
 
@@ -83,26 +82,18 @@ func (d Disks) GetDiskByDevice(device string) *Disk {
 }
 
 func (d Disks) GetDiskByPath(path string) *Disk {
-	mountToDiskMap := map[string]*Disk{}
-	mounts := []string{}
+	var best *Disk
+	bestDepth := -1
+	path = addSlash(path)
 	for _, disk := range d {
 		for _, mount := range disk.Mounts {
 			mount = addSlash(mount)
-			mountToDiskMap[mount] = disk
-			mounts = append(mounts, mount)
+			if depth := strings.Count(mount, "/"); depth >= bestDepth && strings.HasPrefix(path, mount) {
+				best, bestDepth = disk, depth
+			}
 		}
 	}
-
-	slices.SortFunc(mounts, func(a, b string) int {
-		return cmp.Compare(strings.Count(b, "/"), strings.Count(a, "/"))
-	})
-
-	for _, mount := range mounts {
-		if hasPrefix(path, mount) {
-			return mountToDiskMap[mount]
-		}
-	}
-	return nil
+	return best
 }
 
 func (d *Disks) Add(d1 Disks) {
