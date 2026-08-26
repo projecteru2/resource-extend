@@ -65,7 +65,9 @@ verbatim.
 3. Monopoly bindings take unused devices; the requests on one device split it proportionally, with the
    rounding remainder going to one of them.
 4. The plugin then converts unused devices into used ones for as long as monopoly capacity exceeds normal
-   capacity, and takes the plans from the last pass.
+   capacity, and takes the plans from the last pass. A capacity query weighs the node's full potential;
+   `calculate-deploy` opens unused devices no further than the requested count needs, keeping the rest
+   whole for later monopoly requests.
 5. Unlimited bindings are pinned to whichever device has the most space left after the other two passes.
 6. Mount bindings never move; their IOPS quota is charged to the disk covering their source path.
 

@@ -153,12 +153,10 @@ func (p Plugin) doAlloc(ctx context.Context, resourceInfo *storagetypes.NodeReso
 			diskPlans = append(diskPlans, storagetypes.Disks{})
 		}
 	} else {
-		volumePlans, diskPlans = schedule.GetVolumePlans(ctx, resourceInfo, req.VolumesRequest, p.config.Scheduler.MaxDeployCount)
+		volumePlans, diskPlans = schedule.GetVolumePlans(ctx, resourceInfo, req.VolumesRequest, deployCount)
 		if len(volumePlans) < deployCount {
 			return nil, nil, errors.Wrapf(coretypes.ErrInsufficientResource, "not enough volume plan, need %+v, available %+v", deployCount, len(volumePlans))
 		}
-		volumePlans = volumePlans[:deployCount]
-		diskPlans = diskPlans[:deployCount]
 	}
 
 	for index, volumePlan := range volumePlans {
