@@ -51,7 +51,9 @@ eru-cli node add \
 
 When a node is added with no `storage` value, the plugin takes 80% of the engine's reported total storage.
 In absolute mode (`delta` false) any key left out of the request keeps its stored value rather than being
-reset to zero.
+reset to zero. An absolute request carrying `volumes`, `disks` and `storage` in their stored form — the
+`before` snapshot of an earlier call — is recognized as core rolling back and restores the capacity
+verbatim.
 
 ## How a plan is built
 

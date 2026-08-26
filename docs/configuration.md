@@ -33,12 +33,12 @@ scheduler:
 | `etcd.lock_prefix` | both | no | `__lock__/eru` | inherited from core's config struct, unused by the plugins |
 | `etcd.ca`, `etcd.cert`, `etcd.key` | both | no | — | TLS material for the etcd client |
 | `etcd.auth.username`, `etcd.auth.password` | both | no | — | etcd authentication |
-| `scheduler.max_deploy_count` | storage | no | `10000` | upper bound on the number of volume plans the scheduler enumerates for one node |
+| `scheduler.max_deploy_count` | storage | no | `10000` | upper bound on the deploy capacity one node reports and on the volume plans returned for it |
 
-`scheduler.max_deploy_count` bounds work, not placement. It is the deploy capacity a node reports when a
-request needs no volume placement, and otherwise the ceiling on the candidate plans
-`get-nodes-deploy-capacity` and `calculate-deploy` build per node. Raising it lets a node report a larger
-deploy capacity for small volume requests at the cost of a longer scheduling pass.
+`scheduler.max_deploy_count` bounds placement, not work. It is the deploy capacity a node reports when a
+request needs no volume placement, and otherwise the cap on the plans `get-nodes-deploy-capacity` and
+`calculate-deploy` return per node — the enumeration behind them runs until the node is full regardless of
+the cap. Raising it lets a node report a larger deploy capacity for small volume requests.
 
 The GPU plugin has no scheduler section — GPU capacity is an integer count per product, so a node's capacity
 is computed directly rather than enumerated.

@@ -53,6 +53,10 @@ define them; it implements them.
 - **`delta` / `incr`** — `delta` false means the value replaces what is stored, true means it is applied to
   it; `incr` picks addition or subtraction. When `delta` is false the plugins force addition, because the
   absolute value is what was asked for.
+- **`before`** — when a set fails in one plugin after succeeding in another, core rolls the survivors back
+  by replaying each plugin's `before` through `resource_request` with `delta` false. A plugin must accept
+  its own snapshot there: the GPU snapshot already has the request shape, and the storage plugin recognizes
+  a request carrying `volumes`, `disks` and `storage` in their stored form and restores it verbatim.
 
 ## Error handling
 
