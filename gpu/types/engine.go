@@ -17,7 +17,3 @@ func (ep *EngineParams) AsRawParams() resourcetypes.RawParams {
 func (ep *EngineParams) Parse(rawParams resourcetypes.RawParams) error {
 	return resourcetypes.Decode(rawParams, ep)
 }
-
-func (ep *EngineParams) Count() int {
-	return ep.ProdCountMap.TotalCount()
-}

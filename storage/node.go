@@ -3,7 +3,6 @@ package storage
 import (
 	"context"
 	"fmt"
-	"math"
 	"slices"
 
 	enginetypes "github.com/projecteru2/core/engine/types"
@@ -86,11 +85,7 @@ func (p Plugin) GetNodesDeployCapacity(ctx context.Context, nodenames []string, 
 		capacityInfo := p.doGetNodeDeployCapacity(ctx, nodeResourceInfo, req)
 		if capacityInfo.Capacity > 0 {
 			nodesDeployCapacityMap[nodename] = capacityInfo
-			if total == math.MaxInt || capacityInfo.Capacity == math.MaxInt {
-				total = math.MaxInt
-			} else {
-				total += capacityInfo.Capacity
-			}
+			total += capacityInfo.Capacity
 		}
 	}
 
@@ -317,10 +312,6 @@ func (p Plugin) doGetNodeDeployCapacity(ctx context.Context, nodeResourceInfo *s
 	}
 
 	capVolumesTotal := nodeResourceInfo.Capacity.Volumes.Total()
-	if capVolumesTotal == 0 && nodeResourceInfo.Capacity.Storage == 0 {
-		return capacityInfo
-	}
-
 	if len(req.VolumesRequest) > 0 || req.StorageRequest == 0 {
 		capacityInfo.Usage = utils.AdvancedDivide(float64(nodeResourceInfo.Usage.Volumes.Total()), float64(capVolumesTotal))
 		capacityInfo.Rate = utils.AdvancedDivide(float64(req.VolumesRequest.TotalSize()), float64(capVolumesTotal))

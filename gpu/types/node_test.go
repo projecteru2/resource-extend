@@ -61,7 +61,7 @@ func TestJsonLoadNodeReqResp(t *testing.T) {
 	req := &NodeResourceRequest{}
 	err = req.Parse(obj)
 	assert.Nil(t, err)
-	assert.Equal(t, req.Count(), 6)
+	assert.Equal(t, req.ProdCountMap.TotalCount(), 6)
 
 	res := &NodeResource{}
 	err = res.Parse(obj)

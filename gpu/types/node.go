@@ -95,14 +95,7 @@ func (n *NodeResourceRequest) Validate() error {
 	return n.ProdCountMap.Validate()
 }
 
-func (n *NodeResourceRequest) Count() int {
-	return n.ProdCountMap.TotalCount()
-}
-
 func (n *NodeResourceRequest) LoadFromOrigin(nodeResource *NodeResource, resourceRequest resourcetypes.RawParams) {
-	if n == nil {
-		return
-	}
 	if !resourceRequest.IsSet(prodCountMapKey) {
 		n.ProdCountMap = nodeResource.ProdCountMap
 	}

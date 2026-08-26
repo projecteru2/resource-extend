@@ -111,7 +111,7 @@ func TestCalculateRealloc(t *testing.T) {
 	d, err := cm.CalculateRealloc(ctx, node, nil, nil)
 	assert.Nil(t, err)
 	eParams, wResource, dResource := parse(d)
-	assert.Equal(t, eParams.Count(), 0)
+	assert.Equal(t, eParams.ProdCountMap.TotalCount(), 0)
 	assert.Equal(t, wResource.Count(), 0)
 	assert.Equal(t, dResource.Count(), 0)
 	origin = plugintypes.WorkloadResource{
@@ -123,7 +123,7 @@ func TestCalculateRealloc(t *testing.T) {
 	assert.Nil(t, err)
 	eParams, wResource, dResource = parse(d)
 
-	assert.Equal(t, eParams.Count(), 1)
+	assert.Equal(t, eParams.ProdCountMap.TotalCount(), 1)
 	count, ok := eParams.ProdCountMap["nvidia-3090"]
 	assert.True(t, ok)
 	assert.Equal(t, count, 1)
@@ -148,7 +148,7 @@ func TestCalculateRealloc(t *testing.T) {
 	d, err = cm.CalculateRealloc(ctx, node, origin, req)
 	assert.Nil(t, err)
 	eParams, wResource, dResource = parse(d)
-	assert.Equal(t, eParams.Count(), 3)
+	assert.Equal(t, eParams.ProdCountMap.TotalCount(), 3)
 	assert.Equal(t, wResource.Count(), 3)
 	assert.Equal(t, dResource.Count(), 2)
 
@@ -175,7 +175,7 @@ func TestCalculateRealloc(t *testing.T) {
 	assert.Nil(t, err)
 	eParams, wResource, dResource = parse(d)
 
-	assert.Equal(t, eParams.Count(), 3)
+	assert.Equal(t, eParams.ProdCountMap.TotalCount(), 3)
 	count, ok = eParams.ProdCountMap["nvidia-3070"]
 	assert.True(t, ok)
 	assert.Equal(t, count, 1)
@@ -215,7 +215,7 @@ func TestCalculateRealloc(t *testing.T) {
 	assert.Nil(t, err)
 	eParams, wResource, dResource = parse(d)
 
-	assert.Equal(t, eParams.Count(), 1)
+	assert.Equal(t, eParams.ProdCountMap.TotalCount(), 1)
 	assert.Equal(t, wResource.Count(), 1)
 	count, ok = wResource.ProdCountMap["nvidia-3070"]
 	assert.True(t, ok)
@@ -244,7 +244,7 @@ func TestCalculateRealloc(t *testing.T) {
 	assert.Nil(t, err)
 	eParams, wResource, dResource = parse(d)
 
-	assert.Equal(t, eParams.Count(), 1)
+	assert.Equal(t, eParams.ProdCountMap.TotalCount(), 1)
 	assert.Equal(t, wResource.Count(), 1)
 	count, ok = wResource.ProdCountMap["nvidia-3070"]
 	assert.True(t, ok)

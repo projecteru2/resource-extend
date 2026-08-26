@@ -183,9 +183,6 @@ func (n *NodeResourceRequest) Parse(rawParams resourcetypes.RawParams) (err erro
 
 // SkipEmpty used for setting node resource capacity in absolute mode
 func (n *NodeResourceRequest) SkipEmpty(nodeResource *NodeResource) {
-	if n == nil {
-		return
-	}
 	if !n.RawParams.IsSet("volumes") {
 		n.Volumes = nodeResource.Volumes
 	}

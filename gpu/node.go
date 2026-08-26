@@ -272,7 +272,6 @@ func (p Plugin) doGetNodeDeployCapacity(nodeResourceInfo *gputypes.NodeResourceI
 			count := availableResource.ProdCountMap[reqProd]
 			capacityInfo.Capacity = min(capacityInfo.Capacity, count/reqCount)
 			if capacityInfo.Capacity <= 0 {
-				capacityInfo.Capacity = 0
 				break
 			}
 		}
