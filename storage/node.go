@@ -82,7 +82,7 @@ func (p Plugin) GetNodesDeployCapacity(ctx context.Context, nodenames []string, 
 	nodesDeployCapacityMap := map[string]*plugintypes.NodeDeployCapacity{}
 	total := 0
 	for nodename, nodeResourceInfo := range nodesResourceInfos {
-		capacityInfo := p.doGetNodeDeployCapacity(ctx, nodeResourceInfo, req)
+		capacityInfo := p.doGetNodeDeployCapacity(nodeResourceInfo, req)
 		if capacityInfo.Capacity > 0 {
 			nodesDeployCapacityMap[nodename] = capacityInfo
 			total += capacityInfo.Capacity
@@ -295,15 +295,14 @@ func (p Plugin) getNodeResourceInfo(ctx context.Context, nodename string, worklo
 	return nodeResourceInfo, usage, diffs, nil
 }
 
-func (p Plugin) doGetNodeDeployCapacity(ctx context.Context, nodeResourceInfo *storagetypes.NodeResourceInfo, req *storagetypes.WorkloadResourceRequest) *plugintypes.NodeDeployCapacity {
+func (p Plugin) doGetNodeDeployCapacity(nodeResourceInfo *storagetypes.NodeResourceInfo, req *storagetypes.WorkloadResourceRequest) *plugintypes.NodeDeployCapacity {
 	capacityInfo := &plugintypes.NodeDeployCapacity{
 		Weight: 1,
 	}
 
 	capacityInfo.Capacity = p.config.Scheduler.MaxDeployCount
 	if req.VolumesRequest.NeedSchedule() {
-		volumePlans, _ := schedule.GetVolumePlans(ctx, nodeResourceInfo, req.VolumesRequest, p.config.Scheduler.MaxDeployCount)
-		capacityInfo.Capacity = len(volumePlans)
+		capacityInfo.Capacity = schedule.GetVolumeCapacity(nodeResourceInfo, req.VolumesRequest, p.config.Scheduler.MaxDeployCount)
 	}
 
 	if req.StorageRequest > 0 {

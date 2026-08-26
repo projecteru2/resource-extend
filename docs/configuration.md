@@ -35,10 +35,10 @@ scheduler:
 | `etcd.auth.username`, `etcd.auth.password` | both | no | — | etcd authentication |
 | `scheduler.max_deploy_count` | storage | no | `10000` | upper bound on the deploy capacity one node reports and on the volume plans returned for it |
 
-`scheduler.max_deploy_count` bounds placement, not work. It is the deploy capacity a node reports when a
-request needs no volume placement, and otherwise the cap on the plans `get-nodes-deploy-capacity` and
-`calculate-deploy` return per node — the enumeration behind them runs until the node is full regardless of
-the cap. Raising it lets a node report a larger deploy capacity for small volume requests.
+`scheduler.max_deploy_count` caps the deploy capacity one node reports: outright when a request needs no
+volume placement, and as the bound on the capacity count `get-nodes-deploy-capacity` computes otherwise.
+`calculate-deploy` plans only the count core asks for. Raising the cap lets a node report a larger deploy
+capacity for small volume requests.
 
 The GPU plugin has no scheduler section — GPU capacity is an integer count per product, so a node's capacity
 is computed directly rather than enumerated.
