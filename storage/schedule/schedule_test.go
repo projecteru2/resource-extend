@@ -164,6 +164,25 @@ func TestMonoRemainderIsDeterministic(t *testing.T) {
 	}
 }
 
+func TestUnlimitedPlacementCountsOnlyReturnedPlans(t *testing.T) {
+	requests := generateVolumeBindings(t, []string{
+		"AUTO:/dir1:rw:1GiB",
+		"AUTO:/dir2:rw",
+	})
+	resourceInfo := &types.NodeResourceInfo{
+		Capacity: &types.NodeResource{Volumes: types.Volumes{"/a": 21 * gib, "/b": 31 * gib}},
+		Usage:    &types.NodeResource{Volumes: types.Volumes{"/a": gib, "/b": gib}},
+	}
+
+	plans, _ := GetVolumePlans(t.Context(), resourceInfo, requests, 2)
+	require.Len(t, plans, 2)
+	for _, plan := range plans {
+		vmap, _ := plan.GetVolumes(requests[1])
+		require.NotNil(t, vmap)
+		assert.Equal(t, "/b", vmap.GetDevice())
+	}
+}
+
 func TestGetVolumePlansMixedCapAtMaxDeployCount(t *testing.T) {
 	requests := generateVolumeBindings(t, []string{
 		"AUTO:/dir1:rw:1GiB",

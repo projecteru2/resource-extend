@@ -233,7 +233,7 @@ func (h *host) getNormalPlan(normalRequests types.VolumeBindings) (types.VolumeP
 	return volumePlan, diskPlan, nil
 }
 
-func (h *host) getNormalPlans(normalRequests, mountRequests types.VolumeBindings) ([]types.VolumePlan, []types.Disks) {
+func (h *host) getNormalPlans(normalRequests, mountRequests types.VolumeBindings, bound int) ([]types.VolumePlan, []types.Disks) {
 	needScheduleMountRequest := slices.ContainsFunc(mountRequests, func(req *types.VolumeBinding) bool { return req.RequireIOPS() })
 	if len(normalRequests) == 0 && !needScheduleMountRequest {
 		return h.emptyPlans()
@@ -242,7 +242,7 @@ func (h *host) getNormalPlans(normalRequests, mountRequests types.VolumeBindings
 	volumePlans := []types.VolumePlan{}
 	diskPlans := []types.Disks{}
 
-	for {
+	for len(volumePlans) < bound {
 		volumePlan, diskPlan, err := h.getNormalPlan(normalRequests)
 		if err != nil {
 			break
@@ -330,9 +330,15 @@ func (h *host) getVolumePlans(ctx context.Context, requests types.VolumeBindings
 		bestDiskPlans                              [2][]types.Disks
 	)
 
+	// monopoly capacity couples to the normal one through shared disk quota, so the bound only applies without it
+	normalBound := math.MaxInt
+	if len(monoRequests) == 0 {
+		normalBound = h.maxDeployCount
+	}
+
 	getPlans := func() {
 		scratch := h.clone()
-		normalVolumePlans, normalDiskPlans := scratch.getNormalPlans(normalRequests, mountRequests)
+		normalVolumePlans, normalDiskPlans := scratch.getNormalPlans(normalRequests, mountRequests, normalBound)
 		monoVolumePlans, monoDiskPlans := scratch.getMonoPlans(monoRequests)
 		normalCapacity = len(normalVolumePlans)
 		monoCapacity = len(monoVolumePlans)
