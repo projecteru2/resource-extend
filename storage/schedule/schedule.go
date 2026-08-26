@@ -238,6 +238,9 @@ func (h *host) getNormalPlans(normalRequests, mountRequests types.VolumeBindings
 	if len(normalRequests) == 0 && !needScheduleMountRequest {
 		return h.emptyPlans()
 	}
+	if len(normalRequests) == 0 {
+		return h.getMountOnlyPlans(mountRequests, bound)
+	}
 
 	volumePlans := []types.VolumePlan{}
 	diskPlans := []types.Disks{}
@@ -256,6 +259,52 @@ func (h *host) getNormalPlans(normalRequests, mountRequests types.VolumeBindings
 		diskPlans = append(diskPlans, diskPlan)
 	}
 
+	return volumePlans, diskPlans
+}
+
+// getMountOnlyPlans reproduces the enumeration loop in closed form: same plans, same final disk quotas, same trailing failed pass.
+func (h *host) getMountOnlyPlans(mountRequests types.VolumeBindings, bound int) ([]types.VolumePlan, []types.Disks) {
+	volumePlans := []types.VolumePlan{}
+	diskPlans := []types.Disks{}
+	prototype, err := h.getMountDiskPlan(mountRequests)
+	if err != nil || bound < 1 {
+		return volumePlans, diskPlans
+	}
+
+	quotas := map[*types.Disk]*types.VolumeBinding{}
+	for _, req := range mountRequests {
+		if !req.RequireIOPS() {
+			continue
+		}
+		disk := h.getDiskByPath(req.Source)
+		if sum, ok := quotas[disk]; ok {
+			sum.ReadIOPS += req.ReadIOPS
+			sum.WriteIOPS += req.WriteIOPS
+			sum.ReadBPS += req.ReadBPS
+			sum.WriteBPS += req.WriteBPS
+		} else {
+			quotas[disk] = &types.VolumeBinding{ReadIOPS: req.ReadIOPS, WriteIOPS: req.WriteIOPS, ReadBPS: req.ReadBPS, WriteBPS: req.WriteBPS}
+		}
+	}
+
+	capacity := bound
+	for disk, sum := range quotas {
+		capacity = min(capacity, 1+quotaHeadroom(disk, sum))
+	}
+	for disk, sum := range quotas {
+		disk.ReadIOPS -= int64(capacity-1) * sum.ReadIOPS
+		disk.WriteIOPS -= int64(capacity-1) * sum.WriteIOPS
+		disk.ReadBPS -= int64(capacity-1) * sum.ReadBPS
+		disk.WriteBPS -= int64(capacity-1) * sum.WriteBPS
+	}
+	if capacity < bound {
+		_, _ = h.getMountDiskPlan(mountRequests)
+	}
+
+	for range capacity {
+		volumePlans = append(volumePlans, types.VolumePlan{})
+		diskPlans = append(diskPlans, prototype.DeepCopy())
+	}
 	return volumePlans, diskPlans
 }
 
@@ -557,6 +606,23 @@ func GetAffinityPlan(ctx context.Context, resourceInfo *types.NodeResourceInfo, 
 func GetVolumePlans(ctx context.Context, resourceInfo *types.NodeResourceInfo, volumeRequest types.VolumeBindings, maxDeployCount int) ([]types.VolumePlan, []types.Disks) {
 	h := newHost(resourceInfo, maxDeployCount)
 	return h.getVolumePlans(ctx, volumeRequest)
+}
+
+func quotaHeadroom(disk *types.Disk, sum *types.VolumeBinding) int {
+	head := math.MaxInt
+	if sum.ReadIOPS > 0 {
+		head = min(head, int(disk.ReadIOPS/sum.ReadIOPS))
+	}
+	if sum.WriteIOPS > 0 {
+		head = min(head, int(disk.WriteIOPS/sum.WriteIOPS))
+	}
+	if sum.ReadBPS > 0 {
+		head = min(head, int(disk.ReadBPS/sum.ReadBPS))
+	}
+	if sum.WriteBPS > 0 {
+		head = min(head, int(disk.WriteBPS/sum.WriteBPS))
+	}
+	return head
 }
 
 func isDiskIOPSQuotaQualified(disk *types.Disk, req *types.VolumeBinding) bool {
