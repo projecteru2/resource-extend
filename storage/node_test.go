@@ -173,6 +173,11 @@ func TestSetNodeResourceCapacityRMDisks(t *testing.T) {
 	_, err = st.SetNodeResourceCapacity(ctx, node, nil, plugintypes.NodeResourceRequest{"rm-disks": "/dev/vda"}, true, true)
 	assert.ErrorIs(t, err, coretypes.ErrInvalidEngineArgs)
 
+	_, err = st.SetNodeResourceUsage(ctx, node, plugintypes.NodeResource{
+		"disks": types.Disks{{Device: "/dev/vdb"}},
+	}, nil, nil, true, true)
+	require.NoError(t, err)
+
 	d, err := st.SetNodeResourceCapacity(ctx, node, nil, plugintypes.NodeResourceRequest{"rm-disks": "/dev/vdb"}, false, false)
 	require.NoError(t, err)
 	disks := parseNodeResource(t, d.After).Disks

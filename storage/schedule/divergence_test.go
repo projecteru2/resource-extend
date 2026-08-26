@@ -16,13 +16,14 @@ func TestPromotionSurvivesNonMonotoneCapacity(t *testing.T) {
 		"/mnt/shared/x:/mm:rw:0:10:0:0:0",
 	})
 
-	plans, _ := GetVolumePlans(t.Context(), buildSharedDiskFixture(), requests, maxDeployCount)
+	info := buildSharedDiskFixture()
+	plans, _ := GetVolumePlans(t.Context(), info, requests, maxDeployCount)
 	require.Len(t, plans, 4)
 
-	refPlans, _ := refGetVolumePlans(t.Context(), buildSharedDiskFixture(), requests, maxDeployCount)
+	refPlans, _ := refGetVolumePlans(t.Context(), info, requests, maxDeployCount)
 	assert.Equal(t, len(refPlans), len(plans))
 
-	assert.Equal(t, 4, GetVolumeCapacity(buildSharedDiskFixture(), requests, maxDeployCount))
+	assert.Equal(t, 4, GetVolumeCapacity(info, requests, maxDeployCount))
 }
 
 func buildSharedDiskFixture() *types.NodeResourceInfo {
