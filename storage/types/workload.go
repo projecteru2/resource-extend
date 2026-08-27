@@ -59,21 +59,21 @@ func (w *WorkloadResourceRequest) Validate() error {
 }
 
 func (w *WorkloadResourceRequest) Parse(rawParams resourcetypes.RawParams) (err error) {
-	if w.VolumesRequest, err = NewVolumeBindings(rawParams.OneOfStringSlice("volumes-request", "volume-request")); err != nil {
+	if w.VolumesRequest, err = NewVolumeBindings(firstStringSlice(rawParams, "volumes-request", "volume-request")); err != nil {
 		return err
 	}
-	if w.VolumesLimit, err = NewVolumeBindings(rawParams.OneOfStringSlice("volumes", "volume", "volume-limit", "volumes-limit")); err != nil {
+	if w.VolumesLimit, err = NewVolumeBindings(firstStringSlice(rawParams, "volumes", "volume", "volume-limit", "volumes-limit")); err != nil {
 		return err
 	}
 
-	if w.StorageRequest, err = parseSizeInBytes(rawParams, "storage-request"); err != nil {
+	if w.StorageRequest, err = rawParams.SizeInBytes("storage-request"); err != nil {
 		return err
 	}
-	if w.StorageLimit, err = parseSizeInBytes(rawParams, "storage-limit"); err != nil {
+	if w.StorageLimit, err = rawParams.SizeInBytes("storage-limit"); err != nil {
 		return err
 	}
 	if rawParams.IsSet("storage") {
-		storage, err := parseSizeInBytes(rawParams, "storage")
+		storage, err := rawParams.SizeInBytes("storage")
 		if err != nil {
 			return err
 		}
