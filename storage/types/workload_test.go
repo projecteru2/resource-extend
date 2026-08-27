@@ -47,6 +47,35 @@ func TestWorkloadResourceRequestParse(t *testing.T) {
 	assert.Equal(t, req.VolumesLimit.String(), req.VolumesRequest.String())
 }
 
+func TestWorkloadResourceRequestParseStorageForms(t *testing.T) {
+	tests := []struct {
+		name           string
+		oneGiB, twoGiB any
+	}{
+		{"human string", "1G", "2G"},
+		{"json number", float64(testGiB), float64(2 * testGiB)},
+		{"int64", testGiB, 2 * testGiB},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req := &WorkloadResourceRequest{}
+			require.NoError(t, req.Parse(resourcetypes.RawParams{"storage": tt.twoGiB}))
+			assert.Equal(t, 2*testGiB, req.StorageRequest)
+			assert.Equal(t, 2*testGiB, req.StorageLimit)
+
+			req = &WorkloadResourceRequest{}
+			require.NoError(t, req.Parse(resourcetypes.RawParams{
+				"volumes":         []string{"AUTO:/dir:rw:1G"},
+				"storage-request": tt.oneGiB,
+				"storage-limit":   tt.twoGiB,
+			}))
+			assert.Equal(t, testGiB, req.StorageRequest)
+			assert.Equal(t, 2*testGiB, req.StorageLimit)
+			assert.Equal(t, testGiB, req.VolumesRequest[0].SizeInBytes)
+		})
+	}
+}
+
 func TestWorkloadValidateRaisesSoftLimits(t *testing.T) {
 	req := &WorkloadResourceRequest{}
 	require.NoError(t, req.Parse(resourcetypes.RawParams{
