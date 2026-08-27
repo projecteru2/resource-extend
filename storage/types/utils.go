@@ -6,8 +6,12 @@ import (
 )
 
 func parseSizeInBytes(rawParams resourcetypes.RawParams, key string) (int64, error) {
-	if size, ok := rawParams[key].(string); ok {
-		return utils.ParseRAMInHuman(size)
+	switch value := rawParams[key].(type) {
+	case nil:
+		return 0, nil
+	case string:
+		return utils.ParseRAMInHuman(value)
+	default:
+		return rawParams.Int64(key), nil
 	}
-	return rawParams.Int64(key), nil
 }
