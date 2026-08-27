@@ -39,15 +39,21 @@ never unschedulable against its own limit.
 
 ```bash
 eru-cli node add \
-  --resource 'storage={"volumes":["/data0:1T","/data1:1T"],"disks":["/dev/vda:/,/data0:1000:1000:1G:1G"],"storage":"2T"}' ...
+  --extra-resources '{"resource-storage":{"volumes":["/data0:1T","/data1:1T"],"disks":["/dev/vda:/,/data0:1000:1000:1G:1G"],"storage":"2T"}}' ...
 ```
+
+The request key `resource-storage` is the plugin binary's file name — core names a plugin after the file it
+executes, not after what the plugin's `name` subcommand reports.
 
 | Key | Form | Meaning |
 |---|---|---|
 | `volumes` | `["device:size", ...]` | schedulable devices and their capacity |
 | `disks` | `["device:mounts:read_IOPS:write_IOPS:read_BPS:write_BPS", ...]` | IOPS/BPS quota; `mounts` is comma separated |
-| `storage` | `"1T"` | flat storage budget; the total volume size is added to it |
+| `storage` | `"80G"` or `85899345920` | flat storage budget; the total volume size is added to it |
 | `rm-disks` | `"device,device"` | remove these disks; only valid in absolute mode, not with a delta |
+
+Every storage size takes either form — the human string `"80G"` or the plain byte count `85899345920` — here
+and in a workload's `storage`, `storage-request` and `storage-limit`.
 
 When a node is added with no `storage` value, the plugin takes 80% of the engine's reported total storage.
 In absolute mode (`delta` false) any key left out of the request keeps its stored value rather than being

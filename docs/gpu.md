@@ -29,8 +29,11 @@ Available capacity is capacity minus usage, per product. Both live in etcd under
 `add-node` takes the count map directly:
 
 ```bash
-eru-cli node add --resource 'gpu={"prod_count_map":{"nvidia-3090":4}}' ...
+eru-cli node add --extra-resources '{"resource-gpu":{"prod_count_map":{"nvidia-3090":4}}}' ...
 ```
+
+The request key `resource-gpu` is the plugin binary's file name — core names a plugin after the file it
+executes, not after what the plugin's `name` subcommand reports.
 
 If the request carries no cards, the plugin falls back to the engine's own report: when core passes node
 info whose `Resources["gpu"]` holds a JSON node resource, that becomes the capacity. This is how a node that
