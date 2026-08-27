@@ -69,6 +69,28 @@ func TestNodeResourceRequestParse(t *testing.T) {
 	assert.Error(t, (&NodeResourceRequest{}).Parse(resourcetypes.RawParams{"volumes": []string{"/data0:xx"}}))
 }
 
+func TestNodeResourceRequestParseStorageForms(t *testing.T) {
+	tests := []struct {
+		name    string
+		storage any
+	}{
+		{"human string", "100G"},
+		{"json number", float64(100 * testGiB)},
+		{"int64", 100 * testGiB},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req := &NodeResourceRequest{}
+			require.NoError(t, req.Parse(resourcetypes.RawParams{
+				"volumes": []string{"/data0:1G"},
+				"storage": tt.storage,
+			}))
+			assert.Equal(t, Volumes{"/data0": testGiB}, req.Volumes)
+			assert.Equal(t, 101*testGiB, req.Storage)
+		})
+	}
+}
+
 func TestSkipEmpty(t *testing.T) {
 	origin := &NodeResource{
 		Volumes: Volumes{"/data0": testGiB},
