@@ -29,11 +29,11 @@ type Store[T Info] struct {
 }
 
 // New opens the store behind keyFmt, a key template with one node name verb.
-func New[T Info](config coretypes.Config, keyFmt string, newInfo Factory[T], embeddedETCD *embedded.Cluster) (*Store[T], error) {
+func New[T Info](ctx context.Context, config coretypes.Config, keyFmt string, newInfo Factory[T], embeddedETCD *embedded.Cluster) (*Store[T], error) {
 	if embeddedETCD == nil && len(config.Etcd.Machines) < 1 {
 		return nil, coretypes.ErrConfigInvaild
 	}
-	kv, err := meta.NewETCD(config.Etcd, embeddedETCD)
+	kv, err := meta.NewETCD(ctx, config.Etcd, embeddedETCD)
 	if err != nil {
 		return nil, err
 	}

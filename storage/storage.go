@@ -27,7 +27,7 @@ type Plugin struct {
 }
 
 func NewPlugin(ctx context.Context, config coretypes.Config, embeddedETCD *embedded.Cluster) (*Plugin, error) {
-	store, err := nodestore.New(config, nodeResourceInfoKey, func() *storagetypes.NodeResourceInfo {
+	store, err := nodestore.New(ctx, config, nodeResourceInfoKey, func() *storagetypes.NodeResourceInfo {
 		return &storagetypes.NodeResourceInfo{}
 	}, embeddedETCD)
 	if err != nil {

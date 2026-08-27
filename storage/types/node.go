@@ -159,7 +159,7 @@ func (n *NodeResourceRequest) Parse(rawParams resourcetypes.RawParams) (err erro
 	}
 	n.Volumes = volumes
 
-	if n.Storage, err = parseSizeInBytes(n.RawParams, "storage"); err != nil {
+	if n.Storage, err = n.RawParams.SizeInBytes("storage"); err != nil {
 		return err
 	}
 
