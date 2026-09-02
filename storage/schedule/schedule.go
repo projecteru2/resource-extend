@@ -367,6 +367,38 @@ func (h *host) getMountDiskPlan(reqs types.VolumeBindings) (types.Disks, error) 
 	return diskPlan, nil
 }
 
+// the classes couple only through disk quota that an IOPS-bearing monopoly group inspects
+func (h *host) normalBound(classes requestClasses) int {
+	if len(classes.mono) == 0 {
+		return h.maxDeployCount
+	}
+	if !anyRequireIOPS(classes.mono) || (!anyRequireIOPS(classes.normal) && !anyRequireIOPS(classes.mount)) {
+		return max(h.maxDeployCount, len(h.unusedVolumes)+1)
+	}
+	return math.MaxInt
+}
+
+func (h *host) promote(normalRequests types.VolumeBindings, evaluate func() (int, int)) (int, int) {
+	minNormalRequestSize := int64(math.MaxInt)
+	if len(normalRequests) > 0 {
+		minNormalRequestSize = normalRequests[0].SizeInBytes
+	}
+
+	normalCapacity, monoCapacity := evaluate()
+	for monoCapacity > normalCapacity && normalCapacity < h.maxDeployCount {
+		p, _ := slices.BinarySearchFunc(h.unusedVolumes, minNormalRequestSize, compareVolumeSize)
+		if p == len(h.unusedVolumes) {
+			break
+		}
+		v := h.unusedVolumes[p]
+		h.unusedVolumes = slices.Delete(h.unusedVolumes, p, p+1)
+		h.usedVolumes = append(h.usedVolumes, v)
+
+		normalCapacity, monoCapacity = evaluate()
+	}
+	return normalCapacity, monoCapacity
+}
+
 func (h *host) getVolumePlans(ctx context.Context, requests types.VolumeBindings) ([]types.VolumePlan, []types.Disks) {
 	if !requests.NeedSchedule() {
 		return h.emptyPlans()
@@ -379,53 +411,25 @@ func (h *host) getVolumePlans(ctx context.Context, requests types.VolumeBindings
 		return nil, nil
 	}
 
-	minNormalRequestSize := int64(math.MaxInt)
-	if len(normalRequests) > 0 {
-		minNormalRequestSize = normalRequests[0].SizeInBytes
-	}
-
 	var (
-		normalCapacity, monoCapacity, bestCapacity int
-		bestVolumePlans                            [2][]types.VolumePlan
-		bestDiskPlans                              [2][]types.Disks
+		bestVolumePlans [2][]types.VolumePlan
+		bestDiskPlans   [2][]types.Disks
 	)
 
-	// the classes couple only through disk quota that an IOPS-bearing monopoly group inspects
-	normalBound := math.MaxInt
-	if len(monoRequests) == 0 {
-		normalBound = h.maxDeployCount
-	} else if !anyRequireIOPS(monoRequests) || (!anyRequireIOPS(normalRequests) && !anyRequireIOPS(mountRequests)) {
-		normalBound = max(h.maxDeployCount, len(h.unusedVolumes)+1)
-	}
-
-	getPlans := func() {
+	bound := h.normalBound(classes)
+	normalCapacity, monoCapacity := h.promote(normalRequests, func() (int, int) {
 		scratch := h.clone()
-		normalVolumePlans, normalDiskPlans := scratch.getNormalPlans(normalRequests, mountRequests, normalBound)
+		normalVolumePlans, normalDiskPlans := scratch.getNormalPlans(normalRequests, mountRequests, bound)
 		monoBound := math.MaxInt
 		if len(unlimitedRequests) == 0 {
 			monoBound = max(h.maxDeployCount, len(normalVolumePlans)+1)
 		}
 		monoVolumePlans, monoDiskPlans := scratch.getMonoPlans(monoRequests, monoBound)
-		normalCapacity = len(normalVolumePlans)
-		monoCapacity = len(monoVolumePlans)
-		bestCapacity = min(normalCapacity, monoCapacity, h.maxDeployCount)
 		bestVolumePlans = [2][]types.VolumePlan{normalVolumePlans, monoVolumePlans}
 		bestDiskPlans = [2][]types.Disks{normalDiskPlans, monoDiskPlans}
-	}
-
-	getPlans()
-
-	for monoCapacity > normalCapacity && normalCapacity < h.maxDeployCount {
-		p, _ := slices.BinarySearchFunc(h.unusedVolumes, minNormalRequestSize, compareVolumeSize)
-		if p == len(h.unusedVolumes) {
-			break
-		}
-		v := h.unusedVolumes[p]
-		h.unusedVolumes = slices.Delete(h.unusedVolumes, p, p+1)
-		h.usedVolumes = append(h.usedVolumes, v)
-
-		getPlans()
-	}
+		return len(normalVolumePlans), len(monoVolumePlans)
+	})
+	bestCapacity := min(normalCapacity, monoCapacity, h.maxDeployCount)
 
 	normalVolumePlans, monoVolumePlans := bestVolumePlans[0], bestVolumePlans[1]
 	normalDiskPlans, monoDiskPlans := bestDiskPlans[0], bestDiskPlans[1]
@@ -488,38 +492,12 @@ func (h *host) getVolumeCapacity(requests types.VolumeBindings) int {
 		return 0
 	}
 
-	minNormalRequestSize := int64(math.MaxInt)
-	if len(normalRequests) > 0 {
-		minNormalRequestSize = normalRequests[0].SizeInBytes
-	}
-
-	normalBound := math.MaxInt
-	if len(monoRequests) == 0 {
-		normalBound = h.maxDeployCount
-	} else if !anyRequireIOPS(monoRequests) || (!anyRequireIOPS(normalRequests) && !anyRequireIOPS(classes.mount)) {
-		normalBound = max(h.maxDeployCount, len(h.unusedVolumes)+1)
-	}
-
-	var normalCapacity, monoCapacity int
-	getCapacities := func() {
+	bound := h.normalBound(classes)
+	normalCapacity, monoCapacity := h.promote(normalRequests, func() (int, int) {
 		scratch := h.clone()
-		normalCapacity = scratch.countNormalPlans(normalRequests, classes.mount, normalBound)
-		monoCapacity = scratch.countMonoPlans(monoRequests, max(h.maxDeployCount, normalCapacity+1))
-	}
-
-	getCapacities()
-
-	for monoCapacity > normalCapacity && normalCapacity < h.maxDeployCount {
-		p, _ := slices.BinarySearchFunc(h.unusedVolumes, minNormalRequestSize, compareVolumeSize)
-		if p == len(h.unusedVolumes) {
-			break
-		}
-		v := h.unusedVolumes[p]
-		h.unusedVolumes = slices.Delete(h.unusedVolumes, p, p+1)
-		h.usedVolumes = append(h.usedVolumes, v)
-
-		getCapacities()
-	}
+		normalCapacity := scratch.countNormalPlans(normalRequests, classes.mount, bound)
+		return normalCapacity, scratch.countMonoPlans(monoRequests, max(h.maxDeployCount, normalCapacity+1))
+	})
 
 	return min(normalCapacity, monoCapacity, h.maxDeployCount)
 }
