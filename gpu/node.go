@@ -98,7 +98,7 @@ func (p Plugin) SetNodeResourceCapacity(ctx context.Context, nodename string, re
 	if err != nil {
 		return nil, err
 	}
-	nodeResourceInfo, err := p.store.Get(ctx, nodename)
+	nodeResourceInfo, err := p.store.GetOrEmpty(ctx, nodename)
 	if err != nil {
 		return nil, err
 	}
@@ -158,7 +158,7 @@ func (p Plugin) SetNodeResourceUsage(ctx context.Context, nodename string, resou
 	if err != nil {
 		return nil, err
 	}
-	nodeResourceInfo, err := p.store.Get(ctx, nodename)
+	nodeResourceInfo, err := p.store.GetOrEmpty(ctx, nodename)
 	if err != nil {
 		return nil, err
 	}
@@ -281,7 +281,6 @@ func (p Plugin) doGetNodeDeployCapacity(nodeResourceInfo *gputypes.NodeResourceI
 	return capacityInfo
 }
 
-// calculateNodeResource priority: node resource request > node resource > workload resource args list
 func (p Plugin) calculateNodeResource(req *gputypes.NodeResourceRequest, nodeResource, origin *gputypes.NodeResource, workloadsResource []*gputypes.WorkloadResource, delta, incr bool) *gputypes.NodeResource {
 	var resp *gputypes.NodeResource
 	if origin == nil || !delta {

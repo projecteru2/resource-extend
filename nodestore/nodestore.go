@@ -11,6 +11,7 @@ import (
 	"github.com/projecteru2/core/store/etcdv3/meta"
 	coretypes "github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
+	clientv3 "go.etcd.io/etcd/client/v3"
 )
 
 // Info is the per-node resource info a Store persists.
@@ -57,23 +58,34 @@ func (s *Store[T]) Get(ctx context.Context, nodename string) (T, error) {
 	}
 }
 
-// GetMulti returns the resource info of every node, ErrInvaildCount when one has none.
-func (s *Store[T]) GetMulti(ctx context.Context, nodenames []string) (map[string]T, error) {
-	keys := make([]string, 0, len(nodenames))
-	for _, nodename := range nodenames {
-		keys = append(keys, s.key(nodename))
+// GetOrEmpty returns the resource info of one node, an empty one when the plugin has nothing stored for it.
+func (s *Store[T]) GetOrEmpty(ctx context.Context, nodename string) (T, error) {
+	info, err := s.Get(ctx, nodename)
+	if errors.Is(err, coretypes.ErrNodeNotExists) {
+		return s.newInfo(), nil
 	}
-	kvs, err := s.kv.GetMulti(ctx, keys)
+	return info, err
+}
+
+// GetMulti returns the resource info of every node in one range read; a node the plugin never saw comes back empty.
+func (s *Store[T]) GetMulti(ctx context.Context, nodenames []string) (map[string]T, error) {
+	resp, err := s.kv.Get(ctx, s.key(""), clientv3.WithPrefix())
 	if err != nil {
 		return nil, err
 	}
-	infos := make(map[string]T, len(kvs))
-	for _, kv := range kvs {
+	stored := make(map[string][]byte, len(resp.Kvs))
+	for _, kv := range resp.Kvs {
+		stored[utils.Tail(string(kv.Key))] = kv.Value
+	}
+	infos := make(map[string]T, len(nodenames))
+	for _, nodename := range nodenames {
 		info := s.newInfo()
-		if err := json.Unmarshal(kv.Value, info); err != nil {
-			return nil, err
+		if value, ok := stored[nodename]; ok {
+			if err := json.Unmarshal(value, info); err != nil {
+				return nil, err
+			}
 		}
-		infos[utils.Tail(string(kv.Key))] = info
+		infos[nodename] = info
 	}
 	return infos, nil
 }

@@ -36,13 +36,10 @@ func (p Plugin) AddNode(ctx context.Context, nodename string, resource plugintyp
 		req.Storage = info.StorageTotal * rate / 10
 	}
 
-	nodeResourceInfo := &storagetypes.NodeResourceInfo{
-		Capacity: &storagetypes.NodeResource{
-			Volumes: req.Volumes,
-			Storage: req.Storage,
-			Disks:   req.Disks,
-		},
-	}
+	nodeResourceInfo := storagetypes.NewNodeResourceInfo()
+	nodeResourceInfo.Capacity.Volumes = req.Volumes
+	nodeResourceInfo.Capacity.Storage = req.Storage
+	nodeResourceInfo.Capacity.Disks = req.Disks
 
 	if err := p.store.Put(ctx, nodename, nodeResourceInfo); err != nil {
 		return nil, err
@@ -83,10 +80,11 @@ func (p Plugin) GetNodesDeployCapacity(ctx context.Context, nodenames []string, 
 	total := 0
 	for nodename, nodeResourceInfo := range nodesResourceInfos {
 		capacityInfo := p.doGetNodeDeployCapacity(nodeResourceInfo, req)
-		if capacityInfo.Capacity > 0 {
-			nodesDeployCapacityMap[nodename] = capacityInfo
-			total += capacityInfo.Capacity
+		if capacityInfo.Capacity <= 0 {
+			continue
 		}
+		nodesDeployCapacityMap[nodename] = capacityInfo
+		total += capacityInfo.Capacity
 	}
 
 	return &plugintypes.GetNodesDeployCapacityResponse{
@@ -112,7 +110,7 @@ func (p Plugin) SetNodeResourceCapacity(ctx context.Context, nodename string, re
 			return nil, err
 		}
 	}
-	nodeResourceInfo, err := p.store.Get(ctx, nodename)
+	nodeResourceInfo, err := p.store.GetOrEmpty(ctx, nodename)
 	if err != nil {
 		return nil, err
 	}
@@ -188,7 +186,7 @@ func (p Plugin) SetNodeResourceUsage(ctx context.Context, nodename string, resou
 	if err != nil {
 		return nil, err
 	}
-	nodeResourceInfo, err := p.store.Get(ctx, nodename)
+	nodeResourceInfo, err := p.store.GetOrEmpty(ctx, nodename)
 	if err != nil {
 		return nil, err
 	}
@@ -322,7 +320,6 @@ func (p Plugin) doGetNodeDeployCapacity(nodeResourceInfo *storagetypes.NodeResou
 	return capacityInfo
 }
 
-// calculateNodeResource priority: node resource request > node resource > workload resource args list
 func (p Plugin) calculateNodeResource(req *storagetypes.NodeResourceRequest, nodeResource, origin *storagetypes.NodeResource, workloadsResource []*storagetypes.WorkloadResource, delta, incr bool) *storagetypes.NodeResource {
 	var resp *storagetypes.NodeResource
 	if origin == nil || !delta { // no delta means node resource rewrite with whole new data

@@ -109,8 +109,9 @@ func TestGetNodesDeployCapacity(t *testing.T) {
 		},
 	}
 
-	_, err = cm.GetNodesDeployCapacity(ctx, []string{"xxx"}, req)
-	assert.ErrorIs(t, err, coretypes.ErrInvaildCount)
+	r, err = cm.GetNodesDeployCapacity(ctx, []string{"xxx"}, req)
+	assert.NoError(t, err)
+	assert.Empty(t, r.NodeDeployCapacityMap)
 
 	r, err = cm.GetNodesDeployCapacity(ctx, nodes, nil)
 	assert.Nil(t, err)
@@ -213,6 +214,34 @@ func TestGetNodesDeployCapacity(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, 0, r.Total)
 	assert.Len(t, r.NodeDeployCapacityMap, 0)
+}
+
+func TestGetNodesDeployCapacityTreatsAnUnknownNodeAsEmpty(t *testing.T) {
+	ctx := t.Context()
+	cm := initGPU(ctx, t)
+	nodes := append(generateNodes(ctx, t, cm, 1, 0), "never-added")
+
+	r, err := cm.GetNodesDeployCapacity(ctx, nodes, nil)
+	assert.NoError(t, err)
+	assert.Equal(t, maxCapacity, r.NodeDeployCapacityMap["never-added"].Capacity)
+
+	r, err = cm.GetNodesDeployCapacity(ctx, nodes, plugintypes.WorkloadResourceRequest{"prod_count_map": types.ProdCountMap{"nvidia-3070": 1}})
+	assert.NoError(t, err)
+	assert.NotContains(t, r.NodeDeployCapacityMap, "never-added")
+	assert.Len(t, r.NodeDeployCapacityMap, 1)
+}
+
+func TestSetNodeResourceCapacityCreatesAnUnknownNode(t *testing.T) {
+	ctx := t.Context()
+	cm := initGPU(ctx, t)
+
+	r, err := cm.SetNodeResourceCapacity(ctx, "never-added", nil, plugintypes.NodeResourceRequest{"prod_count_map": types.ProdCountMap{"nvidia-3070": 2}}, true, true)
+	assert.NoError(t, err)
+	assert.Equal(t, 2, parseNodeResource(t, r.After).Count())
+
+	gr, err := cm.GetNodeResourceInfo(ctx, "never-added", nil)
+	assert.NoError(t, err)
+	assert.Equal(t, 2, parseNodeResource(t, gr.Capacity).Count())
 }
 
 func TestSetNodeResourceCapacity(t *testing.T) {
@@ -520,8 +549,9 @@ func TestGetMostIdleNode(t *testing.T) {
 	assert.Equal(t, r.Nodename, nodes[0])
 
 	nodes = append(nodes, "node-x")
-	_, err = cm.GetMostIdleNode(ctx, nodes)
-	assert.Error(t, err)
+	r, err = cm.GetMostIdleNode(ctx, nodes)
+	assert.NoError(t, err)
+	assert.Contains(t, nodes, r.Nodename)
 }
 
 func parseNodeResource(t *testing.T, raw resourcetypes.RawParams) *types.NodeResource {

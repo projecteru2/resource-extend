@@ -62,10 +62,14 @@ define them; it implements them.
 
 Any verb may fail. The plugin exits with status 128, and core surfaces the failure to the caller.
 
-The one deliberate exception is `get-node-resource-info`: a node that this plugin has never seen is not an
-error. The plugin returns `null` and exits 0, so core reads an empty resource for that node instead of
-failing the whole `node get` or `node list`. This matters for a resource added to a cluster after its nodes
-were: without it, every node predating the plugin would break listing.
+A node this plugin has never seen is not an error. `get-node-resource-info` returns `null` and exits 0, so
+core reads an empty resource for that node instead of failing the whole `node get` or `node list`. The
+node verbs that read several nodes (`get-nodes-deploy-capacity`, `get-most-idle-node`) treat such a node as
+holding nothing of this kind: it stays deployable for requests that ask for nothing of this kind and has no
+capacity for the others. `set-node-resource-capacity` and `set-node-resource-usage` start from that empty
+record and create it, so `node set` is how an operator declares capacity on a node that predates the
+plugin; `fix-node-resource` still needs the record. This matters for a resource added to a cluster after its nodes were: without it,
+every node predating the plugin would break listing and deploying.
 
 ## Adding a verb
 
