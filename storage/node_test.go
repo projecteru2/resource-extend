@@ -2,6 +2,7 @@ package storage
 
 import (
 	"fmt"
+	"github.com/projecteru2/core/store/etcdv3/embedded"
 	"testing"
 
 	enginetypes "github.com/projecteru2/core/engine/types"
@@ -386,4 +387,36 @@ func parseNodeResource(t *testing.T, raw resourcetypes.RawParams) *types.NodeRes
 		t.Fatalf("parse node resource: %v", err)
 	}
 	return r
+}
+
+func BenchmarkGetNodesDeployCapacityScaling(b *testing.B) {
+	for _, nodes := range []int{10, 100, 500} {
+		b.Run(fmt.Sprintf("nodes=%d", nodes), func(b *testing.B) {
+			ctx := b.Context()
+			config := coretypes.Config{Etcd: coretypes.EtcdConfig{Prefix: "/storage"}, Scheduler: coretypes.SchedulerConfig{MaxShare: -1, ShareBase: 100, MaxDeployCount: 10000}}
+			cluster, err := embedded.New(b.TempDir())
+			if err != nil {
+				b.Fatal(err)
+			}
+			b.Cleanup(cluster.Close)
+			st, err := NewPlugin(ctx, config, cluster)
+			if err != nil {
+				b.Fatal(err)
+			}
+			names := make([]string, 0, nodes)
+			for name, req := range generateNodeResourceRequests(nodes, defaultVols, 0) {
+				if _, err := st.AddNode(ctx, name, req, &enginetypes.Info{StorageTotal: tb}); err != nil {
+					b.Fatal(err)
+				}
+				names = append(names, name)
+			}
+			req := plugintypes.WorkloadResourceRequest{"volumes": []string{"AUTO:/dir0:rwm:1G"}, "storage": "1G"}
+			b.ResetTimer()
+			for b.Loop() {
+				if _, err := st.GetNodesDeployCapacity(ctx, names, req); err != nil {
+					b.Fatal(err)
+				}
+			}
+		})
+	}
 }
