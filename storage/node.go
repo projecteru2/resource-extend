@@ -3,7 +3,9 @@ package storage
 import (
 	"context"
 	"fmt"
+	"runtime"
 	"slices"
+	"sync"
 
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
@@ -11,6 +13,7 @@ import (
 	coretypes "github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 	"github.com/sanity-io/litter"
+	"golang.org/x/sync/errgroup"
 
 	"github.com/projecteru2/resource-extend/storage/schedule"
 	storagetypes "github.com/projecteru2/resource-extend/storage/types"
@@ -36,12 +39,11 @@ func (p Plugin) AddNode(ctx context.Context, nodename string, resource plugintyp
 		req.Storage = info.StorageTotal * rate / 10
 	}
 
-	nodeResourceInfo := &storagetypes.NodeResourceInfo{
-		Capacity: &storagetypes.NodeResource{
-			Volumes: req.Volumes,
-			Storage: req.Storage,
-			Disks:   req.Disks,
-		},
+	nodeResourceInfo := storagetypes.NewNodeResourceInfo()
+	nodeResourceInfo.Capacity = &storagetypes.NodeResource{
+		Volumes: req.Volumes,
+		Storage: req.Storage,
+		Disks:   req.Disks,
 	}
 
 	if err := p.store.Put(ctx, nodename, nodeResourceInfo); err != nil {
@@ -81,13 +83,23 @@ func (p Plugin) GetNodesDeployCapacity(ctx context.Context, nodenames []string, 
 
 	nodesDeployCapacityMap := map[string]*plugintypes.NodeDeployCapacity{}
 	total := 0
+	var mu sync.Mutex
+	var g errgroup.Group
+	g.SetLimit(runtime.GOMAXPROCS(0))
 	for nodename, nodeResourceInfo := range nodesResourceInfos {
-		capacityInfo := p.doGetNodeDeployCapacity(nodeResourceInfo, req)
-		if capacityInfo.Capacity > 0 {
+		g.Go(func() error {
+			capacityInfo := p.doGetNodeDeployCapacity(nodeResourceInfo, req)
+			if capacityInfo.Capacity <= 0 {
+				return nil
+			}
+			mu.Lock()
+			defer mu.Unlock()
 			nodesDeployCapacityMap[nodename] = capacityInfo
 			total += capacityInfo.Capacity
-		}
+			return nil
+		})
 	}
+	_ = g.Wait()
 
 	return &plugintypes.GetNodesDeployCapacityResponse{
 		NodeDeployCapacityMap: nodesDeployCapacityMap,
@@ -112,7 +124,7 @@ func (p Plugin) SetNodeResourceCapacity(ctx context.Context, nodename string, re
 			return nil, err
 		}
 	}
-	nodeResourceInfo, err := p.store.Get(ctx, nodename)
+	nodeResourceInfo, err := p.store.GetOrEmpty(ctx, nodename)
 	if err != nil {
 		return nil, err
 	}
@@ -188,7 +200,7 @@ func (p Plugin) SetNodeResourceUsage(ctx context.Context, nodename string, resou
 	if err != nil {
 		return nil, err
 	}
-	nodeResourceInfo, err := p.store.Get(ctx, nodename)
+	nodeResourceInfo, err := p.store.GetOrEmpty(ctx, nodename)
 	if err != nil {
 		return nil, err
 	}

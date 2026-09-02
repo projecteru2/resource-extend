@@ -98,7 +98,7 @@ func (p Plugin) SetNodeResourceCapacity(ctx context.Context, nodename string, re
 	if err != nil {
 		return nil, err
 	}
-	nodeResourceInfo, err := p.store.Get(ctx, nodename)
+	nodeResourceInfo, err := p.store.GetOrEmpty(ctx, nodename)
 	if err != nil {
 		return nil, err
 	}
@@ -158,7 +158,7 @@ func (p Plugin) SetNodeResourceUsage(ctx context.Context, nodename string, resou
 	if err != nil {
 		return nil, err
 	}
-	nodeResourceInfo, err := p.store.Get(ctx, nodename)
+	nodeResourceInfo, err := p.store.GetOrEmpty(ctx, nodename)
 	if err != nil {
 		return nil, err
 	}

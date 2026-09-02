@@ -53,6 +53,14 @@ type NodeResourceInfo struct {
 	Usage    *NodeResource `json:"usage"`
 }
 
+// NewNodeResourceInfo is the empty record of a node this plugin has nothing stored for.
+func NewNodeResourceInfo() *NodeResourceInfo {
+	return &NodeResourceInfo{
+		Capacity: &NodeResource{Volumes: Volumes{}, Disks: Disks{}},
+		Usage:    &NodeResource{Volumes: Volumes{}, Disks: Disks{}},
+	}
+}
+
 func (n *NodeResourceInfo) Validate() error {
 	if n.Capacity == nil {
 		return ErrInvalidCapacity

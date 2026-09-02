@@ -57,8 +57,13 @@ func TestGetNodesDeployCapacity(t *testing.T) {
 	assert.ErrorIs(t, err, types.ErrInvalidStorage)
 
 	req := plugintypes.WorkloadResourceRequest{"storage": "1"}
-	_, err = st.GetNodesDeployCapacity(ctx, []string{"??"}, req)
-	assert.ErrorIs(t, err, coretypes.ErrInvaildCount)
+	r0, err := st.GetNodesDeployCapacity(ctx, []string{"??"}, req)
+	assert.NoError(t, err)
+	assert.Empty(t, r0.NodeDeployCapacityMap)
+
+	r0, err = st.GetNodesDeployCapacity(ctx, []string{"??"}, nil)
+	assert.NoError(t, err)
+	assert.Equal(t, st.config.Scheduler.MaxDeployCount, r0.NodeDeployCapacityMap["??"].Capacity)
 
 	req = plugintypes.WorkloadResourceRequest{"storage": fmt.Sprintf("%v", tib)}
 	r, err := st.GetNodesDeployCapacity(ctx, nodes, req)
@@ -84,6 +89,19 @@ func TestGetNodesDeployCapacity(t *testing.T) {
 	r, err = st.GetNodesDeployCapacity(ctx, nodes, req)
 	assert.NoError(t, err)
 	assert.Equal(t, 30, r.Total)
+}
+
+func TestSetNodeResourceCapacityCreatesAnUnknownNode(t *testing.T) {
+	ctx := t.Context()
+	st := initStorage(ctx, t)
+
+	r, err := st.SetNodeResourceCapacity(ctx, "never-added", nil, plugintypes.NodeResourceRequest{"storage": "1T"}, true, true)
+	require.NoError(t, err)
+	assert.Equal(t, int64(tib), parseNodeResource(t, r.After).Storage)
+
+	gr, err := st.GetNodeResourceInfo(ctx, "never-added", nil)
+	require.NoError(t, err)
+	assert.Equal(t, int64(tib), parseNodeResource(t, gr.Capacity).Storage)
 }
 
 func TestSetNodeResourceCapacity(t *testing.T) {
