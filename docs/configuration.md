@@ -29,7 +29,7 @@ scheduler:
 | Key | Used by | Required | Default | Meaning |
 |---|---|---|---|---|
 | `etcd.machines` | both | yes | — | etcd endpoints holding per-node capacity and usage |
-| `etcd.prefix` | both | yes | `/eru` | key namespace; the plugin writes `<prefix>/resource/gpu/<node>` or `<prefix>/resource/storage/<node>` |
+| `etcd.prefix` | both | no | `/eru` | key namespace; the plugin writes `<prefix>/resource/gpu/<node>` or `<prefix>/resource/storage/<node>` |
 | `etcd.lock_prefix` | both | no | `__lock__/eru` | inherited from core's config struct, unused by the plugins |
 | `etcd.ca`, `etcd.cert`, `etcd.key` | both | no | — | TLS material for the etcd client |
 | `etcd.auth.username`, `etcd.auth.password` | both | no | — | etcd authentication |
@@ -55,5 +55,5 @@ Core sets the working directory to `resource_plugin.dir` before executing a plug
 next to the binary. Core does not set `ERU_RESOURCE_CONFIG_PATH` itself; export it in core's own
 environment to point both plugins elsewhere.
 
-A missing or incomplete config is a hard failure: the plugin exits non-zero with
-`Machines is required, but blank` rather than starting without a store.
+A missing or incomplete config is a hard failure: a missing file fails when the plugin reads it, and an
+incomplete one exits non-zero with `Machines is required, but blank`, rather than starting without a store.

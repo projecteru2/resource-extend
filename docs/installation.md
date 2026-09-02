@@ -59,13 +59,13 @@ plugin by hand.
 
 Every verb reads JSON from stdin and writes JSON to stdout, so a plugin can be exercised directly. Read
 verbs are safe at any time; run a verb that writes only against a node core is not scheduling on, since
-core's node lock is what keeps the record consistent (see `docs/protocol.md`):
+core's node lock is what keeps the record consistent (see `protocol.md`):
 
 ```bash
 cd /etc/eru/plugins
 ./resource-gpu --version
 echo '{"nodename": "node-1"}' | ./resource-gpu get-node-resource-info
-echo '{"podname": "dev", "nodename": "node-1"}' | ./resource-storage get-metrics
+echo '{"nodes": [{"podname": "dev", "nodename": "node-1"}]}' | ./resource-storage get-metrics
 ```
 
 A non-zero exit status means the call failed; the error text goes to stderr, which core folds into the

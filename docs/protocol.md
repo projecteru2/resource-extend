@@ -41,7 +41,7 @@ The plugin name core uses for a resource is the binary's file name, not anything
 | `fix-node-resource` | `nodename`, `workloads_resource` | `{capacity, usage, diffs}` |
 | `calculate-deploy` | `nodename`, `deploy_count`, `workload_resource_request` | `{engines_params, workloads_resource}` |
 | `calculate-realloc` | `nodename`, `workload_resource`, `workload_resource_request` | `{engine_params, delta_resource, workload_resource}` |
-| `calculate-remap` | `nodename`, `workloads_resource` | `{engine_params_map}` |
+| `calculate-remap` | `nodename`, `workloads_resource` | `{engine_params_map}` — not implemented by either plugin |
 
 The verb names and the request shapes are core's, from `resource/plugins/binary`. This repository does not
 define them; it implements them.
@@ -54,19 +54,21 @@ define them; it implements them.
 - **`workloads_resource`** — an array of workload resources, one per workload on the node. Used to
   recompute usage and to report diffs.
 - **`info`** — the engine's node report, marshalled from core's `enginetypes.Info`. Its `Resources` field is
-  a map of plugin name to raw bytes, which is how a node can declare its own resources at add time.
+  a map of resource name to raw bytes — `gpu`, the name the plugin reports, not the binary's file name —
+  which is how a node can declare its own resources at add time.
 - **`delta` / `incr`** — `delta` false means the value replaces what is stored, true means it is applied to
   it; `incr` picks addition or subtraction. When `delta` is false the plugins force addition, because the
   absolute value is what was asked for.
 - **`before`** — when a set fails in one plugin after succeeding in another, core rolls the survivors back
-  by replaying each plugin's `before` through `resource_request` with `delta` false. A plugin must accept
-  its own snapshot there: the GPU snapshot already has the request shape, and the storage plugin recognizes
-  a request carrying `volumes`, `disks` and `storage` in their stored form and restores it verbatim.
+  by replaying each plugin's `before` with `delta` false, a capacity snapshot through `resource_request` and
+  a usage snapshot through `resource`. A plugin must accept its own snapshot there: the GPU snapshot already
+  has the request shape, and the storage plugin recognizes a request carrying `volumes`, `disks` and
+  `storage` in their stored form and restores it verbatim.
 
 ## Locking
 
 Every mutating verb is a read-modify-write on the node's record with no compare-and-swap. Core serializes
-them by holding the node's operation lock around every call that writes a plugin's usage or capacity, and
+them by holding a node- or pod-scoped lock around every call that writes a plugin's usage or capacity, and
 that lock is the whole guarantee: two writers on one node from outside core lose one update.
 
 ## Error handling

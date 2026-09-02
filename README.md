@@ -15,8 +15,8 @@ JSON on stdout — so a cluster gains either resource without rebuilding core.
   bindings take a device to themselves, and read/write IOPS and BPS quota is tracked per disk.
 - **One binary contract** — both plugins implement core's `resource/plugins.Plugin` and share one command
   tree, so a new plugin verb lands in both at once.
-- **etcd-backed** — per-node capacity and usage live under `/resource/gpu/<node>` and `/resource/storage/<node>`
-  in the same etcd cluster core uses.
+- **etcd-backed** — per-node capacity and usage live under `<etcd.prefix>/resource/gpu/<node>` and
+  `<etcd.prefix>/resource/storage/<node>` in the same etcd cluster core uses.
 
 ## Quick start
 
