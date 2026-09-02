@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	plugintypes "github.com/projecteru2/core/resource/plugins/types"
+	"github.com/projecteru2/core/utils"
 )
 
 func (p Plugin) GetMetricsDescription(context.Context) (*plugintypes.GetMetricsDescriptionResponse, error) {
@@ -27,11 +28,7 @@ func (p Plugin) GetMetricsDescription(context.Context) (*plugintypes.GetMetricsD
 }
 
 func (p Plugin) GetMetrics(ctx context.Context, nodes []plugintypes.NodeRef) (*plugintypes.GetMetricsResponse, error) {
-	nodenames := make([]string, 0, len(nodes))
-	for _, node := range nodes {
-		nodenames = append(nodenames, node.Nodename)
-	}
-	infos, err := p.store.GetMulti(ctx, nodenames)
+	infos, err := p.store.GetMulti(ctx, utils.Map(nodes, func(node plugintypes.NodeRef) string { return node.Nodename }))
 	if err != nil {
 		return nil, err
 	}

@@ -38,10 +38,7 @@ func (r *runner) commands() []*cli.Command {
 	verbs := slices.DeleteFunc(slices.Concat(r.metricsCommands(), r.nodeCommands(), r.calculateCommands()), func(c *cli.Command) bool {
 		return slices.Contains(r.unsupported, c.Name)
 	})
-	names := make([]string, 0, len(verbs))
-	for _, verb := range verbs {
-		names = append(names, verb.Name)
-	}
+	names := utils.Map(verbs, func(verb *cli.Command) string { return verb.Name })
 	return slices.Concat(
 		[]*cli.Command{
 			r.command(nameCommand, "show plugin name", name),
