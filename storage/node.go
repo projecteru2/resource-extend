@@ -3,9 +3,7 @@ package storage
 import (
 	"context"
 	"fmt"
-	"runtime"
 	"slices"
-	"sync"
 
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
@@ -13,7 +11,6 @@ import (
 	coretypes "github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 	"github.com/sanity-io/litter"
-	"golang.org/x/sync/errgroup"
 
 	"github.com/projecteru2/resource-extend/storage/schedule"
 	storagetypes "github.com/projecteru2/resource-extend/storage/types"
@@ -83,23 +80,14 @@ func (p Plugin) GetNodesDeployCapacity(ctx context.Context, nodenames []string, 
 
 	nodesDeployCapacityMap := map[string]*plugintypes.NodeDeployCapacity{}
 	total := 0
-	var mu sync.Mutex
-	var g errgroup.Group
-	g.SetLimit(runtime.GOMAXPROCS(0))
 	for nodename, nodeResourceInfo := range nodesResourceInfos {
-		g.Go(func() error {
-			capacityInfo := p.doGetNodeDeployCapacity(nodeResourceInfo, req)
-			if capacityInfo.Capacity <= 0 {
-				return nil
-			}
-			mu.Lock()
-			defer mu.Unlock()
-			nodesDeployCapacityMap[nodename] = capacityInfo
-			total += capacityInfo.Capacity
-			return nil
-		})
+		capacityInfo := p.doGetNodeDeployCapacity(nodeResourceInfo, req)
+		if capacityInfo.Capacity <= 0 {
+			continue
+		}
+		nodesDeployCapacityMap[nodename] = capacityInfo
+		total += capacityInfo.Capacity
 	}
-	_ = g.Wait()
 
 	return &plugintypes.GetNodesDeployCapacityResponse{
 		NodeDeployCapacityMap: nodesDeployCapacityMap,
