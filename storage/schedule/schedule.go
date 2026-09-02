@@ -114,16 +114,13 @@ func (h *host) emptyPlans() ([]types.VolumePlan, []types.Disks) {
 }
 
 // disk entries mutate in place and are never replaced, so resolved paths stay valid for the host's lifetime
-func (h *host) getDiskByPath(path string) *types.Disk {
+func (h *host) getDiskByPath(path string) (*types.Disk, bool) {
 	disk, ok := h.diskByPath[path]
 	if !ok {
 		disk = h.disks.GetDiskByPath(path)
 		h.diskByPath[path] = disk
 	}
-	if disk == nil {
-		return &types.Disk{}
-	}
-	return disk
+	return disk, disk != nil
 }
 
 func (h *host) getMonoPlan(monoRequests types.VolumeBindings, volume *volume) (types.VolumePlan, *types.Disk, error) {
@@ -141,7 +138,7 @@ func (h *host) getMonoPlan(monoRequests types.VolumeBindings, volume *volume) (t
 	}
 
 	total := &types.VolumeBinding{SizeInBytes: totalSize, ReadIOPS: totalReadIOPS, WriteIOPS: totalWriteIOPS, ReadBPS: totalReadBPS, WriteBPS: totalWriteBPS}
-	disk := h.getDiskByPath(volume.device)
+	disk, _ := h.getDiskByPath(volume.device)
 	if !isDiskIOPSQuotaQualified(disk, total) {
 		return nil, nil, coretypes.ErrInsufficientResource
 	}
@@ -218,15 +215,15 @@ func (h *host) getNormalPlan(normalRequests types.VolumeBindings) (types.VolumeP
 
 		for vh.Len() > 0 {
 			volume := heap.Pop(&vh).(*volume)
-			disk := h.getDiskByPath(volume.device)
+			disk, _ := h.getDiskByPath(volume.device)
 			if volume.size < req.SizeInBytes || !isDiskIOPSQuotaQualified(disk, req) {
 				volumeToPush = append(volumeToPush, volume)
 				continue
 			}
-			decreaseIOPSQuota(disk, req)
 			volume.size -= req.SizeInBytes
 			volumePlan[req] = types.Volumes{volume.device: req.SizeInBytes}
 			if req.RequireIOPS() {
+				decreaseIOPSQuota(disk, req)
 				diskPlan.Add(types.Disks{req.DiskQuota(disk)})
 			}
 			allocated = true
@@ -294,7 +291,7 @@ func (h *host) applyMountPasses(mountRequests types.VolumeBindings, bound int) (
 		if !req.RequireIOPS() {
 			continue
 		}
-		disk := h.getDiskByPath(req.Source)
+		disk, _ := h.getDiskByPath(req.Source)
 		sum, ok := quotas[disk]
 		if !ok {
 			sum = &types.VolumeBinding{}
@@ -360,7 +357,7 @@ func (h *host) getMountDiskPlan(reqs types.VolumeBindings) (types.Disks, error) 
 		if !req.RequireIOPS() {
 			continue
 		}
-		disk := h.getDiskByPath(req.Source)
+		disk, _ := h.getDiskByPath(req.Source)
 		if !isDiskIOPSQuotaQualified(disk, req) {
 			return nil, coretypes.ErrInsufficientResource
 		}
@@ -585,8 +582,8 @@ func (h *host) getAffinityPlan(ctx context.Context, requests types.VolumeBinding
 	oldMountRequests := classifyVolumeBindings(originRequests).mount
 	for _, req := range oldMountRequests {
 		if req.RequireIOPS() {
-			disk := h.getDiskByPath(req.Source)
-			if disk.Device == "" {
+			disk, ok := h.getDiskByPath(req.Source)
+			if !ok {
 				err := errors.Wrapf(types.ErrInvalidVolume, "invalid path in the old mount requests: %s", req.Source)
 				logger.Errorf(ctx, err, "invalid path in the old mount requests: %s", req.Source)
 				return nil, nil, err
@@ -610,8 +607,8 @@ func (h *host) getAffinityPlan(ctx context.Context, requests types.VolumeBinding
 		}
 		volume.size += volumeMap.GetSize()
 		if req.RequireIOPS() {
-			disk := h.getDiskByPath(volume.device)
-			if disk.Device == "" {
+			disk, ok := h.getDiskByPath(volume.device)
+			if !ok {
 				logger.Errorf(ctx, types.ErrInvalidVolume, "invalid path: %s", volume.device)
 				return nil, nil, types.ErrInvalidVolume
 			}
@@ -635,7 +632,7 @@ func (h *host) getAffinityPlan(ctx context.Context, requests types.VolumeBinding
 			if !req.RequireIOPS() {
 				continue
 			}
-			disk := h.getDiskByPath(device)
+			disk, _ := h.getDiskByPath(device)
 			if !isDiskIOPSQuotaQualified(disk, req) {
 				logger.Errorf(ctx, coretypes.ErrInsufficientResource, "no IOPS quota to expand, %+v remains %+v, requires %+v", device, disk, req)
 				return coretypes.ErrInsufficientResource
@@ -726,6 +723,9 @@ func quotaHeadroom(disk *types.Disk, sum *types.VolumeBinding) int {
 }
 
 func isDiskIOPSQuotaQualified(disk *types.Disk, req *types.VolumeBinding) bool {
+	if disk == nil {
+		return !req.RequireIOPS()
+	}
 	return disk.ReadBPS >= req.ReadBPS && disk.WriteBPS >= req.WriteBPS && disk.ReadIOPS >= req.ReadIOPS && disk.WriteIOPS >= req.WriteIOPS
 }
 
