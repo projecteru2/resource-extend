@@ -169,7 +169,7 @@ func (h *host) getMonoPlan(monoRequests types.VolumeBindings, volume *volume) (t
 	return volumePlan, diskPlan, nil
 }
 
-func (h *host) getMonoPlans(monoRequests types.VolumeBindings) ([]types.VolumePlan, []types.Disks) {
+func (h *host) getMonoPlans(monoRequests types.VolumeBindings, bound int) ([]types.VolumePlan, []types.Disks) {
 	if len(monoRequests) == 0 {
 		return make([]types.VolumePlan, h.maxDeployCount), make([]types.Disks, h.maxDeployCount)
 	}
@@ -182,6 +182,9 @@ func (h *host) getMonoPlans(monoRequests types.VolumeBindings) ([]types.VolumePl
 
 	// h.unusedVolumes is sorted by size, so we can allocate the volumes in order
 	for _, volume := range h.unusedVolumes {
+		if len(volumePlans) >= bound {
+			break
+		}
 		volumePlan, diskPlan, err := h.getMonoPlan(monoRequests, volume)
 		if err != nil {
 			continue
@@ -401,7 +404,11 @@ func (h *host) getVolumePlans(ctx context.Context, requests types.VolumeBindings
 	getPlans := func() {
 		scratch := h.clone()
 		normalVolumePlans, normalDiskPlans := scratch.getNormalPlans(normalRequests, mountRequests, normalBound)
-		monoVolumePlans, monoDiskPlans := scratch.getMonoPlans(monoRequests)
+		monoBound := math.MaxInt
+		if len(unlimitedRequests) == 0 {
+			monoBound = max(h.maxDeployCount, len(normalVolumePlans)+1)
+		}
+		monoVolumePlans, monoDiskPlans := scratch.getMonoPlans(monoRequests, monoBound)
 		normalCapacity = len(normalVolumePlans)
 		monoCapacity = len(monoVolumePlans)
 		bestCapacity = min(normalCapacity, monoCapacity, h.maxDeployCount)
@@ -500,7 +507,7 @@ func (h *host) getVolumeCapacity(requests types.VolumeBindings) int {
 	getCapacities := func() {
 		scratch := h.clone()
 		normalCapacity = scratch.countNormalPlans(normalRequests, classes.mount, normalBound)
-		monoCapacity = scratch.countMonoPlans(monoRequests)
+		monoCapacity = scratch.countMonoPlans(monoRequests, max(h.maxDeployCount, normalCapacity+1))
 	}
 
 	getCapacities()
@@ -542,12 +549,15 @@ func (h *host) countNormalPlans(normalRequests, mountRequests types.VolumeBindin
 	return capacity
 }
 
-func (h *host) countMonoPlans(monoRequests types.VolumeBindings) int {
+func (h *host) countMonoPlans(monoRequests types.VolumeBindings, bound int) int {
 	if len(monoRequests) == 0 {
 		return h.maxDeployCount
 	}
 	capacity := 0
 	for _, volume := range h.unusedVolumes {
+		if capacity >= bound {
+			break
+		}
 		if _, _, err := h.getMonoPlan(monoRequests, volume); err == nil {
 			capacity++
 		}
