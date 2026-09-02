@@ -3,6 +3,7 @@ package storage
 import (
 	"testing"
 
+	plugintypes "github.com/projecteru2/core/resource/plugins/types"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -18,11 +19,12 @@ func TestGetMetricsDescription(t *testing.T) {
 func TestGetMetrics(t *testing.T) {
 	ctx := t.Context()
 	st := initStorage(ctx, t)
-	_, err := st.GetMetrics(ctx, "", "")
-	assert.Error(t, err)
+	unknown, err := st.GetMetrics(ctx, []plugintypes.NodeRef{{Podname: "testpod", Nodename: "never-seen"}})
+	assert.NoError(t, err)
+	assert.Len(t, *unknown, 2)
 
 	nodes := generateNodes(ctx, t, st, 1, defaultVols, 0)
-	m, err := st.GetMetrics(ctx, "testpod", nodes[0])
+	m, err := st.GetMetrics(ctx, []plugintypes.NodeRef{{Podname: "testpod", Nodename: nodes[0]}})
 	assert.NoError(t, err)
 	assert.Len(t, *m, 2)
 

@@ -11,9 +11,13 @@ core: exec <plugin-binary> <verb>          cwd = resource_plugin.dir
       exit 0
 ```
 
-Core reads the child's **combined** output, so a plugin must keep stdout free of anything but the JSON
-result. Errors go to stderr with a non-zero exit status; core then logs the whole combined output. The call
-is bounded by `resource_plugin.call_timeout`.
+Core reads stdout as the response and stderr as the plugin's log, so stdout carries nothing but the JSON
+result and an empty stdout is an error. On a non-zero exit core logs stderr with the failure. The call is
+bounded by `resource_plugin.call_timeout`.
+
+Core runs `verbs` once when it loads the plugin and never spawns it for a verb outside the answer; the
+plugin takes no part in that call. Both plugins leave out `calculate-remap`, which they have nothing to
+remap for.
 
 The plugin name core uses for a resource is the binary's file name, not anything the plugin reports. The
 `name` verb exists for humans.
@@ -23,8 +27,9 @@ The plugin name core uses for a resource is the binary's file name, not anything
 | Verb | Request keys | Response |
 |---|---|---|
 | `name` | — | the plugin name, as a JSON string |
+| `verbs` | — | array of the verbs this binary implements |
 | `get-metrics-description` | — | array of `{name, help, type, labels}` |
-| `get-metrics` | `podname`, `nodename` | array of `{name, labels, key, value}` |
+| `get-metrics` | `nodes`: array of `{podname, nodename}` | array of `{name, labels, key, value}` for every node |
 | `add-node` | `nodename`, `resource`, `info` | `{capacity, usage}` |
 | `remove-node` | `nodename` | `{}` |
 | `get-nodes-deploy-capacity` | `nodenames`, `workload_resource` | `{nodes_deploy_capacity_map, total}` |

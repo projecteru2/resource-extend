@@ -7,6 +7,7 @@ import (
 
 	"github.com/cockroachdb/errors"
 	enginetypes "github.com/projecteru2/core/engine/types"
+	"github.com/projecteru2/core/resource/plugins/binary"
 	binarytypes "github.com/projecteru2/core/resource/plugins/binary/types"
 	plugintypes "github.com/projecteru2/core/resource/plugins/types"
 	resourcetypes "github.com/projecteru2/core/resource/types"
@@ -126,7 +127,7 @@ func TestHandlersDecodeCoreRequest(t *testing.T) {
 		},
 		{
 			name: "get-metrics",
-			req:  &binarytypes.GetMetricsRequest{Podname: "pod0", Nodename: "node0"},
+			req:  &binarytypes.GetMetricsRequest{Nodes: []plugintypes.NodeRef{{Podname: "pod0", Nodename: "node0"}}},
 			run:  getMetrics,
 			check: func(t *testing.T, s *stubPlugin) {
 				assert.Equal(t, "pod0", s.podname)
@@ -181,6 +182,17 @@ func TestHandlersDecodeCoreRequest(t *testing.T) {
 			tt.check(t, s)
 		})
 	}
+}
+
+func TestVerbsLeaveOutTheUnsupportedOnes(t *testing.T) {
+	r := &runner{unsupported: []string{binary.CalculateRemapCommand}}
+	names := []string{}
+	for _, c := range r.commands() {
+		names = append(names, c.Name)
+	}
+	assert.Contains(t, names, verbsCommand)
+	assert.Contains(t, names, binary.CalculateDeployCommand)
+	assert.NotContains(t, names, binary.CalculateRemapCommand)
 }
 
 func TestHandlersRejectEmptyNodename(t *testing.T) {
@@ -310,8 +322,8 @@ func (s *stubPlugin) GetMetricsDescription(context.Context) (*plugintypes.GetMet
 	return &plugintypes.GetMetricsDescriptionResponse{}, s.err
 }
 
-func (s *stubPlugin) GetMetrics(_ context.Context, podname, nodename string) (*plugintypes.GetMetricsResponse, error) {
-	s.podname, s.nodename = podname, nodename
+func (s *stubPlugin) GetMetrics(_ context.Context, nodes []plugintypes.NodeRef) (*plugintypes.GetMetricsResponse, error) {
+	s.podname, s.nodename = nodes[0].Podname, nodes[0].Nodename
 	return &plugintypes.GetMetricsResponse{}, s.err
 }
 

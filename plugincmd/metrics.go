@@ -5,6 +5,7 @@ import (
 
 	"github.com/projecteru2/core/resource/plugins"
 	"github.com/projecteru2/core/resource/plugins/binary"
+	plugintypes "github.com/projecteru2/core/resource/plugins/types"
 	resourcetypes "github.com/projecteru2/core/resource/types"
 	"github.com/urfave/cli/v3"
 )
@@ -21,5 +22,9 @@ func getMetricsDescription(ctx context.Context, p plugins.Plugin, _ resourcetype
 }
 
 func getMetrics(ctx context.Context, p plugins.Plugin, in resourcetypes.RawParams) (any, error) {
-	return p.GetMetrics(ctx, in.String("podname"), in.String("nodename"))
+	nodes := []plugintypes.NodeRef{}
+	if err := resourcetypes.Decode(in["nodes"], &nodes); err != nil {
+		return nil, err
+	}
+	return p.GetMetrics(ctx, nodes)
 }

@@ -3,6 +3,7 @@ package gpu
 import (
 	"testing"
 
+	plugintypes "github.com/projecteru2/core/resource/plugins/types"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -18,11 +19,12 @@ func TestGetMetricsDescription(t *testing.T) {
 func TestGetMetrics(t *testing.T) {
 	ctx := t.Context()
 	cm := initGPU(ctx, t)
-	_, err := cm.GetMetrics(ctx, "", "")
-	assert.Error(t, err)
+	unknown, err := cm.GetMetrics(ctx, []plugintypes.NodeRef{{Podname: "testpod", Nodename: "never-seen"}})
+	assert.NoError(t, err)
+	assert.Empty(t, *unknown)
 
 	nodes := generateNodes(ctx, t, cm, 1, -1)
-	resp, err := cm.GetMetrics(ctx, "testpod", nodes[0])
+	resp, err := cm.GetMetrics(ctx, []plugintypes.NodeRef{{Podname: "testpod", Nodename: nodes[0]}})
 	assert.NoError(t, err)
 	for _, mt := range *resp {
 		assert.Len(t, mt.Labels, 3)

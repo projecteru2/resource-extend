@@ -18,8 +18,9 @@ import (
 )
 
 const (
-	nameCommand = "name"
-	exitCode    = 128
+	nameCommand  = "name"
+	verbsCommand = "verbs"
+	exitCode     = 128
 )
 
 // Factory builds the plugin a command tree drives.
@@ -28,16 +29,28 @@ type Factory func(ctx context.Context, config coretypes.Config) (plugins.Plugin,
 type handler func(ctx context.Context, p plugins.Plugin, in resourcetypes.RawParams) (any, error)
 
 type runner struct {
-	configPath string
-	newPlugin  Factory
+	configPath  string
+	newPlugin   Factory
+	unsupported []string
 }
 
 func (r *runner) commands() []*cli.Command {
+	verbs := slices.DeleteFunc(slices.Concat(r.metricsCommands(), r.nodeCommands(), r.calculateCommands()), func(c *cli.Command) bool {
+		return slices.Contains(r.unsupported, c.Name)
+	})
+	names := utils.Map(verbs, func(verb *cli.Command) string { return verb.Name })
 	return slices.Concat(
-		[]*cli.Command{r.command(nameCommand, "show plugin name", name)},
-		r.metricsCommands(),
-		r.nodeCommands(),
-		r.calculateCommands(),
+		[]*cli.Command{
+			r.command(nameCommand, "show plugin name", name),
+			{
+				Name:  verbsCommand,
+				Usage: "list the verbs this plugin implements",
+				Action: func(context.Context, *cli.Command) error {
+					return printJSON(names)
+				},
+			},
+		},
+		verbs,
 	)
 }
 
@@ -51,7 +64,6 @@ func (r *runner) command(name, usage string, h handler) *cli.Command {
 	}
 }
 
-// core merges the child stderr into stdout, so serve prints nothing but the result.
 func (r *runner) serve(ctx context.Context, h handler) error {
 	config, err := utils.LoadConfig(r.configPath)
 	if err != nil {
@@ -72,22 +84,16 @@ func (r *runner) serve(ctx context.Context, h handler) error {
 	if err != nil {
 		return cli.Exit(err, exitCode)
 	}
-
-	data, err := json.Marshal(out)
-	if err != nil {
-		return cli.Exit(err, exitCode)
-	}
-	fmt.Print(string(data))
-	return nil
+	return printJSON(out)
 }
 
-// Main runs the command tree of a resource plugin binary and exits on failure.
-func Main(name, usage, configPath string, newPlugin Factory) {
+// Main runs the command tree of a resource plugin binary and exits on failure; unsupported names the verbs the plugin leaves to others.
+func Main(name, usage, configPath string, newPlugin Factory, unsupported ...string) {
 	cli.VersionPrinter = func(_ *cli.Command) {
 		fmt.Print(version.String())
 	}
 
-	r := &runner{newPlugin: newPlugin}
+	r := &runner{newPlugin: newPlugin, unsupported: unsupported}
 	app := &cli.Command{
 		Name:    name,
 		Usage:   usage,
@@ -112,6 +118,15 @@ func Main(name, usage, configPath string, newPlugin Factory) {
 
 func name(_ context.Context, p plugins.Plugin, _ resourcetypes.RawParams) (any, error) {
 	return p.Name(), nil
+}
+
+func printJSON(out any) error {
+	data, err := json.Marshal(out)
+	if err != nil {
+		return cli.Exit(err, exitCode)
+	}
+	fmt.Print(string(data))
+	return nil
 }
 
 func nodename(in resourcetypes.RawParams) (string, error) {
