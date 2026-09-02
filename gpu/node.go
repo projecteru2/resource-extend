@@ -281,7 +281,6 @@ func (p Plugin) doGetNodeDeployCapacity(nodeResourceInfo *gputypes.NodeResourceI
 	return capacityInfo
 }
 
-// calculateNodeResource priority: node resource request > node resource > workload resource args list
 func (p Plugin) calculateNodeResource(req *gputypes.NodeResourceRequest, nodeResource, origin *gputypes.NodeResource, workloadsResource []*gputypes.WorkloadResource, delta, incr bool) *gputypes.NodeResource {
 	var resp *gputypes.NodeResource
 	if origin == nil || !delta {

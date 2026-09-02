@@ -320,7 +320,6 @@ func (p Plugin) doGetNodeDeployCapacity(nodeResourceInfo *storagetypes.NodeResou
 	return capacityInfo
 }
 
-// calculateNodeResource priority: node resource request > node resource > workload resource args list
 func (p Plugin) calculateNodeResource(req *storagetypes.NodeResourceRequest, nodeResource, origin *storagetypes.NodeResource, workloadsResource []*storagetypes.WorkloadResource, delta, incr bool) *storagetypes.NodeResource {
 	var resp *storagetypes.NodeResource
 	if origin == nil || !delta { // no delta means node resource rewrite with whole new data

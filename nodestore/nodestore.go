@@ -7,12 +7,11 @@ import (
 	"fmt"
 
 	"github.com/cockroachdb/errors"
-	clientv3 "go.etcd.io/etcd/client/v3"
-
 	"github.com/projecteru2/core/store/etcdv3/embedded"
 	"github.com/projecteru2/core/store/etcdv3/meta"
 	coretypes "github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
+	clientv3 "go.etcd.io/etcd/client/v3"
 )
 
 // Info is the per-node resource info a Store persists.
