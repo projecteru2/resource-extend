@@ -25,24 +25,33 @@ func (p Plugin) GetMetricsDescription(context.Context) (*plugintypes.GetMetricsD
 	}, nil
 }
 
-func (p Plugin) GetMetrics(ctx context.Context, podname, nodename string) (*plugintypes.GetMetricsResponse, error) {
-	nodeResourceInfo, err := p.store.Get(ctx, nodename)
+func (p Plugin) GetMetrics(ctx context.Context, nodes []plugintypes.NodeRef) (*plugintypes.GetMetricsResponse, error) {
+	nodenames := make([]string, 0, len(nodes))
+	for _, node := range nodes {
+		nodenames = append(nodenames, node.Nodename)
+	}
+	infos, err := p.store.GetMulti(ctx, nodenames)
 	if err != nil {
 		return nil, err
 	}
-	safeNodename := strings.ReplaceAll(nodename, ".", "_")
-	return &plugintypes.GetMetricsResponse{
-		{
-			Name:   "storage_used",
-			Labels: []string{podname, nodename},
-			Value:  fmt.Sprintf("%+v", nodeResourceInfo.Usage.Storage),
-			Key:    fmt.Sprintf("core.node.%s.storage.used", safeNodename),
-		},
-		{
-			Name:   "storage_capacity",
-			Labels: []string{podname, nodename},
-			Value:  fmt.Sprintf("%+v", nodeResourceInfo.Capacity.Storage),
-			Key:    fmt.Sprintf("core.node.%s.storage.capacity", safeNodename),
-		},
-	}, nil
+	metrics := plugintypes.GetMetricsResponse{}
+	for _, node := range nodes {
+		info := infos[node.Nodename]
+		safeNodename := strings.ReplaceAll(node.Nodename, ".", "_")
+		metrics = append(metrics,
+			&plugintypes.Metrics{
+				Name:   "storage_used",
+				Labels: []string{node.Podname, node.Nodename},
+				Value:  fmt.Sprintf("%+v", info.Usage.Storage),
+				Key:    fmt.Sprintf("core.node.%s.storage.used", safeNodename),
+			},
+			&plugintypes.Metrics{
+				Name:   "storage_capacity",
+				Labels: []string{node.Podname, node.Nodename},
+				Value:  fmt.Sprintf("%+v", info.Capacity.Storage),
+				Key:    fmt.Sprintf("core.node.%s.storage.capacity", safeNodename),
+			},
+		)
+	}
+	return &metrics, nil
 }
