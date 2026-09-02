@@ -63,6 +63,12 @@ define them; it implements them.
   its own snapshot there: the GPU snapshot already has the request shape, and the storage plugin recognizes
   a request carrying `volumes`, `disks` and `storage` in their stored form and restores it verbatim.
 
+## Locking
+
+Every mutating verb is a read-modify-write on the node's record with no compare-and-swap. Core serializes
+them by holding the node's operation lock around every call that writes a plugin's usage or capacity, and
+that lock is the whole guarantee: two writers on one node from outside core lose one update.
+
 ## Error handling
 
 Any verb may fail. The plugin exits with status 128, and core surfaces the failure to the caller.

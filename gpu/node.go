@@ -4,7 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"math"
+	"slices"
 
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
@@ -188,7 +190,8 @@ func (p Plugin) GetMostIdleNode(ctx context.Context, nodenames []string) (*plugi
 		return nil, err
 	}
 
-	for nodename, nodeResourceInfo := range nodesResourceInfo {
+	for _, nodename := range slices.Sorted(maps.Keys(nodesResourceInfo)) {
+		nodeResourceInfo := nodesResourceInfo[nodename]
 		idle := utils.AdvancedDivide(float64(nodeResourceInfo.UsageCount()), float64(nodeResourceInfo.CapCount()))
 		if idle < minIdle {
 			mostIdleNode = nodename

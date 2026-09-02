@@ -46,7 +46,7 @@ products in one request the node capacity is the smallest of those quotients. A 
 GPUs at all leaves the node effectively unbounded — the plugin reports a capacity of 1000000, so GPU never
 becomes the limiting resource for a workload that does not want a card.
 
-`get-most-idle-node` picks the node with the lowest `usage / capacity` card ratio and reports priority 100,
+`get-most-idle-node` picks the node with the lowest `usage / capacity` card ratio, the first by name on a tie, and reports priority 100,
 which makes GPU the dominant voice when core weighs plugins for a build node.
 
 ## Realloc

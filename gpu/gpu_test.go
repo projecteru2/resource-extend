@@ -9,6 +9,7 @@ import (
 	enginetypes "github.com/projecteru2/core/engine/types"
 	plugintypes "github.com/projecteru2/core/resource/plugins/types"
 	"github.com/projecteru2/core/store/etcdv3/embedded"
+	"github.com/projecteru2/core/store/etcdv3/meta"
 	coretypes "github.com/projecteru2/core/types"
 	"github.com/stretchr/testify/assert"
 
@@ -34,7 +35,9 @@ func initGPU(ctx context.Context, t *testing.T) *Plugin {
 	cluster, err := embedded.New(t.TempDir())
 	assert.NoError(t, err)
 	t.Cleanup(cluster.Close)
-	cm, err := NewPlugin(ctx, config, cluster)
+	kv, err := meta.NewETCD(ctx, config.Etcd, cluster)
+	assert.NoError(t, err)
+	cm := &Plugin{store: newStore(kv)}
 	assert.NoError(t, err)
 	return cm
 }

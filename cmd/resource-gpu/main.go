@@ -14,6 +14,6 @@ import (
 func main() {
 	plugincmd.Main("resource-gpu", "Run eru resource GPU plugin", "gpu.yaml",
 		func(ctx context.Context, config coretypes.Config) (plugins.Plugin, error) {
-			return gpu.NewPlugin(ctx, config, nil)
+			return gpu.NewPlugin(ctx, config)
 		}, binary.CalculateRemapCommand)
 }

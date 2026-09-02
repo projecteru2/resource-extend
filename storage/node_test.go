@@ -8,6 +8,7 @@ import (
 	plugintypes "github.com/projecteru2/core/resource/plugins/types"
 	resourcetypes "github.com/projecteru2/core/resource/types"
 	"github.com/projecteru2/core/store/etcdv3/embedded"
+	"github.com/projecteru2/core/store/etcdv3/meta"
 	coretypes "github.com/projecteru2/core/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -380,15 +381,6 @@ func BenchmarkDoGetNodeDeployCapacity(b *testing.B) {
 	}
 }
 
-func parseNodeResource(t *testing.T, raw resourcetypes.RawParams) *types.NodeResource {
-	t.Helper()
-	r := &types.NodeResource{}
-	if err := r.Parse(raw); err != nil {
-		t.Fatalf("parse node resource: %v", err)
-	}
-	return r
-}
-
 func BenchmarkGetNodesDeployCapacityScaling(b *testing.B) {
 	for _, nodes := range []int{10, 100, 500} {
 		b.Run(fmt.Sprintf("nodes=%d", nodes), func(b *testing.B) {
@@ -399,10 +391,11 @@ func BenchmarkGetNodesDeployCapacityScaling(b *testing.B) {
 				b.Fatal(err)
 			}
 			b.Cleanup(cluster.Close)
-			st, err := NewPlugin(ctx, config, cluster)
+			kv, err := meta.NewETCD(ctx, config.Etcd, cluster)
 			if err != nil {
 				b.Fatal(err)
 			}
+			st := &Plugin{config: config, store: newStore(kv)}
 			names := make([]string, 0, nodes)
 			for name, req := range generateNodeResourceRequests(nodes, defaultVols, 0) {
 				if _, err := st.AddNode(ctx, name, req, &enginetypes.Info{StorageTotal: tb}); err != nil {
@@ -419,4 +412,13 @@ func BenchmarkGetNodesDeployCapacityScaling(b *testing.B) {
 			}
 		})
 	}
+}
+
+func parseNodeResource(t *testing.T, raw resourcetypes.RawParams) *types.NodeResource {
+	t.Helper()
+	r := &types.NodeResource{}
+	if err := r.Parse(raw); err != nil {
+		t.Fatalf("parse node resource: %v", err)
+	}
+	return r
 }

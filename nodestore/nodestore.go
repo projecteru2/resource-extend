@@ -7,7 +7,6 @@ import (
 	"fmt"
 
 	"github.com/cockroachdb/errors"
-	"github.com/projecteru2/core/store/etcdv3/embedded"
 	"github.com/projecteru2/core/store/etcdv3/meta"
 	coretypes "github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
@@ -22,23 +21,23 @@ type Info interface {
 // Factory allocates an empty Info to decode a stored value into.
 type Factory[T Info] func() T
 
+// KV is the part of an etcd client a Store uses.
+type KV interface {
+	Get(ctx context.Context, key string, opts ...clientv3.OpOption) (*clientv3.GetResponse, error)
+	Put(ctx context.Context, key, value string) (*clientv3.PutResponse, error)
+	Delete(ctx context.Context, key string) (*clientv3.DeleteResponse, error)
+}
+
 // Store reads and writes node resource info under one etcd key namespace.
 type Store[T Info] struct {
-	kv      meta.KV
+	kv      KV
 	keyFmt  string
 	newInfo Factory[T]
 }
 
-// New opens the store behind keyFmt, a key template with one node name verb.
-func New[T Info](ctx context.Context, config coretypes.Config, keyFmt string, newInfo Factory[T], embeddedETCD *embedded.Cluster) (*Store[T], error) {
-	if embeddedETCD == nil && len(config.Etcd.Machines) < 1 {
-		return nil, coretypes.ErrConfigInvaild
-	}
-	kv, err := meta.NewETCD(ctx, config.Etcd, embeddedETCD)
-	if err != nil {
-		return nil, err
-	}
-	return &Store[T]{kv: kv, keyFmt: keyFmt, newInfo: newInfo}, nil
+// New builds the store behind keyFmt, a key template with one node name verb, on an opened kv.
+func New[T Info](kv KV, keyFmt string, newInfo Factory[T]) *Store[T] {
+	return &Store[T]{kv: kv, keyFmt: keyFmt, newInfo: newInfo}
 }
 
 // Get returns the resource info of one node, ErrNodeNotExists when it has none.
@@ -123,4 +122,12 @@ func (s *Store[T]) CheckAbsent(ctx context.Context, nodename string) error {
 
 func (s *Store[T]) key(nodename string) string {
 	return fmt.Sprintf(s.keyFmt, nodename)
+}
+
+// Open connects to the etcd the plugin config names.
+func Open(ctx context.Context, config coretypes.Config) (KV, error) {
+	if len(config.Etcd.Machines) < 1 {
+		return nil, coretypes.ErrConfigInvaild
+	}
+	return meta.NewETCD(ctx, config.Etcd, nil)
 }
