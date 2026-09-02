@@ -25,9 +25,7 @@ type Plugin struct {
 }
 
 func NewPlugin(ctx context.Context, config coretypes.Config, embeddedETCD *embedded.Cluster) (*Plugin, error) {
-	store, err := nodestore.New(ctx, config, nodeResourceInfoKey, func() *gputypes.NodeResourceInfo {
-		return &gputypes.NodeResourceInfo{Capacity: gputypes.NewNodeResource(nil), Usage: gputypes.NewNodeResource(nil)}
-	}, embeddedETCD)
+	store, err := nodestore.New(ctx, config, nodeResourceInfoKey, gputypes.NewNodeResourceInfo, embeddedETCD)
 	if err != nil {
 		log.WithFunc("resource.gpu.NewPlugin").Error(ctx, err)
 		return nil, err

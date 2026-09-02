@@ -52,6 +52,10 @@ type NodeResourceInfo struct {
 	Usage    *NodeResource `json:"usage"`
 }
 
+func NewNodeResourceInfo() *NodeResourceInfo {
+	return &NodeResourceInfo{Capacity: NewNodeResource(nil), Usage: NewNodeResource(nil)}
+}
+
 func (n *NodeResourceInfo) CapCount() int {
 	return n.Capacity.Count()
 }

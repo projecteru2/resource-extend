@@ -37,11 +37,9 @@ func (p Plugin) AddNode(ctx context.Context, nodename string, resource plugintyp
 	}
 
 	nodeResourceInfo := storagetypes.NewNodeResourceInfo()
-	nodeResourceInfo.Capacity = &storagetypes.NodeResource{
-		Volumes: req.Volumes,
-		Storage: req.Storage,
-		Disks:   req.Disks,
-	}
+	nodeResourceInfo.Capacity.Volumes = req.Volumes
+	nodeResourceInfo.Capacity.Storage = req.Storage
+	nodeResourceInfo.Capacity.Disks = req.Disks
 
 	if err := p.store.Put(ctx, nodename, nodeResourceInfo); err != nil {
 		return nil, err
