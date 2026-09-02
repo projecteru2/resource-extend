@@ -5,7 +5,6 @@ import (
 
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/resource/plugins"
-	"github.com/projecteru2/core/store/etcdv3/embedded"
 	coretypes "github.com/projecteru2/core/types"
 
 	gputypes "github.com/projecteru2/resource-extend/gpu/types"
@@ -24,15 +23,19 @@ type Plugin struct {
 	store *nodestore.Store[*gputypes.NodeResourceInfo]
 }
 
-func NewPlugin(ctx context.Context, config coretypes.Config, embeddedETCD *embedded.Cluster) (*Plugin, error) {
-	store, err := nodestore.New(ctx, config, nodeResourceInfoKey, gputypes.NewNodeResourceInfo, embeddedETCD)
+func (p Plugin) Name() string {
+	return name
+}
+
+func NewPlugin(ctx context.Context, config coretypes.Config) (*Plugin, error) {
+	kv, err := nodestore.Open(ctx, config)
 	if err != nil {
 		log.WithFunc("resource.gpu.NewPlugin").Error(ctx, err)
 		return nil, err
 	}
-	return &Plugin{store: store}, nil
+	return &Plugin{store: newStore(kv)}, nil
 }
 
-func (p Plugin) Name() string {
-	return name
+func newStore(kv nodestore.KV) *nodestore.Store[*gputypes.NodeResourceInfo] {
+	return nodestore.New(kv, nodeResourceInfoKey, gputypes.NewNodeResourceInfo)
 }

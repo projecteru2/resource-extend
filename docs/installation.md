@@ -57,7 +57,9 @@ plugin by hand.
 
 ## Verifying
 
-Every verb reads JSON from stdin and writes JSON to stdout, so a plugin can be exercised directly:
+Every verb reads JSON from stdin and writes JSON to stdout, so a plugin can be exercised directly. Read
+verbs are safe at any time; run a verb that writes only against a node core is not scheduling on, since
+core's node lock is what keeps the record consistent (see `docs/protocol.md`):
 
 ```bash
 cd /etc/eru/plugins
