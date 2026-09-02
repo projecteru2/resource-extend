@@ -411,7 +411,7 @@ func (h *host) getVolumePlans(ctx context.Context, requests types.VolumeBindings
 
 	getPlans()
 
-	for monoCapacity > normalCapacity {
+	for monoCapacity > normalCapacity && normalCapacity < h.maxDeployCount {
 		p, _ := slices.BinarySearchFunc(h.unusedVolumes, minNormalRequestSize, compareVolumeSize)
 		if p == len(h.unusedVolumes) {
 			break
@@ -505,7 +505,7 @@ func (h *host) getVolumeCapacity(requests types.VolumeBindings) int {
 
 	getCapacities()
 
-	for monoCapacity > normalCapacity {
+	for monoCapacity > normalCapacity && normalCapacity < h.maxDeployCount {
 		p, _ := slices.BinarySearchFunc(h.unusedVolumes, minNormalRequestSize, compareVolumeSize)
 		if p == len(h.unusedVolumes) {
 			break
