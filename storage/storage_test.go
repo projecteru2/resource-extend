@@ -25,7 +25,7 @@ var defaultVols = []string{"/data0:1T", "/data1:1T", "/data2:1T", "/data3:1T"}
 
 func TestName(t *testing.T) {
 	st := initStorage(t.Context(), t)
-	assert.Equal(t, name, st.Name())
+	assert.Equal(t, Name, st.Name())
 }
 
 func initStorage(ctx context.Context, t *testing.T) *Plugin {

@@ -33,7 +33,7 @@ func (p Plugin) AddNode(ctx context.Context, nodename string, resource plugintyp
 	}
 	capacity := gputypes.NewNodeResource(req.ProdCountMap)
 	if info != nil && capacity.Count() == 0 {
-		if b, ok := info.Resources[name]; ok {
+		if b, ok := info.Resources[Name]; ok {
 			if err := json.Unmarshal(b, capacity); err != nil {
 				return nil, err
 			}

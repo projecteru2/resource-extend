@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	name                = "storage"
+	Name                = "storage"
 	rate                = 8
 	nodeResourceInfoKey = "/resource/storage/%s"
 	priority            = 1
@@ -26,7 +26,7 @@ type Plugin struct {
 }
 
 func (p Plugin) Name() string {
-	return name
+	return Name
 }
 
 func NewPlugin(ctx context.Context, config coretypes.Config) (*Plugin, error) {
