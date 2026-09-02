@@ -2,12 +2,12 @@ package storage
 
 import (
 	"fmt"
-	"github.com/projecteru2/core/store/etcdv3/embedded"
 	"testing"
 
 	enginetypes "github.com/projecteru2/core/engine/types"
 	plugintypes "github.com/projecteru2/core/resource/plugins/types"
 	resourcetypes "github.com/projecteru2/core/resource/types"
+	"github.com/projecteru2/core/store/etcdv3/embedded"
 	coretypes "github.com/projecteru2/core/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
