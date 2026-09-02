@@ -32,7 +32,7 @@ func (p Plugin) GetMetrics(ctx context.Context, nodes []plugintypes.NodeRef) (*p
 	if err != nil {
 		return nil, err
 	}
-	metrics := plugintypes.GetMetricsResponse{}
+	metrics := make(plugintypes.GetMetricsResponse, 0, 2*len(nodes))
 	for _, node := range nodes {
 		info := infos[node.Nodename]
 		safeNodename := strings.ReplaceAll(node.Nodename, ".", "_")
