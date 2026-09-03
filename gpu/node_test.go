@@ -1,6 +1,7 @@
 package gpu
 
 import (
+	"context"
 	"testing"
 
 	enginetypes "github.com/projecteru2/core/engine/types"
@@ -8,8 +9,10 @@ import (
 	resourcetypes "github.com/projecteru2/core/resource/types"
 	coretypes "github.com/projecteru2/core/types"
 	"github.com/stretchr/testify/assert"
+	clientv3 "go.etcd.io/etcd/client/v3"
 
 	"github.com/projecteru2/resource-extend/gpu/types"
+	"github.com/projecteru2/resource-extend/nodestore"
 )
 
 const gb = 1000 * 1000 * 1000
@@ -347,6 +350,18 @@ func TestGetAndFixNodeResourceInfo(t *testing.T) {
 	assert.Equal(t, usage.Count(), 2)
 }
 
+func TestFixNodeResourceReturnsPutError(t *testing.T) {
+	ctx := t.Context()
+	cm, kv := initGPUWithKV(ctx, t)
+	node := generateNodes(ctx, t, cm, 1, 0)[0]
+	cm.store = newStore(putErrorKV{KV: kv})
+
+	_, err := cm.FixNodeResource(ctx, node, []plugintypes.WorkloadResource{{
+		"prod_count_map": types.ProdCountMap{"nvidia-3070": 1},
+	}})
+	assert.ErrorIs(t, err, assert.AnError)
+}
+
 func TestSetNodeResourceInfo(t *testing.T) {
 	ctx := t.Context()
 	cm := initGPU(ctx, t)
@@ -529,6 +544,14 @@ func TestGetMostIdleNode(t *testing.T) {
 	r, err = cm.GetMostIdleNode(ctx, nodes)
 	assert.NoError(t, err)
 	assert.Contains(t, nodes, r.Nodename)
+}
+
+type putErrorKV struct {
+	nodestore.KV
+}
+
+func (putErrorKV) Put(context.Context, string, string) (*clientv3.PutResponse, error) {
+	return nil, assert.AnError
 }
 
 func parseNodeResource(t *testing.T, raw resourcetypes.RawParams) *types.NodeResource {
