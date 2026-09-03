@@ -2,7 +2,6 @@ package gpu
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"maps"
 	"math"
@@ -19,7 +18,7 @@ import (
 
 const maxCapacity = 1000000
 
-func (p Plugin) AddNode(ctx context.Context, nodename string, resource plugintypes.NodeResourceRequest, info *enginetypes.Info) (*plugintypes.AddNodeResponse, error) {
+func (p Plugin) AddNode(ctx context.Context, nodename string, resource plugintypes.NodeResourceRequest, _ *enginetypes.Info) (*plugintypes.AddNodeResponse, error) {
 	if err := p.store.CheckAbsent(ctx, nodename); err != nil {
 		return nil, err
 	}
@@ -31,16 +30,8 @@ func (p Plugin) AddNode(ctx context.Context, nodename string, resource plugintyp
 	if err := req.Validate(); err != nil {
 		return nil, err
 	}
-	capacity := gputypes.NewNodeResource(req.ProdCountMap)
-	if info != nil && capacity.Count() == 0 {
-		if b, ok := info.Resources[Name]; ok {
-			if err := json.Unmarshal(b, capacity); err != nil {
-				return nil, err
-			}
-		}
-	}
 	nodeResourceInfo := &gputypes.NodeResourceInfo{
-		Capacity: capacity,
+		Capacity: gputypes.NewNodeResource(req.ProdCountMap),
 		Usage:    gputypes.NewNodeResource(nil),
 	}
 

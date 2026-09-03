@@ -27,14 +27,13 @@ func TestHandlersDecodeCoreRequest(t *testing.T) {
 			req: &binarytypes.AddNodeRequest{
 				Nodename: "node0",
 				Resource: plugintypes.NodeResource{"prod_count_map": map[string]int{"nvidia-3070": 2}},
-				Info:     &enginetypes.Info{NCPU: 8, StorageTotal: 1024, Resources: map[string][]byte{"gpu": []byte(`{"a":1}`)}},
+				Info:     &enginetypes.Info{NCPU: 8, StorageTotal: 1024},
 			},
 			run: addNode,
 			check: func(t *testing.T, s *stubPlugin) {
 				assert.Equal(t, "node0", s.nodename)
 				assert.Equal(t, 8, s.info.NCPU)
 				assert.Equal(t, int64(1024), s.info.StorageTotal)
-				assert.Equal(t, []byte(`{"a":1}`), s.info.Resources["gpu"])
 				assert.NotNil(t, s.resourceRequest["prod_count_map"])
 			},
 		},

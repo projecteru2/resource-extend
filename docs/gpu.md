@@ -35,9 +35,8 @@ eru-cli node add --extra-resources '{"resource-gpu":{"prod_count_map":{"nvidia-3
 The request key `resource-gpu` is the plugin binary's file name — core names a plugin after the file it
 executes, not after what the plugin's `name` subcommand reports.
 
-If the request carries no cards, the plugin falls back to the engine's own report: when core passes node
-info whose `Resources["gpu"]` holds a JSON node resource, that becomes the capacity. This is how a node that
-reports its own GPUs gets them registered without an operator typing counts.
+A request that carries no cards registers a node with no GPU capacity; the engine's node report carries
+no GPU information.
 
 ## Deploy capacity
 
