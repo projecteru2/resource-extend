@@ -3,7 +3,10 @@ package storage
 import (
 	"context"
 	"fmt"
+	"maps"
+	"runtime"
 	"slices"
+	"sync"
 
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
@@ -76,14 +79,26 @@ func (p Plugin) GetNodesDeployCapacity(ctx context.Context, nodenames []string, 
 		return nil, err
 	}
 
+	names := slices.Collect(maps.Keys(nodesResourceInfos))
+	capacityInfos := make([]*plugintypes.NodeDeployCapacity, len(names))
+	workers := min(runtime.GOMAXPROCS(0), len(names))
+	var wg sync.WaitGroup
+	for worker := range workers {
+		wg.Go(func() {
+			for i := worker; i < len(names); i += workers {
+				capacityInfos[i] = p.doGetNodeDeployCapacity(nodesResourceInfos[names[i]], req)
+			}
+		})
+	}
+	wg.Wait()
+
 	nodesDeployCapacityMap := map[string]*plugintypes.NodeDeployCapacity{}
 	total := 0
-	for nodename, nodeResourceInfo := range nodesResourceInfos {
-		capacityInfo := p.doGetNodeDeployCapacity(nodeResourceInfo, req)
+	for i, capacityInfo := range capacityInfos {
 		if capacityInfo.Capacity <= 0 {
 			continue
 		}
-		nodesDeployCapacityMap[nodename] = capacityInfo
+		nodesDeployCapacityMap[names[i]] = capacityInfo
 		total += capacityInfo.Capacity
 	}
 

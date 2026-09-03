@@ -27,7 +27,7 @@ Four kinds of binding fall out of that:
 | Kind | Condition | Placement |
 |---|---|---|
 | mount | source is a real path | not placed; only its IOPS quota is charged to the covering disk |
-| normal | `AUTO` with a size | placed on a used device large enough, smallest first |
+| normal | `AUTO` with a size or IOPS | placed on a used device large enough, smallest first |
 | monopoly | `AUTO` with flag `m` and a positive size | takes an unused device to itself; several monopoly bindings share one device proportionally |
 | unlimited | `AUTO`, size 0 and no IOPS | placed on the device with the most free space, charged nothing |
 
@@ -55,11 +55,11 @@ executes, not after what the plugin's `name` subcommand reports.
 Every storage size takes either form — the human string `"80G"` or the plain byte count `85899345920` — here
 and in a workload's `storage`, `storage-request` and `storage-limit`.
 
-When a node is added with no `storage` value, the plugin takes 80% of the engine's reported total storage.
-In absolute mode (`delta` false) any key left out of the request keeps its stored value rather than being
-reset to zero. An absolute request carrying `volumes`, `disks` and `storage` in their stored form — the
-`before` snapshot of an earlier call — is recognized as core rolling back and restores the capacity
-verbatim.
+When a node is added with no `storage` value and no `volumes`, the plugin takes 80% of the engine's reported
+total storage. In absolute mode (`delta` false) any key left out of the request keeps its stored value rather
+than being reset to zero. An absolute request carrying `volumes`, `disks` and `storage` in their stored
+form — the `before` snapshot of an earlier call — is recognized as core rolling back and restores the
+capacity verbatim.
 
 ## How a plan is built
 

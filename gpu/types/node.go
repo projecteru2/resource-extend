@@ -7,7 +7,7 @@ import (
 )
 
 type NodeResource struct {
-	ProdCountMap ProdCountMap `json:"prod_count_map"`
+	ProdCountMap `json:"prod_count_map"`
 }
 
 func NewNodeResource(prodCountMap ProdCountMap) *NodeResource {
@@ -17,18 +17,8 @@ func NewNodeResource(prodCountMap ProdCountMap) *NodeResource {
 	return &NodeResource{ProdCountMap: prodCountMap}
 }
 
-func (r *NodeResource) AsRawParams() resourcetypes.RawParams {
-	return resourcetypes.RawParams{
-		prodCountMapKey: r.ProdCountMap,
-	}
-}
-
 func (r *NodeResource) Parse(rawParams resourcetypes.RawParams) error {
 	return resourcetypes.Decode(rawParams, r)
-}
-
-func (r *NodeResource) Validate() error {
-	return r.ProdCountMap.Validate()
 }
 
 func (r *NodeResource) DeepCopy() *NodeResource {
@@ -41,10 +31,6 @@ func (r *NodeResource) Add(r1 *NodeResource) {
 
 func (r *NodeResource) Sub(r1 *NodeResource) {
 	r.ProdCountMap.Sub(r1.ProdCountMap)
-}
-
-func (r *NodeResource) Count() int {
-	return r.ProdCountMap.TotalCount()
 }
 
 type NodeResourceInfo struct {
@@ -82,7 +68,7 @@ func (n *NodeResourceInfo) GetAvailableResource() *NodeResource {
 }
 
 type NodeResourceRequest struct {
-	ProdCountMap ProdCountMap `json:"prod_count_map"`
+	ProdCountMap `json:"prod_count_map"`
 }
 
 func (n *NodeResourceRequest) Parse(rawParams resourcetypes.RawParams) error {
@@ -93,10 +79,6 @@ func (n *NodeResourceRequest) Parse(rawParams resourcetypes.RawParams) error {
 		n.ProdCountMap = ProdCountMap{}
 	}
 	return nil
-}
-
-func (n *NodeResourceRequest) Validate() error {
-	return n.ProdCountMap.Validate()
 }
 
 func (n *NodeResourceRequest) LoadFromOrigin(nodeResource *NodeResource, resourceRequest resourcetypes.RawParams) {

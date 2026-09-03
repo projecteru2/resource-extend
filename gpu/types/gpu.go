@@ -5,11 +5,18 @@ import (
 	"strings"
 
 	"github.com/cockroachdb/errors"
+	resourcetypes "github.com/projecteru2/core/resource/types"
 )
 
 const prodCountMapKey = "prod_count_map"
 
 type ProdCountMap map[string]int
+
+func (pcm ProdCountMap) AsRawParams() resourcetypes.RawParams {
+	return resourcetypes.RawParams{
+		prodCountMapKey: pcm,
+	}
+}
 
 func (pcm ProdCountMap) Validate() error {
 	for prod, count := range pcm {
@@ -23,6 +30,7 @@ func (pcm ProdCountMap) Validate() error {
 	return nil
 }
 
+// in order to support realloc, the count can be negative, so only validate prod here
 func (pcm ProdCountMap) ValidateProd() error {
 	for prod := range pcm {
 		if strings.TrimSpace(prod) == "" {
@@ -56,7 +64,7 @@ func (pcm ProdCountMap) DeepCopy() ProdCountMap {
 	return cp
 }
 
-func (pcm ProdCountMap) TotalCount() int {
+func (pcm ProdCountMap) Count() int {
 	totalCount := 0
 	for _, count := range pcm {
 		totalCount += count

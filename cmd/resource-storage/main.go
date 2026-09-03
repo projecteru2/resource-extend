@@ -12,7 +12,7 @@ import (
 )
 
 func main() {
-	plugincmd.Main("resource-storage", "Run eru resource storage plugin", "storage.yaml",
+	plugincmd.Main("resource-storage", storage.Name, "Run eru resource storage plugin", "storage.yaml",
 		func(ctx context.Context, config coretypes.Config) (plugins.Plugin, error) {
 			return storage.NewPlugin(ctx, config)
 		}, binary.CalculateRemapCommand)

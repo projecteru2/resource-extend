@@ -3,6 +3,7 @@ package storage
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 
 	plugintypes "github.com/projecteru2/core/resource/plugins/types"
@@ -31,7 +32,7 @@ func (p Plugin) GetMetrics(ctx context.Context, nodes []plugintypes.NodeRef) (*p
 	if err != nil {
 		return nil, err
 	}
-	metrics := plugintypes.GetMetricsResponse{}
+	metrics := make(plugintypes.GetMetricsResponse, 0, 2*len(nodes))
 	for _, node := range nodes {
 		info := infos[node.Nodename]
 		safeNodename := strings.ReplaceAll(node.Nodename, ".", "_")
@@ -39,13 +40,13 @@ func (p Plugin) GetMetrics(ctx context.Context, nodes []plugintypes.NodeRef) (*p
 			&plugintypes.Metrics{
 				Name:   "storage_used",
 				Labels: []string{node.Podname, node.Nodename},
-				Value:  fmt.Sprintf("%+v", info.Usage.Storage),
+				Value:  strconv.FormatInt(info.Usage.Storage, 10),
 				Key:    fmt.Sprintf("core.node.%s.storage.used", safeNodename),
 			},
 			&plugintypes.Metrics{
 				Name:   "storage_capacity",
 				Labels: []string{node.Podname, node.Nodename},
-				Value:  fmt.Sprintf("%+v", info.Capacity.Storage),
+				Value:  strconv.FormatInt(info.Capacity.Storage, 10),
 				Key:    fmt.Sprintf("core.node.%s.storage.capacity", safeNodename),
 			},
 		)

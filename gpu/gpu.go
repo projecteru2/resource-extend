@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	name                = "gpu"
+	Name                = "gpu"
 	nodeResourceInfoKey = "/resource/gpu/%s"
 	priority            = 100
 )
@@ -24,7 +24,7 @@ type Plugin struct {
 }
 
 func (p Plugin) Name() string {
-	return name
+	return Name
 }
 
 func NewPlugin(ctx context.Context, config coretypes.Config) (*Plugin, error) {

@@ -30,6 +30,7 @@ type handler func(ctx context.Context, p plugins.Plugin, in resourcetypes.RawPar
 
 type runner struct {
 	configPath  string
+	pluginName  string
 	newPlugin   Factory
 	unsupported []string
 }
@@ -41,7 +42,13 @@ func (r *runner) commands() []*cli.Command {
 	names := utils.Map(verbs, func(verb *cli.Command) string { return verb.Name })
 	return slices.Concat(
 		[]*cli.Command{
-			r.command(nameCommand, "show plugin name", name),
+			{
+				Name:  nameCommand,
+				Usage: "show plugin name",
+				Action: func(context.Context, *cli.Command) error {
+					return printJSON(r.pluginName)
+				},
+			},
 			{
 				Name:  verbsCommand,
 				Usage: "list the verbs this plugin implements",
@@ -88,14 +95,14 @@ func (r *runner) serve(ctx context.Context, h handler) error {
 }
 
 // Main runs the command tree of a resource plugin binary and exits on failure; unsupported names the verbs the plugin leaves to others.
-func Main(name, usage, configPath string, newPlugin Factory, unsupported ...string) {
+func Main(binaryName, pluginName, usage, configPath string, newPlugin Factory, unsupported ...string) {
 	cli.VersionPrinter = func(_ *cli.Command) {
 		fmt.Print(version.String())
 	}
 
-	r := &runner{newPlugin: newPlugin, unsupported: unsupported}
+	r := &runner{pluginName: pluginName, newPlugin: newPlugin, unsupported: unsupported}
 	app := &cli.Command{
-		Name:    name,
+		Name:    binaryName,
 		Usage:   usage,
 		Version: version.VERSION,
 		Flags: []cli.Flag{
@@ -114,10 +121,6 @@ func Main(name, usage, configPath string, newPlugin Factory, unsupported ...stri
 		cli.HandleExitCoder(err)
 		os.Exit(1)
 	}
-}
-
-func name(_ context.Context, p plugins.Plugin, _ resourcetypes.RawParams) (any, error) {
-	return p.Name(), nil
 }
 
 func printJSON(out any) error {

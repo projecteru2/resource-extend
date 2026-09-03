@@ -14,7 +14,7 @@ eru-core
    │                ├─ exec ./resource-gpu     <verb>  <── JSON ──> gpu.yaml
    │                └─ exec ./resource-storage <verb>  <── JSON ──> storage.yaml
    │                                  │
-   └──────────────────────────────────┴──► etcd  /resource/{gpu,storage}/<node>
+   └──────────────────────────────────┴──► etcd  <etcd.prefix>/resource/{gpu,storage}/<node>
 ```
 
 Both binaries come from one Go module:

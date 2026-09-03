@@ -5,13 +5,7 @@ import (
 )
 
 type EngineParams struct {
-	ProdCountMap ProdCountMap `json:"prod_count_map"`
-}
-
-func (ep *EngineParams) AsRawParams() resourcetypes.RawParams {
-	return resourcetypes.RawParams{
-		prodCountMapKey: ep.ProdCountMap,
-	}
+	ProdCountMap `json:"prod_count_map"`
 }
 
 func (ep *EngineParams) Parse(rawParams resourcetypes.RawParams) error {
