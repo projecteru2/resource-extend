@@ -105,7 +105,8 @@ is core's signal that the workload has to be recreated rather than updated in pl
 
 `get-node-resource-info` recomputes node usage from the workload resources core passes in and reports every
 disagreement: storage totals, per-volume sizes, and per-disk IOPS/BPS. `fix-node-resource` writes the
-recomputed usage back when anything differs.
+recomputed usage back when anything differs; a write that fails fails the verb, so core keeps its repair
+entry and replays it.
 
 ## Metrics
 

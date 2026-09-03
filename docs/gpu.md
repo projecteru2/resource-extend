@@ -68,7 +68,8 @@ disappears from the map. The response also carries the delta, which core applies
 `get-node-resource-info` compares stored node usage against the sum of the workload resources core passes
 in, and reports every mismatch as a human-readable diff line — a total that disagrees, a product present in
 the workloads but missing from usage, or a per-product count that differs. `fix-node-resource` runs the same
-comparison and, when anything differs, overwrites node usage with the sum computed from the workloads.
+comparison and, when anything differs, overwrites node usage with the sum computed from the workloads; a
+write that fails fails the verb, so core keeps its repair entry and replays it.
 
 ## Metrics
 
