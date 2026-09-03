@@ -11,6 +11,8 @@ import (
 	"github.com/projecteru2/core/store/etcdv3/meta"
 	coretypes "github.com/projecteru2/core/types"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/projecteru2/resource-extend/nodestore"
 )
 
 const (
@@ -29,6 +31,11 @@ func TestName(t *testing.T) {
 }
 
 func initStorage(ctx context.Context, t *testing.T) *Plugin {
+	st, _ := initStorageWithKV(ctx, t)
+	return st
+}
+
+func initStorageWithKV(ctx context.Context, t *testing.T) (*Plugin, nodestore.KV) {
 	config := coretypes.Config{
 		Etcd: coretypes.EtcdConfig{
 			Prefix: "/storage",
@@ -46,8 +53,7 @@ func initStorage(ctx context.Context, t *testing.T) *Plugin {
 	kv, err := meta.NewETCD(ctx, config.Etcd, cluster)
 	assert.NoError(t, err)
 	st := &Plugin{config: config, store: newStore(kv)}
-	assert.NoError(t, err)
-	return st
+	return st, kv
 }
 
 func generateNodes(ctx context.Context, t *testing.T, st *Plugin, nums int, vols []string, index int) []string {

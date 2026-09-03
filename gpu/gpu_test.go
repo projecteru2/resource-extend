@@ -14,6 +14,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/projecteru2/resource-extend/gpu/types"
+	"github.com/projecteru2/resource-extend/nodestore"
 )
 
 func TestName(t *testing.T) {
@@ -22,6 +23,11 @@ func TestName(t *testing.T) {
 }
 
 func initGPU(ctx context.Context, t *testing.T) *Plugin {
+	cm, _ := initGPUWithKV(ctx, t)
+	return cm
+}
+
+func initGPUWithKV(ctx context.Context, t *testing.T) (*Plugin, nodestore.KV) {
 	config := coretypes.Config{
 		Etcd: coretypes.EtcdConfig{
 			Prefix: "/gpu",
@@ -38,8 +44,7 @@ func initGPU(ctx context.Context, t *testing.T) *Plugin {
 	kv, err := meta.NewETCD(ctx, config.Etcd, cluster)
 	assert.NoError(t, err)
 	cm := &Plugin{store: newStore(kv)}
-	assert.NoError(t, err)
-	return cm
+	return cm, kv
 }
 
 func generateNodes(ctx context.Context, t *testing.T, cm *Plugin, nums, index int) []string {

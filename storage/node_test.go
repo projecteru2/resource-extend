@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
@@ -12,7 +13,9 @@ import (
 	coretypes "github.com/projecteru2/core/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	clientv3 "go.etcd.io/etcd/client/v3"
 
+	"github.com/projecteru2/resource-extend/nodestore"
 	"github.com/projecteru2/resource-extend/storage/types"
 )
 
@@ -364,6 +367,16 @@ func TestFixNodeResource(t *testing.T) {
 	assert.Equal(t, int64(1), parseNodeResource(t, d.Usage).Storage)
 }
 
+func TestFixNodeResourceReturnsPutError(t *testing.T) {
+	ctx := t.Context()
+	st, kv := initStorageWithKV(ctx, t)
+	node := generateNodes(ctx, t, st, 1, defaultVols, 0)[0]
+	st.store = newStore(putErrorKV{KV: kv})
+
+	_, err := st.FixNodeResource(ctx, node, []plugintypes.WorkloadResource{{"storage_request": 1}})
+	assert.ErrorIs(t, err, assert.AnError)
+}
+
 func BenchmarkDoGetNodeDeployCapacity(b *testing.B) {
 	plugin := Plugin{config: coretypes.Config{Scheduler: coretypes.SchedulerConfig{MaxDeployCount: 10000}}}
 	nodeResourceInfo := &types.NodeResourceInfo{
@@ -412,6 +425,14 @@ func BenchmarkGetNodesDeployCapacityScaling(b *testing.B) {
 			}
 		})
 	}
+}
+
+type putErrorKV struct {
+	nodestore.KV
+}
+
+func (putErrorKV) Put(context.Context, string, string) (*clientv3.PutResponse, error) {
+	return nil, assert.AnError
 }
 
 func parseNodeResource(t *testing.T, raw resourcetypes.RawParams) *types.NodeResource {

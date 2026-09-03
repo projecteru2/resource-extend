@@ -207,7 +207,7 @@ func (p Plugin) FixNodeResource(ctx context.Context, nodename string, workloadsR
 		}
 		if err = p.store.Put(ctx, nodename, nodeResourceInfo); err != nil {
 			log.WithFunc("resource.gpu.FixNodeResource").Error(ctx, err)
-			diffs = append(diffs, err.Error())
+			return nil, err
 		}
 	}
 	return &plugintypes.GetNodeResourceInfoResponse{
