@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/projecteru2/core/utils"
+	resourcetypes "github.com/projecteru2/core/resource/types"
 )
 
 type Disk struct {
@@ -35,10 +35,10 @@ func (d *Disk) Parse(s string) (err error) {
 	if d.WriteIOPS, err = strconv.ParseInt(parts[3], 10, 64); err != nil {
 		return err
 	}
-	if d.ReadBPS, err = utils.ParseRAMInHuman(parts[4]); err != nil {
+	if d.ReadBPS, err = resourcetypes.ParseRAMInHuman(parts[4]); err != nil {
 		return err
 	}
-	if d.WriteBPS, err = utils.ParseRAMInHuman(parts[5]); err != nil {
+	if d.WriteBPS, err = resourcetypes.ParseRAMInHuman(parts[5]); err != nil {
 		return err
 	}
 	return nil

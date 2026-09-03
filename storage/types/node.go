@@ -7,7 +7,6 @@ import (
 
 	"github.com/cockroachdb/errors"
 	resourcetypes "github.com/projecteru2/core/resource/types"
-	"github.com/projecteru2/core/utils"
 )
 
 type NodeResource struct {
@@ -159,7 +158,7 @@ func (n *NodeResourceRequest) Parse(rawParams resourcetypes.RawParams) (err erro
 			return errors.Wrap(ErrInvalidVolume, "volume should have 2 parts")
 		}
 
-		size, parseErr := utils.ParseRAMInHuman(parts[1])
+		size, parseErr := resourcetypes.ParseRAMInHuman(parts[1])
 		if parseErr != nil {
 			return parseErr
 		}
