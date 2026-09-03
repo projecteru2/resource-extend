@@ -53,9 +53,8 @@ define them; it implements them.
   where the resource holds numbers (`"1T"` against `1099511627776`).
 - **`workloads_resource`** — an array of workload resources, one per workload on the node. Used to
   recompute usage and to report diffs.
-- **`info`** — the engine's node report, marshalled from core's `enginetypes.Info`. Its `Resources` field is
-  a map of resource name to raw bytes — `gpu`, the name the plugin reports, not the binary's file name —
-  which is how a node can declare its own resources at add time.
+- **`info`** — the engine's node report, marshalled from core's `enginetypes.Info`: engine type, node id,
+  cpu count, memory and storage totals.
 - **`delta` / `incr`** — `delta` false means the value replaces what is stored, true means it is applied to
   it; `incr` picks addition or subtraction. When `delta` is false the plugins force addition, because the
   absolute value is what was asked for.

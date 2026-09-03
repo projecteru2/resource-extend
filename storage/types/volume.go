@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"github.com/cockroachdb/errors"
-	"github.com/projecteru2/core/utils"
+	resourcetypes "github.com/projecteru2/core/resource/types"
 )
 
 const auto = "AUTO"
@@ -40,7 +40,7 @@ func NewVolumeBinding(volume string) (*VolumeBinding, error) {
 
 	vb := &VolumeBinding{Source: parts[0], Destination: parts[1]}
 	for i, ptr := range []*int64{&vb.SizeInBytes, &vb.ReadIOPS, &vb.WriteIOPS, &vb.ReadBPS, &vb.WriteBPS} {
-		value, err := utils.ParseRAMInHuman(parts[i+3])
+		value, err := resourcetypes.ParseRAMInHuman(parts[i+3])
 		if err != nil {
 			return nil, err
 		}

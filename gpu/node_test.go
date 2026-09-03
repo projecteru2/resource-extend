@@ -1,7 +1,6 @@
 package gpu
 
 import (
-	"encoding/json"
 	"testing"
 
 	enginetypes "github.com/projecteru2/core/engine/types"
@@ -47,28 +46,6 @@ func TestAddNode(t *testing.T) {
 	assert.Nil(t, err)
 	cv = parseNodeResource(t, r.Capacity)
 	assert.Equal(t, cv.Count(), 2)
-
-	nRes := types.NodeResource{
-		ProdCountMap: types.ProdCountMap{
-			"nvidia-3070": 2,
-		},
-	}
-	data, err := json.Marshal(&nRes)
-	assert.Nil(t, err)
-	eInfo := &enginetypes.Info{
-		Resources: map[string][]byte{
-			"gpu": data,
-		},
-	}
-	r, err = cm.AddNode(ctx, "xxx1", nil, eInfo)
-	assert.Nil(t, err)
-
-	nr, err = cm.GetNodeResourceInfo(ctx, "xxx1", nil)
-	assert.Nil(t, err)
-	cv = parseNodeResource(t, nr.Capacity)
-	assert.Equal(t, cv.Count(), 2)
-	assert.NotNil(t, cv.ProdCountMap)
-	cm.RemoveNode(ctx, "xxx1")
 }
 
 func TestRemoveNode(t *testing.T) {
