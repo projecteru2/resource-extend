@@ -31,7 +31,6 @@ func addNode(ctx context.Context, p plugins.Plugin, in resourcetypes.RawParams) 
 	if err != nil {
 		return nil, err
 	}
-	// enginetypes.Info carries []byte resources, so it only round-trips through JSON.
 	info := &enginetypes.Info{}
 	if err := resourcetypes.Decode(in.RawParams("info"), info); err != nil {
 		return nil, err
