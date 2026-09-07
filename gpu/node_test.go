@@ -93,107 +93,119 @@ func TestGetNodesDeployCapacity(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Empty(t, r.NodeDeployCapacityMap)
 
-	r, err = cm.GetNodesDeployCapacity(ctx, nodes, nil)
-	assert.Nil(t, err)
-	assert.Equal(t, 2*maxCapacity, r.Total)
-	for _, node := range nodes {
-		nodeCap := r.NodeDeployCapacityMap[node]
-		assert.Equal(t, maxCapacity, nodeCap.Capacity)
-	}
-
-	r, err = cm.GetNodesDeployCapacity(ctx, nodes, req)
-	assert.Nil(t, err)
-	assert.Equal(t, 4, r.Total)
-
-	req = plugintypes.WorkloadResourceRequest{
-		"prod_count_map": types.ProdCountMap{
-			"nvidia-3070": 3,
+	tests := []struct {
+		name         string
+		req          plugintypes.WorkloadResourceRequest
+		wantTotal    int
+		wantCapacity int
+		wantEmpty    bool
+	}{
+		{
+			name:         "no request uses full capacity",
+			wantTotal:    2 * maxCapacity,
+			wantCapacity: maxCapacity,
+		},
+		{
+			name: "single gpu model request",
+			req: plugintypes.WorkloadResourceRequest{
+				"prod_count_map": types.ProdCountMap{
+					"nvidia-3070": 2,
+				},
+			},
+			wantTotal: 4,
+		},
+		{
+			name: "single gpu model request near node limit",
+			req: plugintypes.WorkloadResourceRequest{
+				"prod_count_map": types.ProdCountMap{
+					"nvidia-3070": 3,
+				},
+			},
+			wantTotal:    2,
+			wantCapacity: 1,
+		},
+		{
+			name: "single gpu model request exceeding capacity",
+			req: plugintypes.WorkloadResourceRequest{
+				"prod_count_map": types.ProdCountMap{
+					"nvidia-3070": 5,
+				},
+			},
+			wantTotal: 0,
+			wantEmpty: true,
+		},
+		{
+			name: "two gpu models at minimum count",
+			req: plugintypes.WorkloadResourceRequest{
+				"prod_count_map": types.ProdCountMap{
+					"nvidia-3070": 1,
+					"nvidia-3090": 1,
+				},
+			},
+			wantTotal:    8,
+			wantCapacity: 4,
+		},
+		{
+			name: "two gpu models with unequal counts",
+			req: plugintypes.WorkloadResourceRequest{
+				"prod_count_map": types.ProdCountMap{
+					"nvidia-3070": 1,
+					"nvidia-3090": 2,
+				},
+			},
+			wantTotal:    4,
+			wantCapacity: 2,
+		},
+		{
+			name: "two gpu models with equal counts",
+			req: plugintypes.WorkloadResourceRequest{
+				"prod_count_map": types.ProdCountMap{
+					"nvidia-3070": 2,
+					"nvidia-3090": 2,
+				},
+			},
+			wantTotal:    4,
+			wantCapacity: 2,
+		},
+		{
+			name: "two gpu models near node limit",
+			req: plugintypes.WorkloadResourceRequest{
+				"prod_count_map": types.ProdCountMap{
+					"nvidia-3070": 4,
+					"nvidia-3090": 4,
+				},
+			},
+			wantTotal:    2,
+			wantCapacity: 1,
+		},
+		{
+			name: "two gpu models exceeding capacity",
+			req: plugintypes.WorkloadResourceRequest{
+				"prod_count_map": types.ProdCountMap{
+					"nvidia-3070": 5,
+					"nvidia-3090": 4,
+				},
+			},
+			wantTotal: 0,
+			wantEmpty: true,
 		},
 	}
-	r, err = cm.GetNodesDeployCapacity(ctx, nodes, req)
-	assert.Nil(t, err)
-	assert.Equal(t, 2, r.Total)
-	for _, node := range nodes {
-		nodeCap := r.NodeDeployCapacityMap[node]
-		assert.Equal(t, 1, nodeCap.Capacity)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r, err := cm.GetNodesDeployCapacity(ctx, nodes, tt.req)
+			assert.Nil(t, err)
+			assert.Equal(t, tt.wantTotal, r.Total)
+			if tt.wantEmpty {
+				assert.Len(t, r.NodeDeployCapacityMap, 0)
+			}
+			if tt.wantCapacity != 0 {
+				for _, node := range nodes {
+					nodeCap := r.NodeDeployCapacityMap[node]
+					assert.Equal(t, tt.wantCapacity, nodeCap.Capacity)
+				}
+			}
+		})
 	}
-
-	req = plugintypes.WorkloadResourceRequest{
-		"prod_count_map": types.ProdCountMap{
-			"nvidia-3070": 5,
-		},
-	}
-	r, err = cm.GetNodesDeployCapacity(ctx, nodes, req)
-	assert.Nil(t, err)
-	assert.Equal(t, 0, r.Total)
-	assert.Len(t, r.NodeDeployCapacityMap, 0)
-
-	req = plugintypes.WorkloadResourceRequest{
-		"prod_count_map": types.ProdCountMap{
-			"nvidia-3070": 1,
-			"nvidia-3090": 1,
-		},
-	}
-	r, err = cm.GetNodesDeployCapacity(ctx, nodes, req)
-	assert.Nil(t, err)
-	assert.Equal(t, 8, r.Total)
-	for _, node := range nodes {
-		nodeCap := r.NodeDeployCapacityMap[node]
-		assert.Equal(t, 4, nodeCap.Capacity)
-	}
-
-	req = plugintypes.WorkloadResourceRequest{
-		"prod_count_map": types.ProdCountMap{
-			"nvidia-3070": 1,
-			"nvidia-3090": 2,
-		},
-	}
-	r, err = cm.GetNodesDeployCapacity(ctx, nodes, req)
-	assert.Nil(t, err)
-	assert.Equal(t, 4, r.Total)
-	for _, node := range nodes {
-		nodeCap := r.NodeDeployCapacityMap[node]
-		assert.Equal(t, 2, nodeCap.Capacity)
-	}
-
-	req = plugintypes.WorkloadResourceRequest{
-		"prod_count_map": types.ProdCountMap{
-			"nvidia-3070": 2,
-			"nvidia-3090": 2,
-		},
-	}
-	r, err = cm.GetNodesDeployCapacity(ctx, nodes, req)
-	assert.Nil(t, err)
-	assert.Equal(t, 4, r.Total)
-	for _, node := range nodes {
-		nodeCap := r.NodeDeployCapacityMap[node]
-		assert.Equal(t, 2, nodeCap.Capacity)
-	}
-
-	req = plugintypes.WorkloadResourceRequest{
-		"prod_count_map": types.ProdCountMap{
-			"nvidia-3070": 4,
-			"nvidia-3090": 4,
-		},
-	}
-	r, err = cm.GetNodesDeployCapacity(ctx, nodes, req)
-	assert.Nil(t, err)
-	assert.Equal(t, 2, r.Total)
-	for _, node := range nodes {
-		nodeCap := r.NodeDeployCapacityMap[node]
-		assert.Equal(t, 1, nodeCap.Capacity)
-	}
-
-	req = plugintypes.WorkloadResourceRequest{
-		"prod_count_map": types.ProdCountMap{
-			"nvidia-3070": 5,
-			"nvidia-3090": 4,
-		},
-	}
-	r, err = cm.GetNodesDeployCapacity(ctx, nodes, req)
-	assert.Nil(t, err)
-	assert.Equal(t, 0, r.Total)
-	assert.Len(t, r.NodeDeployCapacityMap, 0)
 }
 
 func TestGetNodesDeployCapacityTreatsAnUnknownNodeAsEmpty(t *testing.T) {
