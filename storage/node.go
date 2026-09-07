@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"cmp"
 	"context"
 	"fmt"
 	"maps"
@@ -293,10 +294,7 @@ func (p Plugin) getNodeResourceInfo(ctx context.Context, nodename string, worklo
 		}
 	}
 	for _, disk := range nodeResourceInfo.Usage.Disks {
-		d := usage.disks.GetDiskByDevice(disk.Device)
-		if d == nil {
-			d = &storagetypes.Disk{Device: disk.Device}
-		}
+		d := cmp.Or(usage.disks.GetDiskByDevice(disk.Device), &storagetypes.Disk{Device: disk.Device})
 		d.Mounts = disk.Mounts
 		computedDisk := d.String()
 		storedDisk := disk.String()
