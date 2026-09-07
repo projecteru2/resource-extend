@@ -176,7 +176,7 @@ func (n *NodeResourceRequest) Parse(rawParams resourcetypes.RawParams) (err erro
 	for _, rawDiskStr := range n.RawParams.StringSlice("disks") {
 		disk := &Disk{}
 		if err = disk.Parse(rawDiskStr); err != nil {
-			return errors.Wrapf(ErrInvalidDisk, "wrong disk format: %+v, %+v", rawDiskStr, err)
+			return errors.Wrapf(errors.Join(ErrInvalidDisk, err), "wrong disk format: %s", rawDiskStr)
 		}
 		disks = append(disks, disk)
 	}

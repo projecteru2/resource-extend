@@ -108,155 +108,135 @@ func TestCalculateRealloc(t *testing.T) {
 		assert.Nil(t, err)
 		return ep, wr, dwr
 	}
-	d, err := cm.CalculateRealloc(ctx, node, nil, nil)
-	assert.Nil(t, err)
-	eParams, wResource, dResource := parse(d)
-	assert.Equal(t, eParams.Count(), 0)
-	assert.Equal(t, wResource.Count(), 0)
-	assert.Equal(t, dResource.Count(), 0)
-	origin = plugintypes.WorkloadResource{
-		"prod_count_map": types.ProdCountMap{
-			"nvidia-3090": 1,
+	tests := []struct {
+		name               string
+		origin             plugintypes.WorkloadResource
+		req                plugintypes.WorkloadResourceRequest
+		wantEParamsCount   int
+		wantEParamsMap     types.ProdCountMap
+		wantWResourceCount int
+		wantWResourceMap   types.ProdCountMap
+		wantDResourceCount int
+		wantDResourceMap   types.ProdCountMap
+	}{
+		{
+			name: "no origin and no request",
+		},
+		{
+			name: "origin only",
+			origin: plugintypes.WorkloadResource{
+				"prod_count_map": types.ProdCountMap{
+					"nvidia-3090": 1,
+				},
+			},
+			wantEParamsCount:   1,
+			wantEParamsMap:     types.ProdCountMap{"nvidia-3090": 1},
+			wantWResourceCount: 1,
+			wantWResourceMap:   types.ProdCountMap{"nvidia-3090": 1},
+		},
+		{
+			name: "request scales up the existing model",
+			origin: plugintypes.WorkloadResource{
+				"prod_count_map": types.ProdCountMap{
+					"nvidia-3090": 1,
+				},
+			},
+			req: plugintypes.WorkloadResourceRequest{
+				"prod_count_map": types.ProdCountMap{
+					"nvidia-3090": 2,
+				},
+			},
+			wantEParamsCount:   3,
+			wantWResourceCount: 3,
+			wantWResourceMap:   types.ProdCountMap{"nvidia-3090": 3},
+			wantDResourceCount: 2,
+			wantDResourceMap:   types.ProdCountMap{"nvidia-3090": 2},
+		},
+		{
+			name: "request adds a second model",
+			origin: plugintypes.WorkloadResource{
+				"prod_count_map": types.ProdCountMap{
+					"nvidia-3090": 1,
+				},
+			},
+			req: plugintypes.WorkloadResourceRequest{
+				"prod_count_map": types.ProdCountMap{
+					"nvidia-3090": 1,
+					"nvidia-3070": 1,
+				},
+			},
+			wantEParamsCount:   3,
+			wantEParamsMap:     types.ProdCountMap{"nvidia-3070": 1, "nvidia-3090": 2},
+			wantWResourceCount: 3,
+			wantWResourceMap:   types.ProdCountMap{"nvidia-3070": 1, "nvidia-3090": 2},
+			wantDResourceCount: 2,
+			wantDResourceMap:   types.ProdCountMap{"nvidia-3070": 1, "nvidia-3090": 1},
+		},
+		{
+			name: "request scales down the existing model while adding another",
+			origin: plugintypes.WorkloadResource{
+				"prod_count_map": types.ProdCountMap{
+					"nvidia-3090": 1,
+				},
+			},
+			req: plugintypes.WorkloadResourceRequest{
+				"prod_count_map": types.ProdCountMap{
+					"nvidia-3090": -1,
+					"nvidia-3070": 1,
+				},
+			},
+			wantEParamsCount:   1,
+			wantWResourceCount: 1,
+			wantWResourceMap:   types.ProdCountMap{"nvidia-3070": 1},
+			wantDResourceMap:   types.ProdCountMap{"nvidia-3070": 1, "nvidia-3090": -1},
+		},
+		{
+			name: "request scale-down below zero is clamped",
+			origin: plugintypes.WorkloadResource{
+				"prod_count_map": types.ProdCountMap{
+					"nvidia-3090": 1,
+				},
+			},
+			req: plugintypes.WorkloadResourceRequest{
+				"prod_count_map": types.ProdCountMap{
+					"nvidia-3090": -5,
+					"nvidia-3070": 1,
+				},
+			},
+			wantEParamsCount:   1,
+			wantWResourceCount: 1,
+			wantWResourceMap:   types.ProdCountMap{"nvidia-3070": 1},
+			wantDResourceMap:   types.ProdCountMap{"nvidia-3070": 1, "nvidia-3090": -1},
 		},
 	}
-	d, err = cm.CalculateRealloc(ctx, node, origin, nil)
-	assert.Nil(t, err)
-	eParams, wResource, dResource = parse(d)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			d, err := cm.CalculateRealloc(ctx, node, tt.origin, tt.req)
+			assert.Nil(t, err)
+			eParams, wResource, dResource := parse(d)
 
-	assert.Equal(t, eParams.Count(), 1)
-	count, ok := eParams.ProdCountMap["nvidia-3090"]
-	assert.True(t, ok)
-	assert.Equal(t, count, 1)
+			assert.Equal(t, tt.wantEParamsCount, eParams.Count())
+			for k, v := range tt.wantEParamsMap {
+				count, ok := eParams.ProdCountMap[k]
+				assert.True(t, ok)
+				assert.Equal(t, v, count)
+			}
 
-	assert.Equal(t, wResource.Count(), 1)
-	count, ok = wResource.ProdCountMap["nvidia-3090"]
-	assert.True(t, ok)
-	assert.Equal(t, count, 1)
+			assert.Equal(t, tt.wantWResourceCount, wResource.Count())
+			for k, v := range tt.wantWResourceMap {
+				count, ok := wResource.ProdCountMap[k]
+				assert.True(t, ok)
+				assert.Equal(t, v, count)
+			}
 
-	assert.Equal(t, dResource.Count(), 0)
-	origin = plugintypes.WorkloadResource{
-		"prod_count_map": types.ProdCountMap{
-			"nvidia-3090": 1,
-		},
+			assert.Equal(t, tt.wantDResourceCount, dResource.Count())
+			for k, v := range tt.wantDResourceMap {
+				count, ok := dResource.ProdCountMap[k]
+				assert.True(t, ok)
+				assert.Equal(t, v, count)
+			}
+		})
 	}
-
-	req = plugintypes.WorkloadResourceRequest{
-		"prod_count_map": types.ProdCountMap{
-			"nvidia-3090": 2,
-		},
-	}
-	d, err = cm.CalculateRealloc(ctx, node, origin, req)
-	assert.Nil(t, err)
-	eParams, wResource, dResource = parse(d)
-	assert.Equal(t, eParams.Count(), 3)
-	assert.Equal(t, wResource.Count(), 3)
-	assert.Equal(t, dResource.Count(), 2)
-
-	count, ok = wResource.ProdCountMap["nvidia-3090"]
-	assert.True(t, ok)
-	assert.Equal(t, count, 3)
-
-	count, ok = dResource.ProdCountMap["nvidia-3090"]
-	assert.True(t, ok)
-	assert.Equal(t, count, 2)
-	origin = plugintypes.WorkloadResource{
-		"prod_count_map": types.ProdCountMap{
-			"nvidia-3090": 1,
-		},
-	}
-	req = plugintypes.WorkloadResourceRequest{
-		"prod_count_map": types.ProdCountMap{
-			"nvidia-3090": 1,
-			"nvidia-3070": 1,
-		},
-	}
-
-	d, err = cm.CalculateRealloc(ctx, node, origin, req)
-	assert.Nil(t, err)
-	eParams, wResource, dResource = parse(d)
-
-	assert.Equal(t, eParams.Count(), 3)
-	count, ok = eParams.ProdCountMap["nvidia-3070"]
-	assert.True(t, ok)
-	assert.Equal(t, count, 1)
-	count, ok = eParams.ProdCountMap["nvidia-3090"]
-	assert.True(t, ok)
-	assert.Equal(t, count, 2)
-
-	assert.Equal(t, wResource.Count(), 3)
-	count, ok = wResource.ProdCountMap["nvidia-3070"]
-	assert.True(t, ok)
-	assert.Equal(t, count, 1)
-	count, ok = wResource.ProdCountMap["nvidia-3090"]
-	assert.True(t, ok)
-	assert.Equal(t, count, 2)
-
-	assert.Equal(t, dResource.Count(), 2)
-	count, ok = dResource.ProdCountMap["nvidia-3070"]
-	assert.True(t, ok)
-	assert.Equal(t, count, 1)
-	count, ok = dResource.ProdCountMap["nvidia-3090"]
-	assert.True(t, ok)
-	assert.Equal(t, count, 1)
-
-	origin = plugintypes.WorkloadResource{
-		"prod_count_map": types.ProdCountMap{
-			"nvidia-3090": 1,
-		},
-	}
-	req = plugintypes.WorkloadResourceRequest{
-		"prod_count_map": types.ProdCountMap{
-			"nvidia-3090": -1,
-			"nvidia-3070": 1,
-		},
-	}
-
-	d, err = cm.CalculateRealloc(ctx, node, origin, req)
-	assert.Nil(t, err)
-	eParams, wResource, dResource = parse(d)
-
-	assert.Equal(t, eParams.Count(), 1)
-	assert.Equal(t, wResource.Count(), 1)
-	count, ok = wResource.ProdCountMap["nvidia-3070"]
-	assert.True(t, ok)
-	assert.Equal(t, count, 1)
-
-	assert.Equal(t, dResource.Count(), 0)
-	count, ok = dResource.ProdCountMap["nvidia-3070"]
-	assert.True(t, ok)
-	assert.Equal(t, count, 1)
-	count, ok = dResource.ProdCountMap["nvidia-3090"]
-	assert.True(t, ok)
-	assert.Equal(t, count, -1)
-	origin = plugintypes.WorkloadResource{
-		"prod_count_map": types.ProdCountMap{
-			"nvidia-3090": 1,
-		},
-	}
-	req = plugintypes.WorkloadResourceRequest{
-		"prod_count_map": types.ProdCountMap{
-			"nvidia-3090": -5,
-			"nvidia-3070": 1,
-		},
-	}
-
-	d, err = cm.CalculateRealloc(ctx, node, origin, req)
-	assert.Nil(t, err)
-	eParams, wResource, dResource = parse(d)
-
-	assert.Equal(t, eParams.Count(), 1)
-	assert.Equal(t, wResource.Count(), 1)
-	count, ok = wResource.ProdCountMap["nvidia-3070"]
-	assert.True(t, ok)
-	assert.Equal(t, count, 1)
-
-	assert.Equal(t, dResource.Count(), 0)
-	count, ok = dResource.ProdCountMap["nvidia-3070"]
-	assert.True(t, ok)
-	assert.Equal(t, count, 1)
-	count, ok = dResource.ProdCountMap["nvidia-3090"]
-	assert.True(t, ok)
-	assert.Equal(t, count, -1)
 }
 
 func TestCalculateRemap(t *testing.T) {
