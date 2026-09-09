@@ -743,17 +743,16 @@ func classifyVolumeBindings(volumeBindings types.VolumeBindings) requestClasses 
 }
 
 func classifyAffinityRequests(requests types.VolumeBindings, existing types.VolumePlan) (affinity map[*types.VolumeBinding]types.Volumes, nonAffinity types.VolumeBindings) {
+	existingVolumes := make(map[[3]string]types.Volumes, len(existing))
+	for binding, volumeMap := range existing {
+		existingVolumes[binding.GetMapKey()] = volumeMap
+	}
+
 	affinity = map[*types.VolumeBinding]types.Volumes{}
 	for _, req := range requests {
-		found := false
-		for binding, volumeMap := range existing {
-			if req.Source == binding.Source && req.Destination == binding.Destination && req.Flags == binding.Flags {
-				affinity[req] = volumeMap
-				found = true
-				break
-			}
-		}
-		if !found {
+		if volumeMap, ok := existingVolumes[req.GetMapKey()]; ok {
+			affinity[req] = volumeMap
+		} else {
 			nonAffinity = append(nonAffinity, req)
 		}
 	}

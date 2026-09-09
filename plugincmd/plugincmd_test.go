@@ -159,18 +159,6 @@ func TestHandlersDecodeCoreRequest(t *testing.T) {
 				assert.Equal(t, "1G", s.workloadResourceRequest["storage"])
 			},
 		},
-		{
-			name: "calculate-remap",
-			req: &binarytypes.CalculateRemapRequest{
-				Nodename:          "node0",
-				WorkloadsResource: map[string]plugintypes.WorkloadResource{"wrk0": {"storage_request": 1}},
-			},
-			run: calculateRemap,
-			check: func(t *testing.T, s *stubPlugin) {
-				assert.Len(t, s.workloadsResourceMap, 1)
-				assert.Equal(t, float64(1), s.workloadsResourceMap["wrk0"]["storage_request"])
-			},
-		},
 	}
 
 	for _, tt := range tests {
@@ -183,8 +171,8 @@ func TestHandlersDecodeCoreRequest(t *testing.T) {
 	}
 }
 
-func TestVerbsLeaveOutTheUnsupportedOnes(t *testing.T) {
-	r := &runner{unsupported: []string{binary.CalculateRemapCommand}}
+func TestVerbsLeaveOutCalculateRemap(t *testing.T) {
+	r := &runner{}
 	names := []string{}
 	for _, c := range r.commands() {
 		names = append(names, c.Name)
@@ -205,7 +193,6 @@ func TestHandlersRejectEmptyNodename(t *testing.T) {
 		"fix-node-resource":          fixNodeResource,
 		"calculate-deploy":           calculateDeploy,
 		"calculate-realloc":          calculateRealloc,
-		"calculate-remap":            calculateRemap,
 		"get-nodes-deploy-capacity":  getNodesDeployCapacity,
 		"get-most-idle-node":         getMostIdleNode,
 	}
@@ -249,20 +236,19 @@ func encodeRequest(t *testing.T, req any) resourcetypes.RawParams {
 type stubPlugin struct {
 	err error
 
-	nodename             string
-	nodenames            []string
-	podname              string
-	deployCount          int
-	delta                bool
-	incr                 bool
-	info                 *enginetypes.Info
-	resource             plugintypes.NodeResource
-	resourceRequest      plugintypes.NodeResourceRequest
-	capacity             plugintypes.NodeResource
-	usage                plugintypes.NodeResource
-	workloadResource     plugintypes.WorkloadResource
-	workloadsResource    []plugintypes.WorkloadResource
-	workloadsResourceMap map[string]plugintypes.WorkloadResource
+	nodename          string
+	nodenames         []string
+	podname           string
+	deployCount       int
+	delta             bool
+	incr              bool
+	info              *enginetypes.Info
+	resource          plugintypes.NodeResource
+	resourceRequest   plugintypes.NodeResourceRequest
+	capacity          plugintypes.NodeResource
+	usage             plugintypes.NodeResource
+	workloadResource  plugintypes.WorkloadResource
+	workloadsResource []plugintypes.WorkloadResource
 
 	workloadResourceRequest plugintypes.WorkloadResourceRequest
 }
@@ -336,7 +322,7 @@ func (s *stubPlugin) CalculateRealloc(_ context.Context, nodename string, resour
 	return &plugintypes.CalculateReallocResponse{}, s.err
 }
 
-func (s *stubPlugin) CalculateRemap(_ context.Context, nodename string, workloadsResource map[string]plugintypes.WorkloadResource) (*plugintypes.CalculateRemapResponse, error) {
-	s.nodename, s.workloadsResourceMap = nodename, workloadsResource
+func (s *stubPlugin) CalculateRemap(_ context.Context, nodename string, _ map[string]plugintypes.WorkloadResource) (*plugintypes.CalculateRemapResponse, error) {
+	s.nodename = nodename
 	return &plugintypes.CalculateRemapResponse{}, s.err
 }
