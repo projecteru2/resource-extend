@@ -165,7 +165,7 @@ func (p Plugin) doAlloc(ctx context.Context, resourceInfo *storagetypes.NodeReso
 			engineParam.Volumes = append(engineParam.Volumes, binding.ToString(true))
 		}
 
-		volumePlanLimit := getVolumePlanLimit(req.VolumesLimit, req.VolumesLimit, volumePlan)
+		volumePlanLimit := getVolumePlanLimit(req.VolumesRequest, req.VolumesLimit, volumePlan)
 		disksLimit := getDisksLimit(req.VolumesLimit, volumePlanLimit, resourceInfo.Capacity.Disks)
 
 		engineParam.IOPSOptions = toIOPSOptions(disksLimit)
