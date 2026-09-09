@@ -70,30 +70,30 @@ func TestGetNodesDeployCapacity(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, st.config.Scheduler.MaxDeployCount, r0.NodeDeployCapacityMap["??"].Capacity)
 
-	req = plugintypes.WorkloadResourceRequest{"storage": fmt.Sprintf("%v", tib)}
-	r, err := st.GetNodesDeployCapacity(ctx, nodes, req)
-	assert.NoError(t, err)
-	assert.Equal(t, 40, r.Total)
-
-	req = plugintypes.WorkloadResourceRequest{"storage": "1G"}
-	r, err = st.GetNodesDeployCapacity(ctx, nodes, req)
-	assert.NoError(t, err)
-	assert.Equal(t, 1000, r.Total)
-
-	req = plugintypes.WorkloadResourceRequest{
-		"volumes": []string{"AUTO:/dir0:rwm:1G"},
+	tests := []struct {
+		name      string
+		req       plugintypes.WorkloadResourceRequest
+		wantTotal int
+	}{
+		{name: "storage bytes request", req: plugintypes.WorkloadResourceRequest{"storage": fmt.Sprintf("%v", tib)}, wantTotal: 40},
+		{name: "storage size string request", req: plugintypes.WorkloadResourceRequest{"storage": "1G"}, wantTotal: 1000},
+		{name: "auto volume request", req: plugintypes.WorkloadResourceRequest{"volumes": []string{"AUTO:/dir0:rwm:1G"}}, wantTotal: 40},
+		{
+			name: "auto volume and storage request",
+			req: plugintypes.WorkloadResourceRequest{
+				"volumes": []string{"AUTO:/dir0:rwm:1G"},
+				"storage": fmt.Sprintf("%v", tib),
+			},
+			wantTotal: 30,
+		},
 	}
-	r, err = st.GetNodesDeployCapacity(ctx, nodes, req)
-	assert.NoError(t, err)
-	assert.Equal(t, 40, r.Total)
-
-	req = plugintypes.WorkloadResourceRequest{
-		"volumes": []string{"AUTO:/dir0:rwm:1G"},
-		"storage": fmt.Sprintf("%v", tib),
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r, err := st.GetNodesDeployCapacity(ctx, nodes, tt.req)
+			assert.NoError(t, err)
+			assert.Equal(t, tt.wantTotal, r.Total)
+		})
 	}
-	r, err = st.GetNodesDeployCapacity(ctx, nodes, req)
-	assert.NoError(t, err)
-	assert.Equal(t, 30, r.Total)
 }
 
 func TestSetNodeResourceCapacityCreatesAnUnknownNode(t *testing.T) {
@@ -129,29 +129,28 @@ func TestSetNodeResourceCapacity(t *testing.T) {
 		"storage": tib,
 	}
 
-	d, err := st.SetNodeResourceCapacity(ctx, node, nodeResource, nil, true, true)
-	assert.NoError(t, err)
-	assert.Equal(t, int64(5*tib), parseNodeResource(t, d.After).Storage)
-
-	d, err = st.SetNodeResourceCapacity(ctx, node, nodeResource, nil, true, false)
-	assert.NoError(t, err)
-	assert.Equal(t, int64(4*tib), parseNodeResource(t, d.After).Storage)
-
-	d, err = st.SetNodeResourceCapacity(ctx, node, nil, resourceRequest, true, true)
-	assert.NoError(t, err)
-	assert.Equal(t, int64(6*tib), parseNodeResource(t, d.After).Storage)
-
-	d, err = st.SetNodeResourceCapacity(ctx, node, nil, resourceRequest, true, false)
-	assert.NoError(t, err)
-	assert.Equal(t, int64(4*tib), parseNodeResource(t, d.After).Storage)
-
-	d, err = st.SetNodeResourceCapacity(ctx, node, nil, resourceRequest, false, false)
-	assert.NoError(t, err)
-	assert.Equal(t, int64(2*tib), parseNodeResource(t, d.After).Storage)
-
-	d, err = st.SetNodeResourceCapacity(ctx, node, nil, plugintypes.NodeResourceRequest{}, false, false)
-	assert.NoError(t, err)
-	assert.Equal(t, int64(2*tib), parseNodeResource(t, d.After).Storage)
+	tests := []struct {
+		name            string
+		resource        plugintypes.NodeResource
+		resourceRequest plugintypes.NodeResourceRequest
+		delta           bool
+		incr            bool
+		wantStorage     int64
+	}{
+		{name: "delta and incr add via resource", resource: nodeResource, delta: true, incr: true, wantStorage: 5 * tib},
+		{name: "delta without incr add via resource", resource: nodeResource, delta: true, wantStorage: 4 * tib},
+		{name: "delta and incr add via request", resourceRequest: resourceRequest, delta: true, incr: true, wantStorage: 6 * tib},
+		{name: "delta without incr add via request", resourceRequest: resourceRequest, delta: true, wantStorage: 4 * tib},
+		{name: "no delta set via request", resourceRequest: resourceRequest, wantStorage: 2 * tib},
+		{name: "no delta empty request keeps value", resourceRequest: plugintypes.NodeResourceRequest{}, wantStorage: 2 * tib},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			d, err := st.SetNodeResourceCapacity(ctx, node, tt.resource, tt.resourceRequest, tt.delta, tt.incr)
+			assert.NoError(t, err)
+			assert.Equal(t, tt.wantStorage, parseNodeResource(t, d.After).Storage)
+		})
+	}
 }
 
 func TestSetNodeResourceCapacityRollback(t *testing.T) {
@@ -313,37 +312,31 @@ func TestSetNodeResourceUsage(t *testing.T) {
 		{"storage_limit": 1},
 	}
 
-	d, err := st.SetNodeResourceUsage(ctx, node, nodeResource, nil, nil, true, true)
-	assert.NoError(t, err)
-	assert.Equal(t, int64(tib), parseNodeResource(t, d.After).Storage)
-
-	d, err = st.SetNodeResourceUsage(ctx, node, nodeResource, nil, nil, true, false)
-	assert.NoError(t, err)
-	assert.Equal(t, int64(0), parseNodeResource(t, d.After).Storage)
-
-	d, err = st.SetNodeResourceUsage(ctx, node, nil, resourceRequest, nil, true, true)
-	assert.NoError(t, err)
-	assert.Equal(t, int64(2*tib), parseNodeResource(t, d.After).Storage)
-
-	d, err = st.SetNodeResourceUsage(ctx, node, nil, resourceRequest, nil, true, false)
-	assert.NoError(t, err)
-	assert.Equal(t, int64(0), parseNodeResource(t, d.After).Storage)
-
-	d, err = st.SetNodeResourceUsage(ctx, node, nil, nil, nil, true, false)
-	assert.NoError(t, err)
-	assert.Equal(t, int64(0), parseNodeResource(t, d.After).Storage)
-
-	d, err = st.SetNodeResourceUsage(ctx, node, nil, nil, workloadsResource, true, true)
-	assert.NoError(t, err)
-	assert.Equal(t, int64(1), parseNodeResource(t, d.After).Storage)
-
-	d, err = st.SetNodeResourceUsage(ctx, node, nil, nil, workloadsResource, true, false)
-	assert.NoError(t, err)
-	assert.Equal(t, int64(0), parseNodeResource(t, d.After).Storage)
-
-	d, err = st.SetNodeResourceUsage(ctx, node, nodeResource, nil, nil, false, false)
-	assert.NoError(t, err)
-	assert.Equal(t, int64(tib), parseNodeResource(t, d.After).Storage)
+	tests := []struct {
+		name              string
+		resource          plugintypes.NodeResource
+		resourceRequest   plugintypes.NodeResourceRequest
+		workloadsResource []plugintypes.WorkloadResource
+		delta             bool
+		incr              bool
+		wantStorage       int64
+	}{
+		{name: "delta and incr add via resource", resource: nodeResource, delta: true, incr: true, wantStorage: tib},
+		{name: "delta without incr add via resource", resource: nodeResource, delta: true, wantStorage: 0},
+		{name: "delta and incr add via request", resourceRequest: resourceRequest, delta: true, incr: true, wantStorage: 2 * tib},
+		{name: "delta without incr add via request", resourceRequest: resourceRequest, delta: true, wantStorage: 0},
+		{name: "delta without incr no change", delta: true, wantStorage: 0},
+		{name: "delta and incr add via workloads", workloadsResource: workloadsResource, delta: true, incr: true, wantStorage: 1},
+		{name: "delta without incr add via workloads", workloadsResource: workloadsResource, delta: true, wantStorage: 0},
+		{name: "no delta set via resource", resource: nodeResource, wantStorage: tib},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			d, err := st.SetNodeResourceUsage(ctx, node, tt.resource, tt.resourceRequest, tt.workloadsResource, tt.delta, tt.incr)
+			assert.NoError(t, err)
+			assert.Equal(t, tt.wantStorage, parseNodeResource(t, d.After).Storage)
+		})
+	}
 }
 
 func TestGetMostIdleNode(t *testing.T) {

@@ -274,75 +274,47 @@ func TestSetNodeResourceCapacity(t *testing.T) {
 		},
 	}
 
-	r, err := cm.SetNodeResourceCapacity(ctx, node, nil, nil, true, true)
-	assert.Nil(t, err)
-	v := parseNodeResource(t, r.After)
-	assert.Equal(t, v.Count(), 8)
-
-	r, err = cm.SetNodeResourceCapacity(ctx, node, nil, nil, true, false)
-	assert.Nil(t, err)
-	v = parseNodeResource(t, r.After)
-	assert.Equal(t, v.Count(), 8)
-
-	r, err = cm.SetNodeResourceCapacity(ctx, node, nil, nodeResourceRequest, true, true)
-	assert.Nil(t, err)
-	v = parseNodeResource(t, r.After)
-	assert.Equal(t, v.Count(), 9)
-
-	r, err = cm.SetNodeResourceCapacity(ctx, node, nil, nodeResourceRequest, true, false)
-	assert.Nil(t, err)
-	v = parseNodeResource(t, r.After)
-	assert.Equal(t, v.Count(), 8)
-
-	r, err = cm.SetNodeResourceCapacity(ctx, node, nodeResource, nil, true, true)
-	assert.Nil(t, err)
-	v = parseNodeResource(t, r.After)
-	assert.Equal(t, v.Count(), 9)
-
-	r, err = cm.SetNodeResourceCapacity(ctx, node, nil, nodeResource, true, false)
-	assert.Nil(t, err)
-	v = parseNodeResource(t, r.After)
-	assert.Equal(t, v.Count(), 8)
-
-	r, err = cm.SetNodeResourceCapacity(ctx, node, nil, nodeResourceRequest, false, false)
-	assert.Nil(t, err)
-	v = parseNodeResource(t, r.After)
-	assert.Equal(t, v.Count(), 1)
-
-	r, err = cm.SetNodeResourceCapacity(ctx, node, nodeResource, nil, false, false)
-	assert.Nil(t, err)
-	v = parseNodeResource(t, r.After)
-	assert.Equal(t, v.Count(), 1)
-
-	r, err = cm.SetNodeResourceCapacity(ctx, node, nodeResource, nodeResourceRequest, false, false)
-	assert.Nil(t, err)
-	v = parseNodeResource(t, r.After)
-	assert.Equal(t, v.Count(), 1)
-
-	r, err = cm.SetNodeResourceCapacity(ctx, node, nil, nil, false, false)
-	assert.Nil(t, err)
-	v = parseNodeResource(t, r.After)
-	assert.Equal(t, v.Count(), 0)
-
-	nodeResourceRequest1 := plugintypes.NodeResourceRequest{
-		"prod_count_map": types.ProdCountMap{
-			"nvidia-3070": 1,
+	tests := []struct {
+		name            string
+		resource        plugintypes.NodeResource
+		resourceRequest plugintypes.NodeResourceRequest
+		delta           bool
+		incr            bool
+		wantCount       int
+	}{
+		{name: "delta and incr with no change", delta: true, incr: true, wantCount: 8},
+		{name: "delta without incr no change", delta: true, wantCount: 8},
+		{name: "delta and incr add via request", resourceRequest: nodeResourceRequest, delta: true, incr: true, wantCount: 9},
+		{name: "delta without incr add via request", resourceRequest: nodeResourceRequest, delta: true, wantCount: 8},
+		{name: "delta and incr add via resource", resource: nodeResource, delta: true, incr: true, wantCount: 9},
+		{name: "delta without incr resource as request", resourceRequest: nodeResource, delta: true, wantCount: 8},
+		{name: "no delta set via request", resourceRequest: nodeResourceRequest, wantCount: 1},
+		{name: "no delta set via resource", resource: nodeResource, wantCount: 1},
+		{name: "no delta set via resource and request", resource: nodeResource, resourceRequest: nodeResourceRequest, wantCount: 1},
+		{name: "no delta reset to zero", wantCount: 0},
+		{
+			name: "delta and incr add positive count",
+			resourceRequest: plugintypes.NodeResourceRequest{
+				"prod_count_map": types.ProdCountMap{"nvidia-3070": 1},
+			},
+			delta: true, incr: true, wantCount: 1,
+		},
+		{
+			name: "delta and incr add negative count clamps to zero",
+			resourceRequest: plugintypes.NodeResourceRequest{
+				"prod_count_map": types.ProdCountMap{"nvidia-3070": -1},
+			},
+			delta: true, incr: true, wantCount: 0,
 		},
 	}
-	r, err = cm.SetNodeResourceCapacity(ctx, node, nil, nodeResourceRequest1, true, true)
-	assert.Nil(t, err)
-	v = parseNodeResource(t, r.After)
-	assert.Equal(t, v.Count(), 1)
-
-	nodeResourceRequest1 = plugintypes.NodeResourceRequest{
-		"prod_count_map": types.ProdCountMap{
-			"nvidia-3070": -1,
-		},
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r, err := cm.SetNodeResourceCapacity(ctx, node, tt.resource, tt.resourceRequest, tt.delta, tt.incr)
+			assert.Nil(t, err)
+			v := parseNodeResource(t, r.After)
+			assert.Equal(t, v.Count(), tt.wantCount)
+		})
 	}
-	r, err = cm.SetNodeResourceCapacity(ctx, node, nil, nodeResourceRequest1, true, true)
-	assert.Nil(t, err)
-	v = parseNodeResource(t, r.After)
-	assert.Equal(t, v.Count(), 0)
 }
 
 func TestGetAndFixNodeResourceInfo(t *testing.T) {
@@ -443,110 +415,61 @@ func TestSetNodeResourceUsage(t *testing.T) {
 		},
 	}
 
-	r, err := cm.SetNodeResourceUsage(ctx, node, nil, nil, nil, true, true)
-	assert.Nil(t, err)
-	v := parseNodeResource(t, r.After)
-	assert.Equal(t, v.Count(), 0)
-
-	r, err = cm.SetNodeResourceUsage(ctx, node, nil, nil, nil, true, false)
-	assert.Nil(t, err)
-	v = parseNodeResource(t, r.After)
-	assert.Equal(t, v.Count(), 0)
-
-	r, err = cm.SetNodeResourceUsage(ctx, node, nil, nodeResourceRequest, nil, true, true)
-	assert.Nil(t, err)
-	v = parseNodeResource(t, r.After)
-	assert.Equal(t, v.Count(), 1)
-
-	r, err = cm.SetNodeResourceUsage(ctx, node, nil, nodeResourceRequest, nil, true, false)
-	assert.Nil(t, err)
-	v = parseNodeResource(t, r.After)
-	assert.Equal(t, v.Count(), 0)
-
-	r, err = cm.SetNodeResourceUsage(ctx, node, nodeResource, nil, nil, true, true)
-	assert.Nil(t, err)
-	v = parseNodeResource(t, r.After)
-	assert.Equal(t, v.Count(), 1)
-
-	r, err = cm.SetNodeResourceUsage(ctx, node, nodeResource, nil, nil, true, false)
-	assert.Nil(t, err)
-	v = parseNodeResource(t, r.After)
-	assert.Equal(t, v.Count(), 0)
-
-	r, err = cm.SetNodeResourceUsage(ctx, node, nil, nil, workloadsResource, true, true)
-	assert.Nil(t, err)
-	v = parseNodeResource(t, r.After)
-	assert.Equal(t, v.Count(), 1)
-
-	r, err = cm.SetNodeResourceUsage(ctx, node, nil, nil, workloadsResource, true, false)
-	assert.Nil(t, err)
-	v = parseNodeResource(t, r.After)
-	assert.Equal(t, v.Count(), 0)
-
-	r, err = cm.SetNodeResourceUsage(ctx, node, nil, nil, nil, true, false)
-	assert.Nil(t, err)
-	v = parseNodeResource(t, r.After)
-	assert.Equal(t, v.Count(), 0)
-
-	r, err = cm.SetNodeResourceUsage(ctx, node, nil, nodeResourceRequest, nil, false, false)
-	assert.Nil(t, err)
-	v = parseNodeResource(t, r.After)
-	assert.Equal(t, v.Count(), 1)
-
-	r, err = cm.SetNodeResourceUsage(ctx, node, nodeResource, nil, nil, false, false)
-	assert.Nil(t, err)
-	v = parseNodeResource(t, r.After)
-	assert.Equal(t, v.Count(), 1)
-
-	r, err = cm.SetNodeResourceUsage(ctx, node, nil, nil, workloadsResource, false, false)
-	assert.Nil(t, err)
-	v = parseNodeResource(t, r.After)
-	assert.Equal(t, v.Count(), 1)
-
-	r, err = cm.SetNodeResourceUsage(ctx, node, nodeResource, nodeResourceRequest, nil, false, true)
-	assert.Nil(t, err)
-	v = parseNodeResource(t, r.After)
-	assert.Equal(t, v.Count(), 1)
-
-	r, err = cm.SetNodeResourceUsage(ctx, node, nil, nodeResourceRequest, workloadsResource, false, true)
-	assert.Nil(t, err)
-	v = parseNodeResource(t, r.After)
-	assert.Equal(t, v.Count(), 1)
-
-	r, err = cm.SetNodeResourceUsage(ctx, node, nodeResource, nil, workloadsResource, false, true)
-	assert.Nil(t, err)
-	v = parseNodeResource(t, r.After)
-	assert.Equal(t, v.Count(), 1)
-
-	r, err = cm.SetNodeResourceUsage(ctx, node, nodeResource, nodeResourceRequest, workloadsResource, false, true)
-	assert.Nil(t, err)
-	v = parseNodeResource(t, r.After)
-	assert.Equal(t, v.Count(), 1)
-
-	r, err = cm.SetNodeResourceUsage(ctx, node, nodeResource, nodeResourceRequest, workloadsResource, true, false)
-	assert.Nil(t, err)
-	v = parseNodeResource(t, r.After)
-	assert.Equal(t, v.Count(), 0)
-
-	nodeResourceRequest1 := plugintypes.NodeResourceRequest{
-		"prod_count_map": types.ProdCountMap{
-			"nvidia-3070": 1,
+	tests := []struct {
+		name              string
+		resource          plugintypes.NodeResource
+		resourceRequest   plugintypes.NodeResourceRequest
+		workloadsResource []plugintypes.WorkloadResource
+		delta             bool
+		incr              bool
+		wantCount         int
+	}{
+		{name: "delta and incr with no change", delta: true, incr: true, wantCount: 0},
+		{name: "delta without incr no change", delta: true, wantCount: 0},
+		{name: "delta and incr add via request", resourceRequest: nodeResourceRequest, delta: true, incr: true, wantCount: 1},
+		{name: "delta without incr add via request", resourceRequest: nodeResourceRequest, delta: true, wantCount: 0},
+		{name: "delta and incr add via resource", resource: nodeResource, delta: true, incr: true, wantCount: 1},
+		{name: "delta without incr add via resource", resource: nodeResource, delta: true, wantCount: 0},
+		{name: "delta and incr add via workloads", workloadsResource: workloadsResource, delta: true, incr: true, wantCount: 1},
+		{name: "delta without incr add via workloads", workloadsResource: workloadsResource, delta: true, wantCount: 0},
+		{name: "delta without incr no change again", delta: true, wantCount: 0},
+		{name: "no delta set via request", resourceRequest: nodeResourceRequest, wantCount: 1},
+		{name: "no delta set via resource", resource: nodeResource, wantCount: 1},
+		{name: "no delta set via workloads", workloadsResource: workloadsResource, wantCount: 1},
+		{name: "no delta incr resource and request", resource: nodeResource, resourceRequest: nodeResourceRequest, incr: true, wantCount: 1},
+		{name: "no delta incr request and workloads", resourceRequest: nodeResourceRequest, workloadsResource: workloadsResource, incr: true, wantCount: 1},
+		{name: "no delta incr resource and workloads", resource: nodeResource, workloadsResource: workloadsResource, incr: true, wantCount: 1},
+		{
+			name: "no delta incr resource request and workloads", resource: nodeResource, resourceRequest: nodeResourceRequest,
+			workloadsResource: workloadsResource, incr: true, wantCount: 1,
+		},
+		{
+			name: "delta without incr resource request and workloads", resource: nodeResource, resourceRequest: nodeResourceRequest,
+			workloadsResource: workloadsResource, delta: true, wantCount: 0,
+		},
+		{
+			name: "delta and incr add positive count",
+			resourceRequest: plugintypes.NodeResourceRequest{
+				"prod_count_map": types.ProdCountMap{"nvidia-3070": 1},
+			},
+			delta: true, incr: true, wantCount: 1,
+		},
+		{
+			name: "delta and incr add negative count clamps to zero",
+			resourceRequest: plugintypes.NodeResourceRequest{
+				"prod_count_map": types.ProdCountMap{"nvidia-3070": -1},
+			},
+			delta: true, incr: true, wantCount: 0,
 		},
 	}
-	r, err = cm.SetNodeResourceUsage(ctx, node, nil, nodeResourceRequest1, nil, true, true)
-	assert.Nil(t, err)
-	v = parseNodeResource(t, r.After)
-	assert.Equal(t, v.Count(), 1)
-
-	nodeResourceRequest1 = plugintypes.NodeResourceRequest{
-		"prod_count_map": types.ProdCountMap{
-			"nvidia-3070": -1,
-		},
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r, err := cm.SetNodeResourceUsage(ctx, node, tt.resource, tt.resourceRequest, tt.workloadsResource, tt.delta, tt.incr)
+			assert.Nil(t, err)
+			v := parseNodeResource(t, r.After)
+			assert.Equal(t, v.Count(), tt.wantCount)
+		})
 	}
-	r, err = cm.SetNodeResourceUsage(ctx, node, nil, nodeResourceRequest1, nil, true, true)
-	assert.Nil(t, err)
-	v = parseNodeResource(t, r.After)
-	assert.Equal(t, v.Count(), 0)
 }
 
 func TestGetMostIdleNode(t *testing.T) {
