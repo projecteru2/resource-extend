@@ -244,6 +244,21 @@ func TestGetNodeResourceInfo(t *testing.T) {
 	assert.NotEmpty(t, d.Diffs)
 }
 
+func TestGetNodesResourceInfo(t *testing.T) {
+	ctx := t.Context()
+	st := initStorage(ctx, t)
+	nodes := append(generateNodes(ctx, t, st, 2, defaultVols, 0), "never-added")
+
+	resp, err := st.GetNodesResourceInfo(ctx, nodes)
+	assert.NoError(t, err)
+	assert.Len(t, resp.NodeResourceInfoMap, 3)
+	for _, node := range nodes[:2] {
+		assert.Equal(t, int64(4*tib), parseNodeResource(t, resp.NodeResourceInfoMap[node].Capacity).Storage)
+		assert.Zero(t, parseNodeResource(t, resp.NodeResourceInfoMap[node].Usage).Storage)
+	}
+	assert.Zero(t, parseNodeResource(t, resp.NodeResourceInfoMap["never-added"].Capacity).Storage)
+}
+
 func TestSetNodeResourceInfo(t *testing.T) {
 	ctx := t.Context()
 	st := initStorage(ctx, t)

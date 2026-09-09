@@ -35,6 +35,7 @@ The plugin name core uses for a resource is the binary's file name, not anything
 | `get-nodes-deploy-capacity` | `nodenames`, `workload_resource` | `{nodes_deploy_capacity_map, total}` |
 | `set-node-resource-capacity` | `nodename`, `resource`, `resource_request`, `delta`, `incr` | `{before, after}` |
 | `get-node-resource-info` | `nodename`, `workloads_resource` | `{capacity, usage, diffs}` |
+| `get-nodes-resource-info` | `nodenames` | `{node_resource_info_map}` of `{capacity, usage}` per node |
 | `set-node-resource-info` | `nodename`, `capacity`, `usage` | `{}` |
 | `set-node-resource-usage` | `nodename`, `resource`, `resource_request`, `workloads_resource`, `delta`, `incr` | `{before, after}` |
 | `get-most-idle-node` | `nodenames` | `{nodename, priority}` |
@@ -76,7 +77,7 @@ Any verb may fail. The plugin exits with status 128, and core surfaces the failu
 
 A node this plugin has never seen is not an error. `get-node-resource-info` returns `null` and exits 0, so
 core reads an empty resource for that node instead of failing the whole `node get` or `node list`. The
-node verbs that read several nodes (`get-nodes-deploy-capacity`, `get-most-idle-node`) treat such a node as
+node verbs that read several nodes (`get-nodes-resource-info`, `get-nodes-deploy-capacity`, `get-most-idle-node`) treat such a node as
 holding nothing of this kind: it stays deployable for requests that ask for nothing of this kind and has no
 capacity for the others. `set-node-resource-capacity` and `set-node-resource-usage` start from that empty
 record and create it, so `node set` is how an operator declares capacity on a node that predates the

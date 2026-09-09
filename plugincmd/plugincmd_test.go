@@ -58,6 +58,14 @@ func TestHandlersDecodeCoreRequest(t *testing.T) {
 			},
 		},
 		{
+			name: "get-nodes-resource-info",
+			req:  &binarytypes.GetNodesResourceInfoRequest{Nodenames: []string{"node0", "node1"}},
+			run:  getNodesResourceInfo,
+			check: func(t *testing.T, s *stubPlugin) {
+				assert.Equal(t, []string{"node0", "node1"}, s.nodenames)
+			},
+		},
+		{
 			name: "set-node-resource-capacity",
 			req: &binarytypes.SetNodeResourceCapacityRequest{
 				Nodename:        "node0",
@@ -188,6 +196,7 @@ func TestHandlersRejectEmptyNodename(t *testing.T) {
 		"remove-node":                removeNode,
 		"set-node-resource-capacity": setNodeResourceCapacity,
 		"get-node-resource-info":     getNodeResourceInfo,
+		"get-nodes-resource-info":    getNodesResourceInfo,
 		"set-node-resource-info":     setNodeResourceInfo,
 		"set-node-resource-usage":    setNodeResourceUsage,
 		"fix-node-resource":          fixNodeResource,
@@ -273,6 +282,11 @@ func (s *stubPlugin) GetNodesDeployCapacity(_ context.Context, nodenames []strin
 func (s *stubPlugin) SetNodeResourceCapacity(_ context.Context, nodename string, resource plugintypes.NodeResource, resourceRequest plugintypes.NodeResourceRequest, delta, incr bool) (*plugintypes.SetNodeResourceCapacityResponse, error) {
 	s.nodename, s.resource, s.resourceRequest, s.delta, s.incr = nodename, resource, resourceRequest, delta, incr
 	return &plugintypes.SetNodeResourceCapacityResponse{}, s.err
+}
+
+func (s *stubPlugin) GetNodesResourceInfo(_ context.Context, nodenames []string) (*plugintypes.GetNodesResourceInfoResponse, error) {
+	s.nodenames = nodenames
+	return &plugintypes.GetNodesResourceInfoResponse{}, s.err
 }
 
 func (s *stubPlugin) GetNodeResourceInfo(_ context.Context, nodename string, workloadsResource []plugintypes.WorkloadResource) (*plugintypes.GetNodeResourceInfoResponse, error) {

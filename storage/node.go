@@ -174,6 +174,22 @@ func (p Plugin) GetNodeResourceInfo(ctx context.Context, nodename string, worklo
 	}, nil
 }
 
+func (p Plugin) GetNodesResourceInfo(ctx context.Context, nodenames []string) (*plugintypes.GetNodesResourceInfoResponse, error) {
+	nodesResourceInfos, err := p.store.GetMulti(ctx, nodenames)
+	if err != nil {
+		return nil, err
+	}
+
+	resp := &plugintypes.GetNodesResourceInfoResponse{NodeResourceInfoMap: make(map[string]*plugintypes.NodeResourceInfo, len(nodesResourceInfos))}
+	for nodename, nodeResourceInfo := range nodesResourceInfos {
+		resp.NodeResourceInfoMap[nodename] = &plugintypes.NodeResourceInfo{
+			Capacity: nodeResourceInfo.Capacity.AsRawParams(),
+			Usage:    nodeResourceInfo.Usage.AsRawParams(),
+		}
+	}
+	return resp, nil
+}
+
 func (p Plugin) SetNodeResourceInfo(ctx context.Context, nodename string, capacity, usage plugintypes.NodeResource) (*plugintypes.SetNodeResourceInfoResponse, error) {
 	capacityResource := &storagetypes.NodeResource{}
 	usageResource := &storagetypes.NodeResource{}
