@@ -271,13 +271,12 @@ func (p Plugin) getNodeResourceInfo(ctx context.Context, nodename string, worklo
 }
 
 func (p Plugin) doGetNodeDeployCapacity(nodeResourceInfo *gputypes.NodeResourceInfo, req *gputypes.WorkloadResourceRequest) *plugintypes.NodeDeployCapacity {
-	availableResource := nodeResourceInfo.GetAvailableResource()
-
 	capacityInfo := &plugintypes.NodeDeployCapacity{
 		Weight:   1,
 		Capacity: maxCapacity,
 	}
 	if req.Count() > 0 {
+		availableResource := nodeResourceInfo.GetAvailableResource()
 		for reqProd, reqCount := range req.ProdCountMap {
 			count := availableResource.ProdCountMap[reqProd]
 			capacityInfo.Capacity = min(capacityInfo.Capacity, count/reqCount)

@@ -7,7 +7,6 @@ import (
 	"maps"
 	"runtime"
 	"slices"
-	"sync"
 
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
@@ -15,6 +14,7 @@ import (
 	coretypes "github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 	"github.com/sanity-io/litter"
+	"golang.org/x/sync/errgroup"
 
 	"github.com/projecteru2/resource-extend/storage/schedule"
 	storagetypes "github.com/projecteru2/resource-extend/storage/types"
@@ -81,16 +81,15 @@ func (p Plugin) GetNodesDeployCapacity(ctx context.Context, nodenames []string, 
 	}
 
 	capacityInfos := make([]*plugintypes.NodeDeployCapacity, len(nodenames))
-	workers := min(runtime.GOMAXPROCS(0), len(nodenames))
-	var wg sync.WaitGroup
-	for worker := range workers {
-		wg.Go(func() {
-			for i := worker; i < len(nodenames); i += workers {
-				capacityInfos[i] = p.doGetNodeDeployCapacity(nodesResourceInfos[nodenames[i]], req)
-			}
+	var planners errgroup.Group
+	planners.SetLimit(runtime.GOMAXPROCS(0))
+	for i, nodename := range nodenames {
+		planners.Go(func() error {
+			capacityInfos[i] = p.doGetNodeDeployCapacity(nodesResourceInfos[nodename], req)
+			return nil
 		})
 	}
-	wg.Wait()
+	_ = planners.Wait()
 
 	nodesDeployCapacityMap := map[string]*plugintypes.NodeDeployCapacity{}
 	total := 0
