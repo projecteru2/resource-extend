@@ -223,6 +223,21 @@ func TestGetNodesDeployCapacityTreatsAnUnknownNodeAsEmpty(t *testing.T) {
 	assert.Len(t, r.NodeDeployCapacityMap, 1)
 }
 
+func TestGetNodesResourceInfo(t *testing.T) {
+	ctx := t.Context()
+	cm := initGPU(ctx, t)
+	nodes := append(generateNodes(ctx, t, cm, 2, 0), "never-added")
+
+	resp, err := cm.GetNodesResourceInfo(ctx, nodes)
+	assert.NoError(t, err)
+	assert.Len(t, resp.NodeResourceInfoMap, 3)
+	for _, node := range nodes[:2] {
+		assert.Positive(t, parseNodeResource(t, resp.NodeResourceInfoMap[node].Capacity).Count())
+		assert.Zero(t, parseNodeResource(t, resp.NodeResourceInfoMap[node].Usage).Count())
+	}
+	assert.Zero(t, parseNodeResource(t, resp.NodeResourceInfoMap["never-added"].Capacity).Count())
+}
+
 func TestSetNodeResourceCapacityCreatesAnUnknownNode(t *testing.T) {
 	ctx := t.Context()
 	cm := initGPU(ctx, t)
