@@ -37,18 +37,19 @@ func (p Plugin) GetMetrics(ctx context.Context, nodes []plugintypes.NodeRef) (*p
 		info := infos[node.Nodename]
 		safeNodename := strings.ReplaceAll(node.Nodename, ".", "_")
 		for prod, count := range info.Capacity.ProdCountMap {
+			safeProd := strings.ReplaceAll(prod, ".", "_")
 			metrics = append(metrics,
 				&plugintypes.Metrics{
 					Name:   "gpu_capacity",
 					Labels: []string{node.Podname, node.Nodename, prod},
 					Value:  strconv.Itoa(count),
-					Key:    fmt.Sprintf("core.node.%s.gpu.capacity", safeNodename),
+					Key:    fmt.Sprintf("core.node.%s.gpu.%s.capacity", safeNodename, safeProd),
 				},
 				&plugintypes.Metrics{
 					Name:   "gpu_used",
 					Labels: []string{node.Podname, node.Nodename, prod},
 					Value:  strconv.Itoa(info.Usage.ProdCountMap[prod]),
-					Key:    fmt.Sprintf("core.node.%s.gpu.used", safeNodename),
+					Key:    fmt.Sprintf("core.node.%s.gpu.%s.used", safeNodename, safeProd),
 				},
 			)
 		}

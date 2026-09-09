@@ -79,4 +79,5 @@ write that fails fails the verb, so core keeps its repair entry and replays it.
 | `gpu_used` | gauge | `podname`, `nodename`, `product` | cards of that product held by workloads |
 
 One pair is emitted per product in the node's capacity map. The statsd key is
-`core.node.<nodename>.gpu.capacity` / `.gpu.used`, with dots in the node name replaced by underscores.
+`core.node.<nodename>.gpu.<product>.capacity` / `.gpu.<product>.used`, with dots in the node name and in the
+product replaced by underscores.
