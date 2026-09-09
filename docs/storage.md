@@ -99,7 +99,7 @@ scheduled afresh. If a monopoly binding has any affinity, the whole monopoly gro
 The engine params report `volume_changed` whenever the resulting bind list differs from the old one, which
 is core's signal that the workload has to be recreated rather than updated in place.
 
-`calculate-remap` is a no-op: volumes are not moved between running workloads.
+`calculate-remap` is not offered: volumes are not moved between running workloads.
 
 ## Diffs and repair
 

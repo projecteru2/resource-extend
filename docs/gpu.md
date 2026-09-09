@@ -61,7 +61,7 @@ A realloc request is merged into the workload's current cards before validation,
 A negative count larger than what the workload holds clamps at zero rather than failing; the product simply
 disappears from the map. The response also carries the delta, which core applies to node usage.
 
-`calculate-remap` is a no-op: cards are not re-pinned between running workloads.
+`calculate-remap` is not offered: cards are not re-pinned between running workloads.
 
 ## Diffs and repair
 
