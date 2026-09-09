@@ -49,10 +49,7 @@ func (p Plugin) AddNode(ctx context.Context, nodename string, resource plugintyp
 		return nil, err
 	}
 
-	return &plugintypes.AddNodeResponse{
-		Capacity: nodeResourceInfo.Capacity.AsRawParams(),
-		Usage:    nodeResourceInfo.Usage.AsRawParams(),
-	}, nil
+	return &plugintypes.AddNodeResponse{Capacity: nodeResourceInfo.Capacity.AsRawParams()}, nil
 }
 
 func (p Plugin) RemoveNode(ctx context.Context, nodename string) (*plugintypes.RemoveNodeResponse, error) {

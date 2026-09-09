@@ -30,7 +30,7 @@ The plugin name core uses for a resource is the binary's file name, not anything
 | `verbs` | — | array of the verbs this binary implements |
 | `get-metrics-description` | — | array of `{name, help, type, labels}` |
 | `get-metrics` | `nodes`: array of `{podname, nodename}` | array of `{name, labels, key, value}` for every node |
-| `add-node` | `nodename`, `resource`, `info` | `{capacity, usage}` |
+| `add-node` | `nodename`, `resource`, `info` | `{capacity}` |
 | `remove-node` | `nodename` | `{}` |
 | `get-nodes-deploy-capacity` | `nodenames`, `workload_resource` | `{nodes_deploy_capacity_map, total}` |
 | `set-node-resource-capacity` | `nodename`, `resource`, `resource_request`, `delta`, `incr` | `{before, after}` |
