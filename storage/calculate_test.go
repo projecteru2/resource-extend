@@ -218,6 +218,28 @@ func TestCalculateReallocKeepsDisksWithoutReschedule(t *testing.T) {
 	}
 }
 
+func TestCalculateDeployVolumePlanLimitKeepsHeadroom(t *testing.T) {
+	ctx := t.Context()
+	st := initStorage(ctx, t)
+	nodes := generateNodes(ctx, t, st, 1, defaultVols, 0)
+
+	d, err := st.CalculateDeploy(ctx, nodes[0], 1, plugintypes.WorkloadResourceRequest{
+		"volume-request": []string{"AUTO:/dir0:rw:1GiB"},
+		"volume-limit":   []string{"AUTO:/dir0:rw:2GiB"},
+	})
+	assert.NoError(t, err)
+	assert.Len(t, d.WorkloadsResource, 1)
+
+	limit, err := types.NewVolumeBinding("AUTO:/dir0:rw:2GiB")
+	assert.NoError(t, err)
+
+	wr := parseWorkloadResource(t, d.WorkloadsResource[0])
+	volumeMap, binding := wr.VolumePlanLimit.GetVolumes(limit)
+	assert.NotNil(t, binding)
+	assert.Equal(t, int64(2*gib), binding.SizeInBytes)
+	assert.Equal(t, int64(2*gib), volumeMap.GetSize())
+}
+
 func parseEngineParams(t *testing.T, raw resourcetypes.RawParams) *types.EngineParams {
 	t.Helper()
 	ep := &types.EngineParams{}

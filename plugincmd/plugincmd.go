@@ -29,16 +29,13 @@ type Factory func(ctx context.Context, config coretypes.Config) (plugins.Plugin,
 type handler func(ctx context.Context, p plugins.Plugin, in resourcetypes.RawParams) (any, error)
 
 type runner struct {
-	configPath  string
-	pluginName  string
-	newPlugin   Factory
-	unsupported []string
+	configPath string
+	pluginName string
+	newPlugin  Factory
 }
 
 func (r *runner) commands() []*cli.Command {
-	verbs := slices.DeleteFunc(slices.Concat(r.metricsCommands(), r.nodeCommands(), r.calculateCommands()), func(c *cli.Command) bool {
-		return slices.Contains(r.unsupported, c.Name)
-	})
+	verbs := slices.Concat(r.metricsCommands(), r.nodeCommands(), r.calculateCommands())
 	names := utils.Map(verbs, func(verb *cli.Command) string { return verb.Name })
 	return slices.Concat(
 		[]*cli.Command{
@@ -94,13 +91,13 @@ func (r *runner) serve(ctx context.Context, h handler) error {
 	return printJSON(out)
 }
 
-// Main runs the command tree of a resource plugin binary and exits on failure; unsupported names the verbs the plugin leaves to others.
-func Main(binaryName, pluginName, usage, configPath string, newPlugin Factory, unsupported ...string) {
+// Main runs the command tree of a resource plugin binary and exits on failure.
+func Main(binaryName, pluginName, usage, configPath string, newPlugin Factory) {
 	cli.VersionPrinter = func(_ *cli.Command) {
 		fmt.Print(version.String())
 	}
 
-	r := &runner{pluginName: pluginName, newPlugin: newPlugin, unsupported: unsupported}
+	r := &runner{pluginName: pluginName, newPlugin: newPlugin}
 	app := &cli.Command{
 		Name:    binaryName,
 		Usage:   usage,

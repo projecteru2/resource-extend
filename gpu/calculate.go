@@ -60,9 +60,7 @@ func (p Plugin) CalculateRealloc(ctx context.Context, nodename string, resource 
 		return nil, err
 	}
 
-	nodeResourceInfo.Usage.Sub(&gputypes.NodeResource{
-		ProdCountMap: originResource.ProdCountMap,
-	})
+	nodeResourceInfo.Usage.ProdCountMap.Sub(originResource.ProdCountMap)
 
 	newReq := req.DeepCopy()
 	newReq.MergeFromResource(originResource)
@@ -103,7 +101,7 @@ func (p Plugin) doAlloc(resourceInfo *gputypes.NodeResourceInfo, deployCount int
 		for reqProd, reqCount := range req.ProdCountMap {
 			capCount, ok := availableResource.ProdCountMap[reqProd]
 			if !ok || capCount < reqCount {
-				return enginesParams, workloadsResource, coretypes.ErrInsufficientResource
+				return nil, nil, coretypes.ErrInsufficientResource
 			}
 			availableResource.ProdCountMap[reqProd] -= reqCount
 			prodCountMap[reqProd] = reqCount

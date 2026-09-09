@@ -120,12 +120,6 @@ func (w *WorkloadResourceRequest) validateVolumes() error {
 		limit.ReadBPS = max(limit.ReadBPS, request.ReadBPS)
 		limit.WriteBPS = max(limit.WriteBPS, request.WriteBPS)
 	}
-
-	for _, vb := range slices.Concat(w.VolumesRequest, w.VolumesLimit) {
-		if err := vb.Validate(); err != nil {
-			return errors.CombineErrors(ErrInvalidVolume, err)
-		}
-	}
 	return nil
 }
 

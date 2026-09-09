@@ -1,6 +1,7 @@
 package gpu
 
 import (
+	"fmt"
 	"testing"
 
 	plugintypes "github.com/projecteru2/core/resource/plugins/types"
@@ -39,4 +40,23 @@ func TestGetMetrics(t *testing.T) {
 			assert.True(t, false)
 		}
 	}
+}
+
+func TestGetMetricsKeysCarryProduct(t *testing.T) {
+	ctx := t.Context()
+	cm := initGPU(ctx, t)
+	nodes := generateNodes(ctx, t, cm, 1, -1)
+	resp, err := cm.GetMetrics(ctx, []plugintypes.NodeRef{{Podname: "testpod", Nodename: nodes[0]}})
+	assert.NoError(t, err)
+
+	keys := map[string]struct{}{}
+	for _, mt := range *resp {
+		keys[mt.Key] = struct{}{}
+	}
+	assert.Equal(t, map[string]struct{}{
+		fmt.Sprintf("core.node.%s.gpu.nvidia-3070.capacity", nodes[0]): {},
+		fmt.Sprintf("core.node.%s.gpu.nvidia-3070.used", nodes[0]):     {},
+		fmt.Sprintf("core.node.%s.gpu.nvidia-3090.capacity", nodes[0]): {},
+		fmt.Sprintf("core.node.%s.gpu.nvidia-3090.used", nodes[0]):     {},
+	}, keys)
 }

@@ -80,14 +80,13 @@ func (p Plugin) GetNodesDeployCapacity(ctx context.Context, nodenames []string, 
 		return nil, err
 	}
 
-	names := slices.Collect(maps.Keys(nodesResourceInfos))
-	capacityInfos := make([]*plugintypes.NodeDeployCapacity, len(names))
-	workers := min(runtime.GOMAXPROCS(0), len(names))
+	capacityInfos := make([]*plugintypes.NodeDeployCapacity, len(nodenames))
+	workers := min(runtime.GOMAXPROCS(0), len(nodenames))
 	var wg sync.WaitGroup
 	for worker := range workers {
 		wg.Go(func() {
-			for i := worker; i < len(names); i += workers {
-				capacityInfos[i] = p.doGetNodeDeployCapacity(nodesResourceInfos[names[i]], req)
+			for i := worker; i < len(nodenames); i += workers {
+				capacityInfos[i] = p.doGetNodeDeployCapacity(nodesResourceInfos[nodenames[i]], req)
 			}
 		})
 	}
@@ -99,7 +98,7 @@ func (p Plugin) GetNodesDeployCapacity(ctx context.Context, nodenames []string, 
 		if capacityInfo.Capacity <= 0 {
 			continue
 		}
-		nodesDeployCapacityMap[names[i]] = capacityInfo
+		nodesDeployCapacityMap[nodenames[i]] = capacityInfo
 		total += capacityInfo.Capacity
 	}
 
@@ -181,9 +180,7 @@ func (p Plugin) SetNodeResourceInfo(ctx context.Context, nodename string, capaci
 	if err := capacityResource.Parse(capacity); err != nil {
 		return nil, err
 	}
-	if capacityResource.Volumes != nil {
-		capacityResource.Storage += capacityResource.Volumes.Total()
-	}
+	capacityResource.Storage += capacityResource.Volumes.Total()
 	if err := usageResource.Parse(usage); err != nil {
 		return nil, err
 	}
@@ -283,14 +280,12 @@ func (p Plugin) getNodeResourceInfo(ctx context.Context, nodename string, worklo
 	if nodeResourceInfo.Usage.Storage != usage.storage {
 		diffs = append(diffs, fmt.Sprintf("node.Storage != sum(workload.Storage): %+v != %+v", nodeResourceInfo.Usage.Storage, usage.storage))
 	}
-	for volume, size := range nodeResourceInfo.Usage.Volumes {
-		if usage.volumes[volume] != size {
-			diffs = append(diffs, fmt.Sprintf("node.Volumes[%s] != sum(workload.Volumes[%s]): %+v != %+v", volume, volume, size, usage.volumes[volume]))
-		}
-	}
-	for volume, size := range usage.volumes {
-		if _, ok := nodeResourceInfo.Usage.Volumes[volume]; !ok && size != 0 {
-			diffs = append(diffs, fmt.Sprintf("node.Volumes[%s] != sum(workload.Volumes[%s]): %+v != %+v", volume, volume, nodeResourceInfo.Usage.Volumes[volume], size))
+	volumes := maps.Clone(usage.volumes)
+	maps.Copy(volumes, nodeResourceInfo.Usage.Volumes)
+	for volume := range volumes {
+		stored, computed := nodeResourceInfo.Usage.Volumes[volume], usage.volumes[volume]
+		if stored != computed {
+			diffs = append(diffs, fmt.Sprintf("node.Volumes[%s] != sum(workload.Volumes[%s]): %+v != %+v", volume, volume, stored, computed))
 		}
 	}
 	for _, disk := range nodeResourceInfo.Usage.Disks {
