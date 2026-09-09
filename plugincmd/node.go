@@ -19,6 +19,7 @@ func (r *runner) nodeCommands() []*cli.Command {
 		r.command(binary.GetNodesDeployCapacityCommand, "get deploy capacity", getNodesDeployCapacity),
 		r.command(binary.SetNodeResourceCapacityCommand, "set node capacity", setNodeResourceCapacity),
 		r.command(binary.GetNodeResourceInfoCommand, "get node resource info", getNodeResourceInfo),
+		r.command(binary.GetNodesResourceInfoCommand, "get nodes resource info", getNodesResourceInfo),
 		r.command(binary.SetNodeResourceInfoCommand, "set node resource info", setNodeResourceInfo),
 		r.command(binary.SetNodeResourceUsageCommand, "set node usage", setNodeResourceUsage),
 		r.command(binary.GetMostIdleNodeCommand, "get most idle node", getMostIdleNode),
@@ -75,6 +76,14 @@ func getNodeResourceInfo(ctx context.Context, p plugins.Plugin, in resourcetypes
 		return resp, nil
 	}
 	return resp, err
+}
+
+func getNodesResourceInfo(ctx context.Context, p plugins.Plugin, in resourcetypes.RawParams) (any, error) {
+	nodenames := in.StringSlice("nodenames")
+	if len(nodenames) == 0 {
+		return nil, coretypes.ErrEmptyNodeName
+	}
+	return p.GetNodesResourceInfo(ctx, nodenames)
 }
 
 func setNodeResourceInfo(ctx context.Context, p plugins.Plugin, in resourcetypes.RawParams) (any, error) {
