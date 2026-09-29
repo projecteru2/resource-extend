@@ -99,20 +99,13 @@ func (n *NodeResourceInfo) validateDisks() error {
 		}
 	}
 
-	toRemoveMap := map[string]struct{}{}
 	for _, disk := range n.Usage.Disks {
-		capacity := n.Capacity.Disks.GetDiskByDevice(disk.Device)
-		if capacity == nil {
-			if disk.ReadIOPS == 0 && disk.WriteIOPS == 0 && disk.ReadBPS == 0 && disk.WriteBPS == 0 {
-				toRemoveMap[disk.Device] = struct{}{}
-			} else {
-				return errors.Wrapf(ErrInvalidDisk, "disk %+v not found in capacity", disk.Device)
-			}
+		if n.Capacity.Disks.GetDiskByDevice(disk.Device) == nil && (disk.ReadIOPS != 0 || disk.WriteIOPS != 0 || disk.ReadBPS != 0 || disk.WriteBPS != 0) {
+			return errors.Wrapf(ErrInvalidDisk, "disk %+v not found in capacity", disk.Device)
 		}
 	}
 	n.Usage.Disks = slices.DeleteFunc(n.Usage.Disks, func(disk *Disk) bool {
-		_, ok := toRemoveMap[disk.Device]
-		return ok
+		return n.Capacity.Disks.GetDiskByDevice(disk.Device) == nil
 	})
 	return nil
 }

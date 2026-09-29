@@ -81,7 +81,7 @@ func (vb VolumeBinding) ValidIOParameters() bool {
 	return vb.ReadIOPS >= 0 && vb.WriteIOPS >= 0 && vb.ReadBPS >= 0 && vb.WriteBPS >= 0
 }
 
-func (vb VolumeBinding) ToString(normalize bool) (volume string) {
+func (vb VolumeBinding) ToString(normalize bool) string {
 	flags := vb.Flags
 	if normalize {
 		flags = strings.ReplaceAll(flags, "m", "")
@@ -93,17 +93,10 @@ func (vb VolumeBinding) ToString(normalize bool) (volume string) {
 		flags = strings.ReplaceAll(flags, "w", "wo")
 	}
 
-	if !normalize {
-		volume = fmt.Sprintf("%s:%s:%s:%d:%d:%d:%d:%d", vb.Source, vb.Destination, flags, vb.SizeInBytes, vb.ReadIOPS, vb.WriteIOPS, vb.ReadBPS, vb.WriteBPS)
-	} else {
-		switch {
-		case vb.ReadIOPS != 0 || vb.WriteIOPS != 0 || vb.ReadBPS != 0 || vb.WriteBPS != 0:
-			volume = fmt.Sprintf("%s:%s:%s:%d:%d:%d:%d:%d", vb.Source, vb.Destination, flags, vb.SizeInBytes, vb.ReadIOPS, vb.WriteIOPS, vb.ReadBPS, vb.WriteBPS)
-		default:
-			volume = fmt.Sprintf("%s:%s:%s:%d", vb.Source, vb.Destination, flags, vb.SizeInBytes)
-		}
+	if !normalize || vb.ReadIOPS != 0 || vb.WriteIOPS != 0 || vb.ReadBPS != 0 || vb.WriteBPS != 0 {
+		return fmt.Sprintf("%s:%s:%s:%d:%d:%d:%d:%d", vb.Source, vb.Destination, flags, vb.SizeInBytes, vb.ReadIOPS, vb.WriteIOPS, vb.ReadBPS, vb.WriteBPS)
 	}
-	return volume
+	return fmt.Sprintf("%s:%s:%s:%d", vb.Source, vb.Destination, flags, vb.SizeInBytes)
 }
 
 func (vb VolumeBinding) GetMapKey() [3]string {
@@ -111,16 +104,15 @@ func (vb VolumeBinding) GetMapKey() [3]string {
 }
 
 func (vb VolumeBinding) DeepCopy() *VolumeBinding {
-	return &VolumeBinding{
-		Source:      vb.Source,
-		Destination: vb.Destination,
-		Flags:       vb.Flags,
-		SizeInBytes: vb.SizeInBytes,
-		ReadIOPS:    vb.ReadIOPS,
-		WriteIOPS:   vb.WriteIOPS,
-		ReadBPS:     vb.ReadBPS,
-		WriteBPS:    vb.WriteBPS,
-	}
+	return &vb
+}
+
+func (vb *VolumeBinding) AddQuota(o *VolumeBinding) {
+	vb.SizeInBytes += o.SizeInBytes
+	vb.ReadIOPS += o.ReadIOPS
+	vb.WriteIOPS += o.WriteIOPS
+	vb.ReadBPS += o.ReadBPS
+	vb.WriteBPS += o.WriteBPS
 }
 
 func (vb VolumeBinding) DiskQuota(disk *Disk) *Disk {
@@ -215,11 +207,7 @@ func MergeVolumeBindings(vbs1 VolumeBindings, vbs2 ...VolumeBindings) (vbs Volum
 	for _, group := range slices.Concat(vbs2, []VolumeBindings{vbs1}) {
 		for _, vb := range group {
 			if binding, ok := vbMap[vb.GetMapKey()]; ok {
-				binding.SizeInBytes += vb.SizeInBytes
-				binding.ReadIOPS += vb.ReadIOPS
-				binding.WriteIOPS += vb.WriteIOPS
-				binding.ReadBPS += vb.ReadBPS
-				binding.WriteBPS += vb.WriteBPS
+				binding.AddQuota(vb)
 			} else {
 				vbMap[vb.GetMapKey()] = vb.DeepCopy()
 			}
@@ -318,16 +306,9 @@ func (p VolumePlan) Merge(p2 VolumePlan) {
 		if oldVM, oldVB := p.GetVolumes(vb); oldVB != nil {
 			delete(p, oldVB)
 			vm = Volumes{vm.GetDevice(): vm.GetSize() + oldVM.GetSize()}
-			vb = &VolumeBinding{
-				Source:      vb.Source,
-				Destination: vb.Destination,
-				Flags:       vb.Flags,
-				SizeInBytes: vb.SizeInBytes + oldVB.SizeInBytes,
-				ReadIOPS:    vb.ReadIOPS + oldVB.ReadIOPS,
-				WriteIOPS:   vb.WriteIOPS + oldVB.WriteIOPS,
-				ReadBPS:     vb.ReadBPS + oldVB.ReadBPS,
-				WriteBPS:    vb.WriteBPS + oldVB.WriteBPS,
-			}
+			merged := *vb
+			merged.AddQuota(oldVB)
+			vb = &merged
 		}
 		p[vb] = vm
 	}

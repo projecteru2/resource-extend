@@ -45,14 +45,8 @@ func (d *Disk) Parse(s string) (err error) {
 }
 
 func (d *Disk) DeepCopy() *Disk {
-	return &Disk{
-		Device:    d.Device,
-		Mounts:    d.Mounts,
-		ReadIOPS:  d.ReadIOPS,
-		WriteIOPS: d.WriteIOPS,
-		ReadBPS:   d.ReadBPS,
-		WriteBPS:  d.WriteBPS,
-	}
+	c := *d
+	return &c
 }
 
 type Disks []*Disk

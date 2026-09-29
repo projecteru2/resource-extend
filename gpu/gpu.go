@@ -23,10 +23,6 @@ type Plugin struct {
 	store *nodestore.Store[*gputypes.NodeResourceInfo]
 }
 
-func (p Plugin) Name() string {
-	return Name
-}
-
 func NewPlugin(ctx context.Context, config coretypes.Config) (*Plugin, error) {
 	kv, err := nodestore.Open(ctx, config)
 	if err != nil {
@@ -34,6 +30,10 @@ func NewPlugin(ctx context.Context, config coretypes.Config) (*Plugin, error) {
 		return nil, err
 	}
 	return &Plugin{store: newStore(kv)}, nil
+}
+
+func (p Plugin) Name() string {
+	return Name
 }
 
 func newStore(kv nodestore.KV) *nodestore.Store[*gputypes.NodeResourceInfo] {

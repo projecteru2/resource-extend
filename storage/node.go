@@ -344,7 +344,7 @@ func (p Plugin) calculateNodeResource(req *storagetypes.NodeResourceRequest, nod
 	var resp *storagetypes.NodeResource
 	if origin == nil || !delta { // no delta means node resource rewrite with whole new data
 		resp = &storagetypes.NodeResource{Volumes: storagetypes.Volumes{}, Disks: storagetypes.Disks{}}
-		// a full rewrite must force incr, or the values are stored negative
+		// A full rewrite must force incr, or the values are stored negative
 		incr = true
 	} else {
 		resp = origin.DeepCopy()
