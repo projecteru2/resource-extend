@@ -47,14 +47,10 @@ func (s *Store[T]) Get(ctx context.Context, nodename string) (T, error) {
 	if err != nil {
 		return info, err
 	}
-	switch resp.Count {
-	case 0:
+	if resp.Count == 0 {
 		return info, errors.Wrapf(coretypes.ErrNodeNotExists, "key: %s", nodename)
-	case 1:
-		return info, json.Unmarshal(resp.Kvs[0].Value, info)
-	default:
-		return info, errors.Wrapf(coretypes.ErrInvaildCount, "key: %s", nodename)
 	}
+	return info, json.Unmarshal(resp.Kvs[0].Value, info)
 }
 
 // GetOrEmpty returns the resource info of one node, an empty one when the plugin has nothing stored for it.
@@ -113,7 +109,7 @@ func (s *Store[T]) CheckAbsent(ctx context.Context, nodename string) error {
 	switch _, err := s.Get(ctx, nodename); {
 	case err == nil:
 		return coretypes.ErrNodeExists
-	case errors.IsAny(err, coretypes.ErrInvaildCount, coretypes.ErrNodeNotExists):
+	case errors.Is(err, coretypes.ErrNodeNotExists):
 		return nil
 	default:
 		return err
