@@ -74,12 +74,10 @@ func (p Plugin) CalculateRealloc(ctx context.Context, nodename string, resource 
 	}
 
 	targetWorkloadResource := &storagetypes.WorkloadResource{
-		VolumesRequest:    req.VolumesRequest,
-		VolumesLimit:      req.VolumesLimit,
-		VolumePlanRequest: nil,
-		VolumePlanLimit:   nil,
-		StorageRequest:    req.StorageRequest,
-		StorageLimit:      req.StorageLimit,
+		VolumesRequest: req.VolumesRequest,
+		VolumesLimit:   req.VolumesLimit,
+		StorageRequest: req.StorageRequest,
+		StorageLimit:   req.StorageLimit,
 	}
 
 	if targetWorkloadResource.StorageRequest-originResource.StorageRequest > resourceInfo.Capacity.Storage-resourceInfo.Usage.Storage {

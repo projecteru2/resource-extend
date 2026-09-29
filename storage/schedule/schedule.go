@@ -124,20 +124,15 @@ func (h *host) getDiskByPath(path string) (*types.Disk, bool) {
 }
 
 func (h *host) getMonoPlan(monoRequests types.VolumeBindings, volume *volume) (types.VolumePlan, *types.Disk, error) {
-	var totalSize, totalReadIOPS, totalWriteIOPS, totalReadBPS, totalWriteBPS int64
+	total := &types.VolumeBinding{}
 	for _, req := range monoRequests {
-		totalSize += req.SizeInBytes
-		totalReadIOPS += req.ReadIOPS
-		totalWriteIOPS += req.WriteIOPS
-		totalReadBPS += req.ReadBPS
-		totalWriteBPS += req.WriteBPS
+		total.AddQuota(req)
 	}
 
-	if volume.size < totalSize {
+	if volume.size < total.SizeInBytes {
 		return nil, nil, coretypes.ErrInsufficientResource
 	}
 
-	total := &types.VolumeBinding{SizeInBytes: totalSize, ReadIOPS: totalReadIOPS, WriteIOPS: totalWriteIOPS, ReadBPS: totalReadBPS, WriteBPS: totalWriteBPS}
 	disk, _ := h.getDiskByPath(volume.device)
 	if !isDiskIOPSQuotaQualified(disk, total) {
 		return nil, nil, coretypes.ErrInsufficientResource
@@ -147,7 +142,7 @@ func (h *host) getMonoPlan(monoRequests types.VolumeBindings, volume *volume) (t
 	volumeSize := volume.size
 
 	for _, req := range monoRequests {
-		size := int64(float64(req.SizeInBytes) / float64(totalSize) * float64(volumeSize))
+		size := int64(float64(req.SizeInBytes) / float64(total.SizeInBytes) * float64(volumeSize))
 		volumePlan[req] = types.Volumes{volume.device: size}
 		volume.size -= size
 	}
@@ -203,10 +198,6 @@ func (h *host) getNormalPlan(normalRequests types.VolumeBindings) (types.VolumeP
 
 	volumePlan := types.VolumePlan{}
 	diskPlan := types.Disks{}
-
-	if len(normalRequests) == 0 {
-		return volumePlan, diskPlan, nil
-	}
 
 	// normalRequests is sorted by size, so we can allocate the volumes in order
 	for _, req := range normalRequests {
@@ -297,10 +288,7 @@ func (h *host) applyMountPasses(mountRequests types.VolumeBindings, bound int) (
 			sum = &types.VolumeBinding{}
 			quotas[disk] = sum
 		}
-		sum.ReadIOPS += req.ReadIOPS
-		sum.WriteIOPS += req.WriteIOPS
-		sum.ReadBPS += req.ReadBPS
-		sum.WriteBPS += req.WriteBPS
+		sum.AddQuota(req)
 	}
 
 	capacity := bound

@@ -65,10 +65,6 @@ func (p Plugin) CalculateRealloc(ctx context.Context, nodename string, resource 
 	newReq := req.DeepCopy()
 	newReq.MergeFromResource(originResource)
 
-	if err = newReq.Validate(); err != nil {
-		return nil, err
-	}
-
 	enginesParams, workloadsResource, err := p.doAlloc(nodeResourceInfo, 1, newReq)
 	if err != nil {
 		return nil, err
