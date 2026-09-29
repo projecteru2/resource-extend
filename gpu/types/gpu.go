@@ -30,7 +30,7 @@ func (pcm ProdCountMap) Validate() error {
 	return nil
 }
 
-// in order to support realloc, the count can be negative, so only validate prod here
+// In order to support realloc, the count can be negative, so only validate prod here
 func (pcm ProdCountMap) ValidateProd() error {
 	for prod := range pcm {
 		if strings.TrimSpace(prod) == "" {

@@ -71,7 +71,7 @@ func getNodeResourceInfo(ctx context.Context, p plugins.Plugin, in resourcetypes
 		return nil, err
 	}
 	resp, err := p.GetNodeResourceInfo(ctx, node, in.SliceRawParams("workloads_resource"))
-	// a node the plugin never saw has no resource of this kind, which is not a failure
+	// A node the plugin never saw has no resource of this kind, which is not a failure
 	if errors.Is(err, coretypes.ErrNodeNotExists) {
 		return resp, nil
 	}

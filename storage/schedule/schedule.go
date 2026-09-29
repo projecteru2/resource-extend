@@ -113,7 +113,7 @@ func (h *host) emptyPlans() ([]types.VolumePlan, []types.Disks) {
 		})
 }
 
-// disk entries mutate in place and are never replaced, so resolved paths stay valid for the host's lifetime
+// Disk entries mutate in place and are never replaced, so resolved paths stay valid for the host's lifetime
 func (h *host) getDiskByPath(path string) (*types.Disk, bool) {
 	disk, ok := h.diskByPath[path]
 	if !ok {
@@ -270,7 +270,7 @@ func (h *host) getMountOnlyPlans(mountRequests types.VolumeBindings, bound int) 
 		})
 }
 
-// reproduces the enumeration loop in closed form: same count, same final disk quotas, same trailing failed pass
+// Reproduces the enumeration loop in closed form: same count, same final disk quotas, same trailing failed pass
 func (h *host) applyMountPasses(mountRequests types.VolumeBindings, bound int) (int, types.Disks) {
 	prototype, err := h.getMountDiskPlan(mountRequests)
 	if err != nil || bound < 1 {
@@ -355,7 +355,7 @@ func (h *host) getMountDiskPlan(reqs types.VolumeBindings) (types.Disks, error) 
 	return diskPlan, nil
 }
 
-// the classes couple only through disk quota that an IOPS-bearing monopoly group inspects
+// The classes couple only through disk quota that an IOPS-bearing monopoly group inspects
 func (h *host) normalBound(classes requestClasses) int {
 	if len(classes.mono) == 0 {
 		return h.maxDeployCount
