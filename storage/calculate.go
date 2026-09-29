@@ -25,7 +25,7 @@ func (p Plugin) CalculateDeploy(ctx context.Context, nodename string, deployCoun
 		return nil, err
 	}
 
-	nodeResourceInfo, err := p.store.Get(ctx, nodename)
+	nodeResourceInfo, err := p.store.GetOrEmpty(ctx, nodename)
 	if err != nil {
 		logger.Error(ctx, err, "failed to get resource info of node")
 		return nil, err
@@ -52,7 +52,7 @@ func (p Plugin) CalculateRealloc(ctx context.Context, nodename string, resource 
 	if err := originResource.Parse(resource); err != nil {
 		return nil, err
 	}
-	resourceInfo, err := p.store.Get(ctx, nodename)
+	resourceInfo, err := p.store.GetOrEmpty(ctx, nodename)
 	if err != nil {
 		logger.Error(ctx, err, "failed to get resource info of node")
 		return nil, err

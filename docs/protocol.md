@@ -77,7 +77,8 @@ Any verb may fail. The plugin exits with status 128, and core surfaces the failu
 
 A node this plugin has never seen is not an error. `get-node-resource-info` returns `null` and exits 0, so
 core reads an empty resource for that node instead of failing the whole `node get` or `node list`. The
-node verbs that read several nodes (`get-nodes-resource-info`, `get-nodes-deploy-capacity`, `get-most-idle-node`) treat such a node as
+node verbs that read several nodes (`get-nodes-resource-info`, `get-nodes-deploy-capacity`, `get-most-idle-node`) and the calculate
+verbs core calls on every plugin for a deploy or a realloc (`calculate-deploy`, `calculate-realloc`) treat such a node as
 holding nothing of this kind: it stays deployable for requests that ask for nothing of this kind and has no
 capacity for the others. `set-node-resource-capacity` and `set-node-resource-usage` start from that empty
 record and create it, so `node set` is how an operator declares capacity on a node that predates the

@@ -10,6 +10,7 @@ import (
 	coretypes "github.com/projecteru2/core/types"
 	"github.com/sanity-io/litter"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/projecteru2/resource-extend/storage/types"
 )
@@ -28,7 +29,11 @@ func TestCalculateDeploy(t *testing.T) {
 		"volumes": []string{"AUTO:/dir0:rwm:1G"},
 	}
 	_, err = st.CalculateDeploy(ctx, "no node", 10, req)
-	assert.ErrorIs(t, err, coretypes.ErrNodeNotExists)
+	assert.ErrorIs(t, err, coretypes.ErrInsufficientResource)
+
+	unseen, err := st.CalculateDeploy(ctx, "no node", 10, nil)
+	require.NoError(t, err)
+	assert.Len(t, unseen.WorkloadsResource, 10)
 
 	req = plugintypes.WorkloadResourceRequest{
 		"volumes": []string{"AUTO:/dir0:rwm:10T"},
@@ -90,7 +95,7 @@ func TestCalculateRealloc(t *testing.T) {
 	req := plugintypes.WorkloadResourceRequest{}
 
 	_, err = st.CalculateRealloc(ctx, "no node", resource, req)
-	assert.ErrorIs(t, err, coretypes.ErrNodeNotExists)
+	assert.NoError(t, err)
 
 	req = plugintypes.WorkloadResourceRequest{
 		"volume-request":  []string{"AUTO:/dir0:rw:100GiB", "AUTO:/dir1:mrw:100GiB", "AUTO:/dir2:rw:0"},
