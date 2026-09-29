@@ -8,6 +8,7 @@ require (
 	github.com/sanity-io/litter v1.5.8
 	github.com/stretchr/testify v1.12.1
 	github.com/urfave/cli/v3 v3.11.0
+	go.etcd.io/etcd/api/v3 v3.7.1
 	go.etcd.io/etcd/client/v3 v3.7.1
 	golang.org/x/sync v0.22.0
 )
@@ -101,7 +102,6 @@ require (
 	github.com/tonistiigi/vt100 v0.0.0-20240514184818-90bafcd6abab // indirect
 	github.com/xiang90/probing v0.0.0-20221125231312-a49e3df8f510 // indirect
 	go.etcd.io/bbolt v1.5.0 // indirect
-	go.etcd.io/etcd/api/v3 v3.7.1 // indirect
 	go.etcd.io/etcd/client/pkg/v3 v3.7.1 // indirect
 	go.etcd.io/etcd/pkg/v3 v3.7.1 // indirect
 	go.etcd.io/etcd/server/v3 v3.7.1 // indirect
