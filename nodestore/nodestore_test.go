@@ -5,11 +5,10 @@ import (
 	"errors"
 	"testing"
 
+	coretypes "github.com/projecteru2/core/types"
 	"github.com/stretchr/testify/assert"
 	"go.etcd.io/etcd/api/v3/mvccpb"
 	clientv3 "go.etcd.io/etcd/client/v3"
-
-	coretypes "github.com/projecteru2/core/types"
 )
 
 func TestGetAndCheckAbsent(t *testing.T) {
